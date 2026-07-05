@@ -3,76 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ระบบสร้าง QR Code (สุ่มแบบ Dynamic)</title>
-    <!-- โหลดไลบรารีสำหรับสร้าง QR Code -->
+    <title>ระบบสร้าง QR Code (หมดอายุทุก 1.30 นาที)</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <style>
-        body { 
-            font-family: 'Segoe UI', Tahoma, sans-serif; 
-            background-color: #f0f2f5; 
-            display: flex; 
-            justify-content: center; 
-            align-items: center; 
-            min-height: 100vh; 
-            margin: 0; 
-            padding: 20px; 
-        }
-        .container { 
-            background: white; 
-            padding: 30px; 
-            border-radius: 20px; 
-            box-shadow: 0 10px 20px rgba(0,0,0,0.1); 
-            text-align: center; 
-            max-width: 400px; 
-            width: 100%; 
-        }
+        body { font-family: 'Segoe UI', Tahoma, sans-serif; background-color: #f0f2f5; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; padding: 20px; }
+        .container { background: white; padding: 30px; border-radius: 20px; box-shadow: 0 10px 20px rgba(0,0,0,0.1); text-align: center; max-width: 400px; width: 100%; }
         h2 { color: #334155; margin-bottom: 20px; }
-        select { 
-            width: 100%; 
-            padding: 12px; 
-            border-radius: 10px; 
-            border: 2px solid #cbd5e1; 
-            font-size: 16px; 
-            margin-bottom: 20px;
-            color: #1e293b;
-            font-weight: bold;
-        }
-        #qrcode-container {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            margin: 20px 0;
-            min-height: 250px;
-            background-color: #f8fafc;
-            border-radius: 15px;
-            padding: 20px;
-            border: 2px dashed #cbd5e1;
-        }
-        #qr-text {
-            font-size: 12px;
-            color: #64748b;
-            margin-bottom: 15px;
-            word-break: break-all;
-        }
-        button { 
-            padding: 12px 20px; 
-            border: none; 
-            border-radius: 10px; 
-            cursor: pointer; 
-            font-size: 16px; 
-            font-weight: bold; 
-            width: 100%; 
-            transition: 0.2s; 
-        }
+        select { width: 100%; padding: 12px; border-radius: 10px; border: 2px solid #cbd5e1; font-size: 16px; margin-bottom: 20px; color: #1e293b; font-weight: bold; }
+        #qrcode-container { display: flex; justify-content: center; align-items: center; margin: 20px 0; min-height: 250px; background-color: #f8fafc; border-radius: 15px; padding: 20px; border: 2px dashed #cbd5e1; }
+        #qr-text { font-size: 12px; color: #64748b; margin-bottom: 15px; word-break: break-all; }
+        button { padding: 12px 20px; border: none; border-radius: 10px; cursor: pointer; font-size: 16px; font-weight: bold; width: 100%; transition: 0.2s; }
         .btn-start { background-color: #3b82f6; color: white; }
         .btn-stop { background-color: #ef4444; color: white; display: none; }
-        .timer { font-size: 14px; color: #ef4444; margin-top: 10px; font-weight: bold; height: 20px;}
+        .timer { font-size: 24px; color: #ef4444; margin-top: 15px; font-weight: bold; }
     </style>
 </head>
 <body>
 
     <div class="container">
-        <h2>📱 สร้าง QR Code ประจำฐาน</h2>
+        <h2>⏱️ QR Code (อายุ 1.30 นาที)</h2>
         
         <select id="stationSelect" onchange="stationChanged()">
             <option value="QR_STN_01">ฐาน 1: Library Playground</option>
@@ -90,30 +39,30 @@
         
         <div id="qr-text">กรุณากดเริ่มเพื่อสร้าง QR Code</div>
         
-        <button id="btnStart" class="btn-start" onclick="startDynamicQR()">▶️ เริ่มสร้าง QR แบบสุ่ม</button>
+        <button id="btnStart" class="btn-start" onclick="startDynamicQR()">▶️ เริ่มสร้าง QR Code</button>
         <button id="btnStop" class="btn-stop" onclick="stopDynamicQR()">⏹️ หยุดการสร้าง QR</button>
         
-        <div id="timerDisplay" class="timer"></div>
+        <div id="timerDisplay" class="timer">--:--</div>
     </div>
 
     <script>
         let qrCodeObj = null;
-        let intervalId = null;
         let countdownId = null;
-        const refreshRate = 5; // รีเฟรชสุ่มใหม่ทุกๆ 5 วินาที
+        const refreshRate = 90; // 90 วินาที (1 นาที 30 วินาที)
+        let timeLeft = 0;
 
         function generateRandomQR() {
             const baseQR = document.getElementById('stationSelect').value;
-            // สร้างรหัสสุ่มต่อท้าย (เช่น _AB39X) เพื่อให้ QR Code เปลี่ยนรูปร่างตลอดเวลา
-            const randomString = Math.random().toString(36).substring(2, 7).toUpperCase();
-            const dynamicQRText = `${baseQR}_${randomString}`;
+            const currentTimestamp = Date.now();
+            
+            // นำรหัสฐานมาต่อด้วยเครื่องหมาย | และเวลาปัจจุบัน (มิลลิวินาที)
+            const dynamicQRText = `${baseQR}|${currentTimestamp}`;
 
-            document.getElementById('qr-text').innerText = `ข้อมูลจำลอง: ${dynamicQRText}`;
+            document.getElementById('qr-text').innerText = `Data: ${baseQR} (อัปเดตล่าสุด)`;
             
             const qrContainer = document.getElementById("qrcode");
-            qrContainer.innerHTML = ""; // ล้างอันเก่า
+            qrContainer.innerHTML = ""; 
             
-            // สร้าง QR Code ใหม่
             qrCodeObj = new QRCode(qrContainer, {
                 text: dynamicQRText,
                 width: 220,
@@ -122,49 +71,46 @@
                 colorLight : "#ffffff",
                 correctLevel : QRCode.CorrectLevel.H
             });
+        }
+
+        function updateTimer() {
+            if (timeLeft <= 0) {
+                generateRandomQR();
+                timeLeft = refreshRate;
+            }
             
-            resetCountdown();
+            // แปลงวินาทีเป็นรูปแบบ นาที:วินาที (เช่น 01:30)
+            const minutes = Math.floor(timeLeft / 60);
+            const seconds = timeLeft % 60;
+            document.getElementById('timerDisplay').innerText = 
+                `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+            
+            timeLeft--;
         }
 
         function startDynamicQR() {
             document.getElementById('btnStart').style.display = 'none';
             document.getElementById('btnStop').style.display = 'block';
-            document.getElementById('stationSelect').disabled = true; // ล็อคไม่ให้เปลี่ยนฐานตอนกำลังรัน
+            document.getElementById('stationSelect').disabled = true; 
             
-            generateRandomQR(); // สร้างทันทีครั้งแรก
-            
-            // ตั้งเวลาให้รันฟังก์ชันสร้าง QR ใหม่ตามวินาทีที่กำหนด
-            intervalId = setInterval(generateRandomQR, refreshRate * 1000);
+            timeLeft = 0; // บังคับให้สร้างทันทีในรอบแรก
+            updateTimer();
+            countdownId = setInterval(updateTimer, 1000);
         }
 
         function stopDynamicQR() {
             document.getElementById('btnStart').style.display = 'block';
             document.getElementById('btnStop').style.display = 'none';
-            document.getElementById('stationSelect').disabled = false; // ปลดล็อค
+            document.getElementById('stationSelect').disabled = false; 
             
-            clearInterval(intervalId);
             clearInterval(countdownId);
-            document.getElementById('timerDisplay').innerText = "หยุดการทำงานแล้ว";
-        }
-
-        function resetCountdown() {
-            let timeLeft = refreshRate;
-            document.getElementById('timerDisplay').innerText = `รหัสจะเปลี่ยนในอีก ${timeLeft} วินาที...`;
-            
-            if(countdownId) clearInterval(countdownId);
-            
-            countdownId = setInterval(() => {
-                timeLeft--;
-                document.getElementById('timerDisplay').innerText = `รหัสจะเปลี่ยนในอีก ${timeLeft} วินาที...`;
-                if(timeLeft <= 0) clearInterval(countdownId);
-            }, 1000);
+            document.getElementById('timerDisplay').innerText = "--:--";
+            document.getElementById("qrcode").innerHTML = "";
+            document.getElementById('qr-text').innerText = "กรุณากดเริ่มเพื่อสร้าง QR Code";
         }
 
         function stationChanged() {
-            // ถ้ามีการเปลี่ยนฐานขณะกำลังหยุด ให้เคลียร์ภาพออกเพื่อกันสับสน
-            document.getElementById("qrcode").innerHTML = "";
-            document.getElementById('qr-text').innerText = "กรุณากดเริ่มเพื่อสร้าง QR Code";
-            document.getElementById('timerDisplay').innerText = "";
+            stopDynamicQR();
         }
     </script>
 </body>
