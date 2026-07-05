@@ -28,7 +28,7 @@
             position: absolute; width: 85px; height: 85px; border-radius: 50%; 
             display: flex; flex-direction: column; align-items: center; justify-content: center; 
             text-align: center; font-size: 10px; font-weight: bold; line-height: 1.1;
-            padding: 5px; overflow: hidden; transition: 0.2s;
+            padding: 5px; overflow: hidden; transition: 0.3s ease;
         }
         
         /* 1) กรณียังไม่ได้สแตมป์ (รอยประสีเทา) */
@@ -43,7 +43,7 @@
         .station-node.stamped { 
             border: 2px dashed #10b981; 
             background-color: #ecfdf5; 
-            cursor: default; 
+            cursor: pointer; /* เปลี่ยนให้กดได้ */
             box-shadow: 0 4px 6px rgba(16,185,129,0.15);
         }
 
@@ -67,7 +67,7 @@
         }
         
         /* พิกัดตำแหน่งวงกลม */
-        .st-0 { top: 50%; left: 50%; transform: translate(-50%, -50%); width: 110px; height: 110px; font-size: 12px; } 
+        .st-0 { top: 50%; left: 50%; transform: translate(-50%, -50%); width: 110px; height: 110px; font-size: 12px; z-index: 10; box-shadow: 0 0 10px rgba(0,0,0,0.1); } 
         .st-4 { top: 0px; left: 50%; transform: translateX(-50%); } 
         .st-1 { top: 45px; right: 0px; } 
         .st-6 { bottom: 45px; right: 0px; } 
@@ -86,6 +86,21 @@
         .hidden { display: none !important; }
         .user-info { background-color: #e2e8f0; padding: 8px 15px; border-radius: 20px; font-size: 14px; font-weight: bold; color: #475569; display: inline-block; margin-bottom: 10px; }
         .success-banner { background-color: #fef3c7; border: 2px solid #f59e0b; color: #d97706; padding: 20px; border-radius: 15px; margin: 20px 0; font-size: 18px; font-weight: bold;}
+
+        /* สไตล์สำหรับกล่องเนื้อหาที่ซ่อนไว้ */
+        .content-box { 
+            background-color: #f0f9ff; 
+            border: 2px solid #bae6fd; 
+            color: #0369a1; 
+            padding: 15px; 
+            border-radius: 15px; 
+            margin-bottom: 15px; 
+            text-align: left; 
+            font-size: 14px;
+            animation: fadeIn 0.3s ease;
+        }
+        .content-box h3 { margin-top: 0; color: #0284c7; margin-bottom: 8px; font-size: 16px;}
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
 
         /* ย่อส่วนแผนที่ลงเล็กน้อยสำหรับมือถือรุ่นเก่ามาก */
         @media (max-width: 360px) {
@@ -122,11 +137,13 @@
             <div id="statusText" style="font-weight: bold; margin-bottom: 5px; color: #10b981;">แต้มปัจจุบัน: 0 / 7</div>
             <div style="font-size: 12px; color: #64748b; margin-bottom: 5px;">(คลิกที่วงกลมฐานที่ยังไม่ผ่านเพื่อสแกน QR Code)</div>
             
-            <!-- เพิ่ม Wrapper จัดกึ่งกลาง -->
             <div class="map-wrapper" id="mapWrapper">
                 <div class="map-container" id="mapContainer"></div>
             </div>
             
+            <!-- กล่องแสดงเนื้อหาเมื่อกดที่ฐานสีเขียว -->
+            <div id="contentBox" class="content-box hidden"></div>
+
             <div id="reader"></div>
             <button id="btnCancel" class="btn-cancel" onclick="stopScan()">❌ ยกเลิกสแกนกล้อง</button>
             <button id="btnRedeem" class="btn-redeem" onclick="redeemReward()" disabled>🎁 แลกของรางวัล (ต้องครบ 7 ฐาน)</button>
@@ -149,35 +166,42 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
         
-        // ข้อมูลฐาน
+        // ข้อมูลฐาน (เพิ่มฟิลด์ content สำหรับเนื้อหาที่ซ่อนไว้)
         const STATIONS = [
             { id: 0, name: "Library Playground", qr: "QR_STN_01", 
               imgUnstamped: "https://cdn.jsdelivr.net/gh/kongweha/Gametest@e1caf09903b8480a94b9baf8497f1d3302eed795/picture/LIBRARY%20PLAYGROUND1.webp", 
-              imgStamped: "https://cdn.jsdelivr.net/gh/kongweha/Gametest@e1caf09903b8480a94b9baf8497f1d3302eed795/picture/LIBRARY%20PLAYGROUND2.webp" 
+              imgStamped: "https://cdn.jsdelivr.net/gh/kongweha/Gametest@e1caf09903b8480a94b9baf8497f1d3302eed795/picture/LIBRARY%20PLAYGROUND2.webp",
+              content: "ยินดีต้อนรับสู่พื้นที่สำหรับทำกิจกรรมและพักผ่อน! พื้นที่นี้ออกแบบมาเพื่อให้คุณได้สนุกกับการเรียนรู้ในรูปแบบใหม่"
             },
             { id: 1, name: "Discovery Lab", qr: "QR_STN_02", 
               imgUnstamped: "https://cdn.jsdelivr.net/gh/kongweha/Gametest@e1caf09903b8480a94b9baf8497f1d3302eed795/picture/Discovery%20LAB1.webp", 
-              imgStamped: "https://cdn.jsdelivr.net/gh/kongweha/Gametest@e1caf09903b8480a94b9baf8497f1d3302eed795/picture/Discovery%20LAB2.webp" 
+              imgStamped: "https://cdn.jsdelivr.net/gh/kongweha/Gametest@e1caf09903b8480a94b9baf8497f1d3302eed795/picture/Discovery%20LAB2.webp",
+              content: "ค้นพบไอเดียใหม่ๆ ที่ Discovery Lab เรามีเครื่องมือและทรัพยากรที่พร้อมช่วยให้คุณต่อยอดความคิดสร้างสรรค์ได้ไม่รู้จบ"
             },
             { id: 2, name: "Play Zone", qr: "QR_STN_03", 
               imgUnstamped: "https://cdn.jsdelivr.net/gh/kongweha/Gametest@e1caf09903b8480a94b9baf8497f1d3302eed795/picture/Play%20ZONE1.webp", 
-              imgStamped: "https://cdn.jsdelivr.net/gh/kongweha/Gametest@e1caf09903b8480a94b9baf8497f1d3302eed795/picture/Play%20ZONE2.webp" 
+              imgStamped: "https://cdn.jsdelivr.net/gh/kongweha/Gametest@e1caf09903b8480a94b9baf8497f1d3302eed795/picture/Play%20ZONE2.webp",
+              content: "ถึงเวลาคลายเครียด! โซนนี้เปิดโอกาสให้คุณผ่อนคลายจากการอ่านหนังสือหนักๆ ด้วยเกมและกิจกรรมที่น่าสนใจมากมาย"
             },
             { id: 3, name: "Treasure Corner", qr: "QR_STN_04", 
               imgUnstamped: "https://cdn.jsdelivr.net/gh/kongweha/Gametest@e1caf09903b8480a94b9baf8497f1d3302eed795/picture/Treasure%20corner1.webp", 
-              imgStamped: "https://cdn.jsdelivr.net/gh/kongweha/Gametest@e1caf09903b8480a94b9baf8497f1d3302eed795/picture/Treasure%20corner2.webp" 
+              imgStamped: "https://cdn.jsdelivr.net/gh/kongweha/Gametest@e1caf09903b8480a94b9baf8497f1d3302eed795/picture/Treasure%20corner2.webp",
+              content: "ขุมทรัพย์ความรู้! มุมนี้รวบรวมหนังสือและสื่อหายากที่คุณอาจไม่เคยรู้มาก่อนว่ามีอยู่ในห้องสมุดของเรา"
             },
             { id: 4, name: "Media Studio", qr: "QR_STN_05", 
               imgUnstamped: "https://cdn.jsdelivr.net/gh/kongweha/Gametest@e1caf09903b8480a94b9baf8497f1d3302eed795/picture/Media%20studio1.webp", 
-              imgStamped: "https://cdn.jsdelivr.net/gh/kongweha/Gametest@e1caf09903b8480a94b9baf8497f1d3302eed795/picture/Media%20studio2.webp" 
+              imgStamped: "https://cdn.jsdelivr.net/gh/kongweha/Gametest@e1caf09903b8480a94b9baf8497f1d3302eed795/picture/Media%20studio2.webp",
+              content: "จุดประกายความเป็นนักสร้างสรรค์กับสตูดิโอสื่อครบวงจร ไม่ว่าจะอัดเสียง ถ่ายวิดีโอ หรือตัดต่อ ก็ทำได้ที่นี่!"
             },
             { id: 5, name: "Tech Station", qr: "QR_STN_06", 
               imgUnstamped: "https://cdn.jsdelivr.net/gh/kongweha/Gametest@e1caf09903b8480a94b9baf8497f1d3302eed795/picture/8.webp", 
-              imgStamped: "https://cdn.jsdelivr.net/gh/kongweha/Gametest@e1caf09903b8480a94b9baf8497f1d3302eed795/picture/1145405557.webp" 
+              imgStamped: "https://cdn.jsdelivr.net/gh/kongweha/Gametest@e1caf09903b8480a94b9baf8497f1d3302eed795/picture/1145405557.webp",
+              content: "อัปเดตเทรนด์เทคโนโลยีใหม่ๆ แวะมาทดลองใช้งานอุปกรณ์สุดล้ำที่เราจัดเตรียมไว้ให้คุณสัมผัสด้วยตัวเอง"
             },
             { id: 6, name: "Safety Checkpoint", qr: "QR_STN_07", 
               imgUnstamped: "https://cdn.jsdelivr.net/gh/kongweha/Gametest@e1caf09903b8480a94b9baf8497f1d3302eed795/picture/Safety%20Checkpoint1.webp", 
-              imgStamped: "https://cdn.jsdelivr.net/gh/kongweha/Gametest@e1caf09903b8480a94b9baf8497f1d3302eed795/picture/Safety%20Checkpoint2.webp" 
+              imgStamped: "https://cdn.jsdelivr.net/gh/kongweha/Gametest@e1caf09903b8480a94b9baf8497f1d3302eed795/picture/Safety%20Checkpoint2.webp",
+              content: "ความปลอดภัยคือสิ่งสำคัญ เรียนรู้วิธีการดูแลรักษาพื้นที่ส่วนรวมและการปฏิบัติตามกฎเพื่อความเรียบร้อย"
             }
         ];
 
@@ -198,6 +222,7 @@
                 }
             }
         }
+        
         document.querySelectorAll('.otp-box').forEach((box, index, list) => {
             box.addEventListener('keyup', (e) => {
                 if (e.key === 'Backspace' || e.keyCode === 8) {
@@ -229,7 +254,6 @@
                 
                 dbRef = db.ref(`users/${currentUserCode}`);
                 dbRef.on('value', (snap) => {
-                    // ป้องกัน Error กรณีข้อมูลว่างเปล่า
                     if(snap.exists()) {
                         renderUI(snap.val());
                     }
@@ -253,24 +277,47 @@
             const mapContainer = document.getElementById('mapContainer');
             mapContainer.innerHTML = ''; 
             let count = 0;
-            // รองรับโครงสร้างข้อมูลทั้งแบบ Array และ Object จาก Firebase
             const userStations = userData.stations || {}; 
+            
+            // --- ระบบคำนวณตำแหน่งสลับฐาน (Swap Position) ---
+            // เริ่มต้นให้แต่ละฐานอยู่ตำแหน่งของตัวเอง 0 -> 0, 1 -> 1, ...
+            let posMap = {0:0, 1:1, 2:2, 3:3, 4:4, 5:5, 6:6}; 
+            
+            // ดึงประวัติการสแกนมาเรียงตามเวลา เพื่อสลับตำแหน่งทีละขั้น
+            if (userData.scanHistory) {
+                const historyList = Object.values(userData.scanHistory).sort((a, b) => a.time - b.time);
+                historyList.forEach(record => {
+                    const targetId = parseInt(record.id);
+                    // หาว่าปัจจุบันใครครองตำแหน่งที่ 0 (ตรงกลาง) อยู่
+                    const currentCenterId = Object.keys(posMap).find(key => posMap[key] === 0);
+                    // ตำแหน่งปัจจุบันของฐานที่เพิ่งสแกน
+                    const targetCurrentPos = posMap[targetId];
+                    
+                    // ทำการสลับตำแหน่งกัน
+                    posMap[currentCenterId] = targetCurrentPos;
+                    posMap[targetId] = 0; // ให้ตัวที่สแกนล่าสุดมาอยู่ตรงกลาง
+                });
+            }
+            // ------------------------------------------------
 
             STATIONS.forEach((st, index) => {
                 const node = document.createElement('div');
-                // ตรวจสอบค่าให้รัดกุมยิ่งขึ้น
                 const isPassed = userStations[index] === true;
+                const currentPosClass = posMap[index]; // ตำแหน่งปัจจุบันหลังจากคำนวณการสลับแล้ว
                 
                 if (isPassed) {
                     count++;
-                    node.className = `station-node st-${index} stamped`;
+                    node.className = `station-node st-${currentPosClass} stamped`;
                     node.innerHTML = `<img src="${st.imgStamped}" alt="${st.name}">`;
+                    // เพิ่ม Onclick สำหรับกดดูเนื้อหา
+                    node.onclick = () => toggleStationContent(index);
                 } else {
-                    node.className = `station-node st-${index} unstamped`;
+                    node.className = `station-node st-${currentPosClass} unstamped`;
                     node.innerHTML = `
                         <img src="${st.imgUnstamped}" alt="${st.name}">
                         <span>${st.name}</span>
                     `;
+                    // Onclick สำหรับเปิดกล้องสแกน
                     node.onclick = () => openScannerFor(index);
                 }
                 mapContainer.appendChild(node);
@@ -280,8 +327,25 @@
             document.getElementById('btnRedeem').disabled = (count < 7);
         }
 
+        // ฟังก์ชันสำหรับสลับแสดง/ซ่อนเนื้อหา
+        function toggleStationContent(stationId) {
+            const box = document.getElementById('contentBox');
+            // ถากดฐานเดิมที่กำลังแสดงอยู่ ให้ปิดซ่อน
+            if (box.dataset.activeId == stationId && !box.classList.contains('hidden')) {
+                box.classList.add('hidden');
+            } else {
+                // ถ้ากดฐานอื่น ให้เปลี่ยนข้อมูลและแสดงผล
+                box.dataset.activeId = stationId;
+                box.innerHTML = `<h3>📖 ${STATIONS[stationId].name}</h3><p>${STATIONS[stationId].content}</p>`;
+                box.classList.remove('hidden');
+            }
+        }
+
         function openScannerFor(stationIndex) {
             if (isScannerInitializing || (html5QrCode && html5QrCode.isScanning)) return;
+            
+            // ปิดกล่องข้อความ(ถ้ามี) เมื่อเริ่มสแกนใหม่
+            document.getElementById('contentBox').classList.add('hidden');
             
             activeTargetStation = STATIONS[stationIndex];
             cancelRequested = false;
@@ -309,17 +373,13 @@
                         const targetId = activeTargetStation.id;
                         const targetName = activeTargetStation.name;
 
-                        // สั่งปิดกล้องทันทีเพื่อให้ผู้ใช้ทราบว่าสแกนติดแล้ว
                         stopScan(); 
 
                         try {
                             const snap = await db.ref(`users/${currentUserCode}/stations/${targetId}`).once('value');
                             if (!snap.val()) {
-                                // 🔴 สำคัญ: สั่งอัปเดตสถานะ "ผ่านฐาน" ก่อนเป็นอันดับแรก เพื่อให้ UI เปลี่ยนสีเขียวทันที
                                 await db.ref(`users/${currentUserCode}/stations/${targetId}`).set(true);
                                 
-                                // 🔴 แยกส่วนการบันทึกประวัติ (History) ไว้ใน try-catch ต่างหาก
-                                // ป้องกันปัญหากรณี Firebase Rules ไม่รองรับ จะได้ไม่ทำให้ระบบหลักพัง
                                 try {
                                     const scanData = { id: targetId, name: targetName, time: Date.now() };
                                     await db.ref(`users/${currentUserCode}/scanHistory`).push(scanData);
@@ -398,6 +458,7 @@
                 document.getElementById('loginScreen').classList.remove('hidden');
                 document.getElementById('successBanner').classList.add('hidden');
                 document.getElementById('stampArea').classList.remove('hidden');
+                document.getElementById('contentBox').classList.add('hidden');
             } catch (error) {
                 location.reload(); 
             }
