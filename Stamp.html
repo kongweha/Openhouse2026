@@ -73,16 +73,16 @@
 </head>
 <body>
 
-    <!-- หน้าต่าง Login -->
+    <!-- หน้าต่าง Login (ลบ oninput ออกจาก HTML แล้ว) -->
     <div class="container" id="loginScreen">
         <h2>🔐 เข้าสู่ระบบสะสมแต้ม</h2>
         <div class="otp-container" id="otpGroup">
-            <input type="tel" class="otp-box" maxlength="1" oninput="handleOtp(this)">
-            <input type="tel" class="otp-box" maxlength="1" oninput="handleOtp(this)">
-            <input type="tel" class="otp-box" maxlength="1" oninput="handleOtp(this)">
-            <input type="tel" class="otp-box" maxlength="1" oninput="handleOtp(this)">
-            <input type="tel" class="otp-box" maxlength="1" oninput="handleOtp(this)">
-            <input type="tel" class="otp-box" maxlength="1" oninput="handleOtp(this)">
+            <input type="tel" class="otp-box" maxlength="1">
+            <input type="tel" class="otp-box" maxlength="1">
+            <input type="tel" class="otp-box" maxlength="1">
+            <input type="tel" class="otp-box" maxlength="1">
+            <input type="tel" class="otp-box" maxlength="1">
+            <input type="tel" class="otp-box" maxlength="1">
         </div>
         <button id="btnLogin" class="btn-primary" onclick="login()">ตกลงเพื่อเข้าสู่ระบบ</button>
     </div>
@@ -175,86 +175,84 @@
         let isScannerInitializing = false;
         let cancelRequested = false;
         let isProcessingScan = false;
+        let isLoggingIn = false; // ตัวแปรป้องกันการกด/เรียก Login ซ้ำซ้อน
 
         // -----------------------------------------------------------
-        // ระบบกรอกรหัส OTP အัจฉริยะ (แก้ไขข้อบกพร่องเรื่องเข้าสู่ระบบ)
+        // 1. ระบบจัดการกล่องกรอกรหัส (เขียนใหม่ทั้งหมด)
         // -----------------------------------------------------------
-        function handleOtp(field) {
-            field.value = field.value.replace(/[^0-9]/g, ''); // บังคับกรอกแค่ตัวเลข
-            
-            if (field.value.length >= 1) {
-                field.value = field.value.substring(0, 1);
+        const otpInputs = document.querySelectorAll('.otp-box');
+
+        otpInputs.forEach((input, index) => {
+            // ดักจับเวลาพิมพ์
+            input.addEventListener('input', function() {
+                this.value = this.value.replace(/[^0-9]/g, ''); // อนุญาตเฉพาะตัวเลข
                 
-                let next = field.nextElementSibling;
-                if (next && next.tagName === 'INPUT') {
-                    next.focus(); // เด้งไปช่องถัดไป
-                } else {
-                    field.blur(); // ซ่อนคีย์บอร์ดมือถือ
-                    
-                    // เช็คว่ากรอกครบ 6 ช่องหรือยัง ถ้าครบแล้วค่อยเรียก login()
-                    let input = Array.from(document.querySelectorAll('.otp-box')).map(box => box.value).join('');
-                    if (input.length === 6) {
-                        login(); 
+                if (this.value !== '') {
+                    // ถ้ายังไม่ถึงกล่องสุดท้าย ให้เด้งไปกล่องถัดไป
+                    if (index < otpInputs.length - 1) {
+                        otpInputs[index + 1].focus();
+                    } else {
+                        // ถ้าถึงกล่องสุดท้ายแล้ว
+                        this.blur();
+                        login(); // ออโต้ล็อกอิน
                     }
                 }
-            }
-        }
+            });
 
-        document.querySelectorAll('.otp-box').forEach((box, index, list) => {
-            box.addEventListener('keydown', (e) => {
+            // ดักจับการกดปุ่มลบ (Backspace)
+            input.addEventListener('keydown', function(e) {
                 if (e.key === 'Backspace' || e.keyCode === 8) {
-                    if (box.value === '') {
-                        let prev = box.previousElementSibling;
-                        if (prev && prev.tagName === 'INPUT') {
-                            prev.focus();
-                            prev.value = ''; 
+                    if (this.value === '') {
+                        if (index > 0) {
+                            otpInputs[index - 1].focus();
+                            otpInputs[index - 1].value = '';
                         }
                     } else {
-                        box.value = ''; 
+                        this.value = '';
                     }
                     e.preventDefault();
                 }
             });
 
-            // รองรับการกด Copy รหัสมา Paste วางทีเดียว
-            box.addEventListener('paste', (e) => {
+            // ดักจับเวลากดวาง (Paste) รหัส 6 ตัวพร้อมกัน
+            input.addEventListener('paste', function(e) {
                 e.preventDefault();
                 let pasteData = (e.clipboardData || window.clipboardData).getData('text');
                 pasteData = pasteData.replace(/[^0-9]/g, '').substring(0, 6);
                 
                 for (let i = 0; i < pasteData.length; i++) {
-                    if (list[index + i]) {
-                        list[index + i].value = pasteData[i];
-                        if (i === pasteData.length - 1 && list[index + i + 1]) {
-                            list[index + i + 1].focus();
-                        }
+                    if (otpInputs[i]) {
+                        otpInputs[i].value = pasteData[i];
                     }
                 }
                 
-                let input = Array.from(list).map(b => b.value).join('');
-                if (input.length === 6) {
-                    list[5].blur();
+                if (pasteData.length === 6) {
+                    otpInputs[5].blur();
                     login();
                 }
             });
         });
 
         // -----------------------------------------------------------
-        // ฟังก์ชันเข้าสู่ระบบ 
+        // 2. ฟังก์ชัน Login เข้าสู่ระบบ 
         // -----------------------------------------------------------
         async function login() {
-            let input = Array.from(document.querySelectorAll('.otp-box')).map(box => box.value).join('');
+            if (isLoggingIn) return; // ถ้าระบบกำลังล็อกอินอยู่ ให้ข้ามไป (กันเบิ้ล)
+            
+            let input = Array.from(otpInputs).map(box => box.value).join('');
             if (input.length !== 6) { 
                 alert("กรุณากรอกรหัสให้ครบ 6 หลัก"); 
                 return; 
             }
             
-            // เปลี่ยนสถานะปุ่มเพื่อป้องกันกดซ้ำ
-            document.getElementById('btnLogin').disabled = true;
-            document.getElementById('btnLogin').innerText = "กำลังตรวจสอบ...";
+            isLoggingIn = true;
+            let btn = document.getElementById('btnLogin');
+            btn.disabled = true;
+            btn.innerText = "กำลังตรวจสอบ...";
 
             try {
                 const snapshot = await db.ref(`users/${input}`).once('value');
+                
                 if (snapshot.exists()) {
                     currentUserCode = input;
                     document.getElementById('displayUserCode').innerText = `รหัสสมาชิก: ${currentUserCode}`;
@@ -273,21 +271,21 @@
                         }
                     });
                 } else {
-                    alert("❌ ไม่พบรหัสนี้ในระบบ");
-                    // คืนค่าปุ่มหากรหัสผิด
-                    document.getElementById('btnLogin').disabled = false;
-                    document.getElementById('btnLogin').innerText = "ตกลงเพื่อเข้าสู่ระบบ";
+                    alert("❌ ไม่พบรหัสนี้ในระบบ\n(ตรวจสอบให้แน่ใจว่ามีการเพิ่มรหัส 6 หลักนี้ไว้ในฐานข้อมูล Firebase แล้ว)");
                 }
             } catch (error) {
                 console.error(error);
                 alert("เกิดข้อผิดพลาดในการเชื่อมต่อฐานข้อมูล กรุณาลองอีกครั้ง");
-                document.getElementById('btnLogin').disabled = false;
-                document.getElementById('btnLogin').innerText = "ตกลงเพื่อเข้าสู่ระบบ";
+            } finally {
+                // คืนค่าปุ่มกลับมาเหมือนเดิม เผื่อผู้ใช้กรอกผิดแล้วจะแก้รหัสใหม่
+                isLoggingIn = false;
+                btn.disabled = false;
+                btn.innerText = "ตกลงเพื่อเข้าสู่ระบบ";
             }
         }
 
         // -----------------------------------------------------------
-        // ฟังก์ชันอัปเดตหน้าจอและการจัดการ UI (รวมระบบสลับตำแหน่งฐาน)
+        // 3. ฟังก์ชันอัปเดตหน้าจอและการจัดการ UI (รวมระบบสลับตำแหน่งฐาน)
         // -----------------------------------------------------------
         function renderUI(userData) {
             if (!userData) return;
@@ -303,7 +301,6 @@
             let count = 0;
             const userStations = userData.stations || {}; 
             
-            // คำนวณตำแหน่งสลับฐาน (Swap Position)
             let posMap = {0:0, 1:1, 2:2, 3:3, 4:4, 5:5, 6:6}; 
             
             if (userData.scanHistory) {
@@ -314,7 +311,7 @@
                     const targetCurrentPos = posMap[targetId];
                     
                     posMap[currentCenterId] = targetCurrentPos;
-                    posMap[targetId] = 0; // ย้ายตัวล่าสุดมาตรงกลาง[cite: 2]
+                    posMap[targetId] = 0; 
                 });
             }
 
@@ -327,7 +324,7 @@
                     count++;
                     node.className = `station-node st-${currentPosClass} stamped`;
                     node.innerHTML = `<img src="${st.imgStamped}" alt="${st.name}">`;
-                    node.onclick = () => toggleStationContent(index); // กดดูเนื้อหาได้[cite: 2]
+                    node.onclick = () => toggleStationContent(index); 
                 } else {
                     node.className = `station-node st-${currentPosClass} unstamped`;
                     node.innerHTML = `
@@ -346,16 +343,16 @@
         function toggleStationContent(stationId) {
             const box = document.getElementById('contentBox');
             if (box.dataset.activeId == stationId && !box.classList.contains('hidden')) {
-                box.classList.add('hidden'); // กดซ้ำเพื่อปิด[cite: 2]
+                box.classList.add('hidden'); 
             } else {
                 box.dataset.activeId = stationId;
                 box.innerHTML = `<h3>📖 ${STATIONS[stationId].name}</h3><p>${STATIONS[stationId].content}</p>`;
-                box.classList.remove('hidden'); // กดเพื่อเปิด[cite: 2]
+                box.classList.remove('hidden'); 
             }
         }
 
         // -----------------------------------------------------------
-        // ระบบสแกน QR Code (ระบบความปลอดภัย 90 วินาที)
+        // 4. ระบบสแกน QR Code (ความปลอดภัยสูง 90 วินาที)
         // -----------------------------------------------------------
         function openScannerFor(stationIndex) {
             if (isScannerInitializing || (html5QrCode && html5QrCode.isScanning)) return;
@@ -382,16 +379,15 @@
                 async (decodedText) => {
                     if (isProcessingScan) return;
 
-                    // รูปแบบที่คาดหวัง: "QR_STN_01|1715420000000"[cite: 2]
-                    const parts = decodedText.split('|');[cite: 2]
+                    const parts = decodedText.split('|');
                     
                     if (parts.length === 2 && parts[0] === activeTargetStation.qr) {
-                        const qrTimestamp = parseInt(parts[1]);[cite: 2]
-                        const currentTimestamp = Date.now();[cite: 2]
-                        const timeDifference = currentTimestamp - qrTimestamp;[cite: 2]
+                        const qrTimestamp = parseInt(parts[1]);
+                        const currentTimestamp = Date.now();
+                        const timeDifference = currentTimestamp - qrTimestamp;
                         
-                        // อนุญาตให้สแกนได้ภายใน 90,000 มิลลิวินาที (90 วินาที)[cite: 2]
-                        if (timeDifference <= 90000 && timeDifference >= -5000) {[cite: 2]
+                        // เช็คเวลา 90 วินาที
+                        if (timeDifference <= 90000 && timeDifference >= -5000) {
                             isProcessingScan = true; 
                             stopScan(); 
                             
@@ -401,11 +397,11 @@
                             try {
                                 const snap = await db.ref(`users/${currentUserCode}/stations/${targetId}`).once('value');
                                 if (!snap.val()) {
-                                    await db.ref(`users/${currentUserCode}/stations/${targetId}`).set(true);[cite: 2]
+                                    await db.ref(`users/${currentUserCode}/stations/${targetId}`).set(true);
                                     
                                     try {
-                                        const scanData = { id: targetId, name: targetName, time: Date.now() };[cite: 2]
-                                        await db.ref(`users/${currentUserCode}/scanHistory`).push(scanData);[cite: 2]
+                                        const scanData = { id: targetId, name: targetName, time: Date.now() };
+                                        await db.ref(`users/${currentUserCode}/scanHistory`).push(scanData);
                                     } catch (historyErr) {
                                         console.warn("ไม่สามารถบันทึกประวัติได้:", historyErr);
                                     }
@@ -415,16 +411,16 @@
                             }
                         } else {
                             isProcessingScan = true; 
-                            alert(`❌ QR Code นี้หมดอายุแล้ว (อายุเกิน 1.30 นาที)\nกรุณาสแกน QR Code ล่าสุด`);[cite: 2]
+                            alert(`❌ QR Code นี้หมดอายุแล้ว (อายุเกิน 1.30 นาที)\nกรุณาสแกน QR Code ล่าสุด`);
                             stopScan(); 
                         }
                     } else if (decodedText.includes(activeTargetStation.qr) && !decodedText.includes('|')) {
                         isProcessingScan = true; 
-                        alert(`❌ รูปแบบ QR Code ไม่ถูกต้อง (ไม่อนุญาตให้ใช้ QR แบบเก่า)`);[cite: 2]
+                        alert(`❌ รูปแบบ QR Code ไม่ถูกต้อง (ไม่อนุญาตให้ใช้ QR แบบเก่า)`);
                         stopScan(); 
                     } else {
                         isProcessingScan = true; 
-                        alert(`❌ QR Code ไม่ถูกต้องสำหรับฐาน ${activeTargetStation.name}`);[cite: 2]
+                        alert(`❌ QR Code ไม่ถูกต้องสำหรับฐาน ${activeTargetStation.name}`);
                         stopScan(); 
                     }
                 },
@@ -482,7 +478,7 @@
                     dbRef = null;
                 }
                 currentUserCode = "";
-                document.querySelectorAll('.otp-box').forEach(box => box.value = '');
+                otpInputs.forEach(box => box.value = '');
                 document.getElementById('btnLogin').disabled = false;
                 document.getElementById('btnLogin').innerText = "ตกลงเพื่อเข้าสู่ระบบ";
                 
