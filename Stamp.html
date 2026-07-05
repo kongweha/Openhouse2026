@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ระบบสะสมแต้ม Event</title>
+    <!-- โหลด Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+    <script src="https://unpkg.com/html5-qrcode"></script>
+    <style>
+        *, *::before, *::after { box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, sans-serif; background-color: #f0f2f5; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; padding: 15px; }
+        
+        .container { background: white; padding: 25px 20px; border-radius: 20px; box-shadow: 0 10px 20px rgba(0,0,0,0.1); text-align: center; max-width: 420px; width: 100%; position: relative; }
+        
+        /* สไตล์สำหรับกล่องกรอกรหัส 6 ช่อง */
+        .otp-container { display: flex; gap: 8px; justify-content: center; margin: 20px 0; }
+        .otp-box { width: 45px; height: 50px; border: 2px solid #cbd5e1; border-radius: 10px; font-size: 22px; text-align: center; font-weight: bold; color: #334155; -webkit-appearance: none; }
+        .otp-box:focus { border-color: #3b82f6; outline: none; box-shadow: 0 0 5px rgba(59,130,246,0.3); }
+
+        /* ตัวครอบแผนที่ ช่วยบังคับให้อยู่กึ่งกลางเสมอแม้มือถือจอเล็ก */
+        .map-wrapper { width: 100%; display: flex; justify-content: center; align-items: center; margin: 20px 0; overflow: visible; }
+        .map-container { position: relative; width: 330px; height: 330px; flex-shrink: 0; }
+        
+        /* สไตล์หลักของวงกลมแต่ละฐาน */
+        .station-node { 
+            position: absolute; width: 85px; height: 85px; border-radius: 50%; 
+            display: flex; flex-direction: column; align-items: center; justify-content: center; 
+            text-align: center; font-size: 10px; font-weight: bold; line-height: 1.1;
+            padding: 5px; overflow: hidden; transition: 0.2s;
+        }
+        
+        /* 1) กรณียังไม่ได้สแตมป์ (รอยประสีเทา) */
+        .station-node.unstamped { 
+            border: 2px dashed #94a3b8; 
+            background-color: #f8fafc; 
+            color: #475569; 
+            cursor: pointer; 
+        }
+        
+        /* 2) กรณีสแตมป์แล้ว (รอยประสีเขียว) */
+        .station-node.stamped { 
+            border: 2px dashed #10b981; 
+            background-color: #ecfdf5; 
+            cursor: default; 
+            box-shadow: 0 4px 6px rgba(16,185,129,0.15);
+        }
+
+        /* การจัดวางรูปภาพให้อยู่ด้านหลังข้อความ */
+        .station-node img { 
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            width: 70%; height: 70%; object-fit: contain; z-index: 1; 
+            opacity: 0.25; /* ตอนยังไม่สแตมป์ให้ภาพจาง */
+        }
+        
+        /* ตอนสแตมป์แล้วให้รูปแสดง 100% และใหญ่ขึ้นเพราะไม่มีข้อความบัง */
+        .station-node.stamped img {
+            opacity: 1; 
+            width: 90%; height: 90%;
+        }
+
+        /* ข้อความชื่อฐาน (ใช้เฉพาะตอนยังไม่สแตมป์) */
+        .station-node span { 
+            position: relative; z-index: 2; 
+            text-shadow: 0px 0px 4px rgba(255,255,255,0.95), 0px 0px 2px rgba(255,255,255,1); 
+        }
+        
+        /* พิกัดตำแหน่งวงกลม */
+        .st-0 { top: 50%; left: 50%; transform: translate(-50%, -50%); width: 110px; height: 110px; font-size: 12px; } 
+        .st-4 { top: 0px; left: 50%; transform: translateX(-50%); } 
+        .st-1 { top: 45px; right: 0px; } 
+        .st-6 { bottom: 45px; right: 0px; } 
+        .st-5 { bottom: 0px; left: 50%; transform: translateX(-50%); } 
+        .st-2 { bottom: 45px; left: 0px; } 
+        .st-3 { top: 45px; left: 0px; } 
+
+        button { padding: 12px 20px; border: none; border-radius: 10px; cursor: pointer; font-size: 16px; font-weight: bold; width: 100%; margin-bottom: 10px; transition: 0.2s; }
+        .btn-primary { background-color: #3b82f6; color: white; }
+        .btn-redeem { background-color: #ef4444; color: white; margin-top: 15px;}
+        .btn-redeem:disabled { background-color: #fca5a5; cursor: not-allowed; }
+        .btn-cancel { background-color: #64748b; color: white; display: none; margin-top: 10px; }
+        .btn-logout { background-color: #94a3b8; color: white; margin-top: 10px; font-size: 14px; padding: 8px;}
+        
+        #reader { width: 100%; margin-bottom: 15px; display: none; border-radius: 10px; overflow: hidden; background: #000; }
+        .hidden { display: none !important; }
+        .user-info { background-color: #e2e8f0; padding: 8px 15px; border-radius: 20px; font-size: 14px; font-weight: bold; color: #475569; display: inline-block; margin-bottom: 10px; }
+        .success-banner { background-color: #fef3c7; border: 2px solid #f59e0b; color: #d97706; padding: 20px; border-radius: 15px; margin: 20px 0; font-size: 18px; font-weight: bold;}
+
+        /* ย่อส่วนแผนที่ลงเล็กน้อยสำหรับมือถือรุ่นเก่ามาก */
+        @media (max-width: 360px) {
+            .otp-box { width: 38px; height: 45px; font-size: 18px; }
+            .otp-container { gap: 5px; }
+            .map-container { transform: scale(0.9); }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container" id="loginScreen">
+        <h2>🔐 เข้าสู่ระบบสะสมแต้ม</h2>
+        <div class="otp-container" id="otpGroup">
+            <input type="tel" class="otp-box" maxlength="1" oninput="handleOtp(this, event)">
+            <input type="tel" class="otp-box" maxlength="1" oninput="handleOtp(this, event)">
+            <input type="tel" class="otp-box" maxlength="1" oninput="handleOtp(this, event)">
+            <input type="tel" class="otp-box" maxlength="1" oninput="handleOtp(this, event)">
+            <input type="tel" class="otp-box" maxlength="1" oninput="handleOtp(this, event)">
+            <input type="tel" class="otp-box" maxlength="1" oninput="handleOtp(this, event)">
+        </div>
+        <button id="btnLogin" class="btn-primary" onclick="login()">ตกลงเพื่อเข้าสู่ระบบ</button>
+    </div>
+
+    <div class="container hidden" id="stampScreen">
+        <h2>🎉 บัตรสะสมแต้ม</h2>
+        <div class="user-info" id="displayUserCode">รหัสสมาชิก: XXXXXX</div>
+        
+        <div id="successBanner" class="success-banner hidden">
+            🎁 รับของรางวัลเรียบร้อยแล้ว!<br><span style="font-size: 14px; color:#92400e;">(ไม่สามารถเล่นซ้ำได้)</span>
+        </div>
+
+        <div id="stampArea">
+            <div id="statusText" style="font-weight: bold; margin-bottom: 5px; color: #10b981;">แต้มปัจจุบัน: 0 / 7</div>
+            <div style="font-size: 12px; color: #64748b; margin-bottom: 5px;">(คลิกที่วงกลมฐานที่ยังไม่ผ่านเพื่อสแกน QR Code)</div>
+            
+            <!-- เพิ่ม Wrapper จัดกึ่งกลาง -->
+            <div class="map-wrapper" id="mapWrapper">
+                <div class="map-container" id="mapContainer"></div>
+            </div>
+            
+            <div id="reader"></div>
+            <button id="btnCancel" class="btn-cancel" onclick="stopScan()">❌ ยกเลิกสแกนกล้อง</button>
+            <button id="btnRedeem" class="btn-redeem" onclick="redeemReward()" disabled>🎁 แลกของรางวัล (ต้องครบ 7 ฐาน)</button>
+        </div>
+        
+        <button class="btn-logout" onclick="logout()">ออกจากระบบ</button>
+    </div>
+
+    <script>
+        const firebaseConfig = {
+          apiKey: "AIzaSyAJlt9qKkkUqPrQL7RLoRAPO-ToYwY7Q2o",
+          authDomain: "eventstampcard.firebaseapp.com",
+          databaseURL: "https://eventstampcard-default-rtdb.asia-southeast1.firebasedatabase.app",
+          projectId: "eventstampcard",
+          storageBucket: "eventstampcard.firebasestorage.app",
+          messagingSenderId: "1072393228911",
+          appId: "1:1072393228911:web:66f14d85a50749e7b9b39a"
+        };
+        
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+        
+        // ข้อมูลฐาน
+        const STATIONS = [
+            { id: 0, name: "Library Playground", qr: "QR_STN_01", 
+              imgUnstamped: "https://cdn.jsdelivr.net/gh/kongweha/Gametest@e1caf09903b8480a94b9baf8497f1d3302eed795/picture/LIBRARY%20PLAYGROUND1.webp", 
+              imgStamped: "https://cdn.jsdelivr.net/gh/kongweha/Gametest@e1caf09903b8480a94b9baf8497f1d3302eed795/picture/LIBRARY%20PLAYGROUND2.webp" 
+            },
+            { id: 1, name: "Discovery Lab", qr: "QR_STN_02", 
+              imgUnstamped: "https://cdn.jsdelivr.net/gh/kongweha/Gametest@e1caf09903b8480a94b9baf8497f1d3302eed795/picture/Discovery%20LAB1.webp", 
+              imgStamped: "https://cdn.jsdelivr.net/gh/kongweha/Gametest@e1caf09903b8480a94b9baf8497f1d3302eed795/picture/Discovery%20LAB2.webp" 
+            },
+            { id: 2, name: "Play Zone", qr: "QR_STN_03", 
+              imgUnstamped: "https://cdn.jsdelivr.net/gh/kongweha/Gametest@e1caf09903b8480a94b9baf8497f1d3302eed795/picture/Play%20ZONE1.webp", 
+              imgStamped: "https://cdn.jsdelivr.net/gh/kongweha/Gametest@e1caf09903b8480a94b9baf8497f1d3302eed795/picture/Play%20ZONE2.webp" 
+            },
+            { id: 3, name: "Treasure Corner", qr: "QR_STN_04", 
+              imgUnstamped: "https://cdn.jsdelivr.net/gh/kongweha/Gametest@e1caf09903b8480a94b9baf8497f1d3302eed795/picture/Treasure%20corner1.webp", 
+              imgStamped: "https://cdn.jsdelivr.net/gh/kongweha/Gametest@e1caf09903b8480a94b9baf8497f1d3302eed795/picture/Treasure%20corner2.webp" 
+            },
+            { id: 4, name: "Media Studio", qr: "QR_STN_05", 
+              imgUnstamped: "https://cdn.jsdelivr.net/gh/kongweha/Gametest@e1caf09903b8480a94b9baf8497f1d3302eed795/picture/Media%20studio1.webp", 
+              imgStamped: "https://cdn.jsdelivr.net/gh/kongweha/Gametest@e1caf09903b8480a94b9baf8497f1d3302eed795/picture/Media%20studio2.webp" 
+            },
+            { id: 5, name: "Tech Station", qr: "QR_STN_06", 
+              imgUnstamped: "https://cdn.jsdelivr.net/gh/kongweha/Gametest@e1caf09903b8480a94b9baf8497f1d3302eed795/picture/8.webp", 
+              imgStamped: "https://cdn.jsdelivr.net/gh/kongweha/Gametest@e1caf09903b8480a94b9baf8497f1d3302eed795/picture/1145405557.webp" 
+            },
+            { id: 6, name: "Safety Checkpoint", qr: "QR_STN_07", 
+              imgUnstamped: "https://cdn.jsdelivr.net/gh/kongweha/Gametest@e1caf09903b8480a94b9baf8497f1d3302eed795/picture/Safety%20Checkpoint1.webp", 
+              imgStamped: "https://cdn.jsdelivr.net/gh/kongweha/Gametest@e1caf09903b8480a94b9baf8497f1d3302eed795/picture/Safety%20Checkpoint2.webp" 
+            }
+        ];
+
+        let currentUserCode = "";
+        let html5QrCode;
+        let dbRef = null;
+        let activeTargetStation = null;
+        let isScannerInitializing = false;
+        let cancelRequested = false;
+        let isProcessingScan = false;
+
+        function handleOtp(field, event) {
+            field.value = field.value.replace(/[^0-9]/g, '');
+            if (field.value.length >= 1) {
+                field.value = field.value.charAt(0);
+                if (field.nextElementSibling) {
+                    field.nextElementSibling.focus();
+                }
+            }
+        }
+        document.querySelectorAll('.otp-box').forEach((box, index, list) => {
+            box.addEventListener('keyup', (e) => {
+                if (e.key === 'Backspace' || e.keyCode === 8) {
+                    if (box.value === '' && list[index - 1]) {
+                        list[index - 1].focus();
+                    }
+                }
+            });
+        });
+
+        async function login() {
+            let input = Array.from(document.querySelectorAll('.otp-box')).map(box => box.value).join('');
+            if (input.length !== 6) { alert("กรุณากรอกรหัสให้ครบ 6 หลัก"); return; }
+            
+            document.getElementById('btnLogin').disabled = true;
+            document.getElementById('btnLogin').innerText = "กำลังตรวจสอบ...";
+
+            const snapshot = await db.ref(`users/${input}`).once('value');
+            if (snapshot.exists()) {
+                currentUserCode = input;
+                document.getElementById('displayUserCode').innerText = `รหัสสมาชิก: ${currentUserCode}`;
+                
+                if (!snapshot.val().loginTime) {
+                    await db.ref(`users/${currentUserCode}/loginTime`).set(Date.now());
+                }
+
+                document.getElementById('loginScreen').classList.add('hidden');
+                document.getElementById('stampScreen').classList.remove('hidden');
+                
+                dbRef = db.ref(`users/${currentUserCode}`);
+                dbRef.on('value', (snap) => {
+                    // ป้องกัน Error กรณีข้อมูลว่างเปล่า
+                    if(snap.exists()) {
+                        renderUI(snap.val());
+                    }
+                });
+            } else {
+                alert("❌ ไม่พบรหัสนี้ในระบบ");
+                document.getElementById('btnLogin').disabled = false;
+                document.getElementById('btnLogin').innerText = "ตกลงเพื่อเข้าสู่ระบบ";
+            }
+        }
+
+        function renderUI(userData) {
+            if (!userData) return;
+            
+            if (userData.isRedeemed) {
+                document.getElementById('stampArea').classList.add('hidden');
+                document.getElementById('successBanner').classList.remove('hidden');
+                return;
+            }
+
+            const mapContainer = document.getElementById('mapContainer');
+            mapContainer.innerHTML = ''; 
+            let count = 0;
+            // รองรับโครงสร้างข้อมูลทั้งแบบ Array และ Object จาก Firebase
+            const userStations = userData.stations || {}; 
+
+            STATIONS.forEach((st, index) => {
+                const node = document.createElement('div');
+                // ตรวจสอบค่าให้รัดกุมยิ่งขึ้น
+                const isPassed = userStations[index] === true;
+                
+                if (isPassed) {
+                    count++;
+                    node.className = `station-node st-${index} stamped`;
+                    node.innerHTML = `<img src="${st.imgStamped}" alt="${st.name}">`;
+                } else {
+                    node.className = `station-node st-${index} unstamped`;
+                    node.innerHTML = `
+                        <img src="${st.imgUnstamped}" alt="${st.name}">
+                        <span>${st.name}</span>
+                    `;
+                    node.onclick = () => openScannerFor(index);
+                }
+                mapContainer.appendChild(node);
+            });
+
+            document.getElementById('statusText').innerText = count === 7 ? "🎉 เล่นครบ 7 ฐานแล้ว!" : `ผ่านแล้ว: ${count} / 7 ฐาน`;
+            document.getElementById('btnRedeem').disabled = (count < 7);
+        }
+
+        function openScannerFor(stationIndex) {
+            if (isScannerInitializing || (html5QrCode && html5QrCode.isScanning)) return;
+            
+            activeTargetStation = STATIONS[stationIndex];
+            cancelRequested = false;
+            isScannerInitializing = true;
+            isProcessingScan = false; 
+            
+            document.getElementById('mapWrapper').style.display = 'none';
+            document.getElementById('reader').style.display = 'block';
+            document.getElementById('btnCancel').style.display = 'block';
+            document.getElementById('btnCancel').innerText = "❌ ยกเลิกสแกนกล้อง";
+
+            if (!html5QrCode) {
+                html5QrCode = new Html5Qrcode("reader");
+            }
+            
+            html5QrCode.start(
+                { facingMode: "environment" },
+                { fps: 10, qrbox: 230 },
+                async (decodedText) => {
+                    if (isProcessingScan) return;
+
+                    if (decodedText.includes(activeTargetStation.qr)) {
+                        isProcessingScan = true; 
+                        
+                        const targetId = activeTargetStation.id;
+                        const targetName = activeTargetStation.name;
+
+                        // สั่งปิดกล้องทันทีเพื่อให้ผู้ใช้ทราบว่าสแกนติดแล้ว
+                        stopScan(); 
+
+                        try {
+                            const snap = await db.ref(`users/${currentUserCode}/stations/${targetId}`).once('value');
+                            if (!snap.val()) {
+                                // 🔴 สำคัญ: สั่งอัปเดตสถานะ "ผ่านฐาน" ก่อนเป็นอันดับแรก เพื่อให้ UI เปลี่ยนสีเขียวทันที
+                                await db.ref(`users/${currentUserCode}/stations/${targetId}`).set(true);
+                                
+                                // 🔴 แยกส่วนการบันทึกประวัติ (History) ไว้ใน try-catch ต่างหาก
+                                // ป้องกันปัญหากรณี Firebase Rules ไม่รองรับ จะได้ไม่ทำให้ระบบหลักพัง
+                                try {
+                                    const scanData = { id: targetId, name: targetName, time: Date.now() };
+                                    await db.ref(`users/${currentUserCode}/scanHistory`).push(scanData);
+                                } catch (historyErr) {
+                                    console.warn("ไม่สามารถบันทึกประวัติ scanHistory ได้:", historyErr);
+                                }
+                            }
+                        } catch (error) {
+                            console.error("Database Connection Error:", error);
+                        }
+                    } else {
+                        isProcessingScan = true; 
+                        alert(`❌ QR Code ไม่ถูกต้องสำหรับฐาน ${activeTargetStation.name}`);
+                        stopScan(); 
+                    }
+                },
+                (err) => {}
+            ).then(() => {
+                isScannerInitializing = false;
+                if (cancelRequested) stopScan();
+            }).catch(err => {
+                isScannerInitializing = false;
+                alert("เปิดกล้องไม่ได้ กรุณาตรวจสอบสิทธิ์การใช้งานกล้อง");
+                resetScannerUI();
+            });
+        }
+
+        function stopScan() {
+            if (isScannerInitializing) {
+                cancelRequested = true;
+                resetScannerUI();
+                return;
+            }
+            
+            if (html5QrCode && html5QrCode.isScanning) {
+                html5QrCode.stop().then(() => {
+                    resetScannerUI();
+                }).catch(e => {
+                    resetScannerUI();
+                });
+            } else {
+                resetScannerUI();
+            }
+        }
+
+        function resetScannerUI() {
+            document.getElementById('reader').style.display = 'none';
+            document.getElementById('btnCancel').style.display = 'none';
+            document.getElementById('mapWrapper').style.display = 'flex';
+            activeTargetStation = null;
+            isScannerInitializing = false;
+            cancelRequested = false;
+            isProcessingScan = false;
+        }
+
+        async function redeemReward() {
+            if (confirm("ต้องการกดแลกของรางวัลใช่หรือไม่? (ไม่สามารถย้อนกลับได้)")) {
+                await db.ref(`users/${currentUserCode}/redeemTime`).set(Date.now());
+                await db.ref(`users/${currentUserCode}/isRedeemed`).set(true);
+            }
+        }
+
+        function logout() {
+            try {
+                stopScan();
+                if(dbRef) {
+                    dbRef.off();
+                    dbRef = null;
+                }
+                currentUserCode = "";
+                document.querySelectorAll('.otp-box').forEach(box => box.value = '');
+                document.getElementById('btnLogin').disabled = false;
+                document.getElementById('btnLogin').innerText = "ตกลงเพื่อเข้าสู่ระบบ";
+                
+                document.getElementById('stampScreen').classList.add('hidden');
+                document.getElementById('loginScreen').classList.remove('hidden');
+                document.getElementById('successBanner').classList.add('hidden');
+                document.getElementById('stampArea').classList.remove('hidden');
+            } catch (error) {
+                location.reload(); 
+            }
+        }
+    </script>
+</body>
+</html>

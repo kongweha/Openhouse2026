@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบหลังบ้าน (Admin Dashboard)</title>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, sans-serif; background-color: #f1f5f9; margin: 0; padding: 20px; color: #334155; }
+        .admin-container { background: white; padding: 30px; border-radius: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); max-width: 1100px; margin: 0 auto; }
+        h1 { margin-top: 0; color: #1e293b; font-size: 24px; }
+        .action-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 20px; border-bottom: 2px solid #e2e8f0; }
+        
+        button { padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: bold; transition: 0.2s; }
+        .btn-primary { background-color: #3b82f6; color: white; }
+        .btn-primary:hover { background-color: #2563eb; }
+        .btn-danger { background-color: #ef4444; color: white; margin-left: 10px; }
+        .btn-danger:hover { background-color: #dc2626; }
+        
+        /* สไตล์ของแท็บ */
+        .tab-menu { display: flex; gap: 10px; margin-bottom: 20px; }
+        .tab-btn { padding: 12px 20px; background: #e2e8f0; color: #475569; border-radius: 10px; cursor: pointer; font-weight: bold; font-size: 16px; border: none; }
+        .tab-btn.active { background: #1e293b; color: white; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        .stats-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 25px; }
+        .card { background: #f8fafc; padding: 20px; border-radius: 10px; border: 1px solid #e2e8f0; text-align: center; }
+        .card h3 { margin: 0 0 10px 0; font-size: 14px; color: #64748b; }
+        .card .value { font-size: 28px; font-weight: bold; color: #0f172a; }
+        
+        /* ช่องกรอง/ค้นหา */
+        .filter-group { display: flex; gap: 15px; margin-bottom: 20px; }
+        .search-box, .filter-select { padding: 12px 15px; font-size: 15px; border: 2px solid #cbd5e1; border-radius: 10px; box-sizing: border-box; outline: none; }
+        .search-box { flex: 1; }
+        .filter-select { background-color: white; }
+
+        table { width: 100%; border-collapse: collapse; background: white; font-size: 14px; }
+        th, td { padding: 15px; border-bottom: 1px solid #e2e8f0; text-align: left; }
+        th { background-color: #f8fafc; color: #475569; }
+        td { vertical-align: top; }
+        
+        .badge { padding: 6px 12px; border-radius: 15px; font-size: 12px; font-weight: bold; cursor: pointer; display: inline-block; }
+        .badge.none { background: #e2e8f0; color: #64748b; }
+        .badge.playing { background: #fef08a; color: #854d0e; }
+        .badge.completed { background: #bbf7d0; color: #166534; }
+        .badge.redeemed { background: #bfdbfe; color: #1e40af; }
+        .clickable-status { text-decoration: underline; text-underline-offset: 4px; }
+
+        /* Path Styling */
+        .path-flow { font-size: 12px; color: #64748b; margin-top: 5px; line-height: 1.6; }
+        .path-flow span { background: #f1f5f9; padding: 2px 6px; border-radius: 5px; border: 1px solid #e2e8f0; display: inline-block; margin: 2px 0; }
+        .path-arrow { color: #cbd5e1; font-size: 10px; margin: 0 4px; }
+        
+        /* Modal ประวัติย่อย */
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; }
+        .modal-content { background: white; padding: 30px; border-radius: 15px; width: 90%; max-width: 500px; position: relative; max-height: 85vh; overflow-y: auto; }
+        .close-btn { position: absolute; top: 15px; right: 20px; font-size: 24px; cursor: pointer; color: #64748b; background: none; border: none; }
+        .timeline { list-style: none; padding: 0; margin: 20px 0 0 0; }
+        .timeline li { padding-bottom: 15px; border-left: 2px solid #e2e8f0; margin-left: 10px; padding-left: 20px; position: relative; }
+        .timeline li:last-child { border-left: none; }
+        .timeline li::before { content: ''; position: absolute; left: -6px; top: 0; width: 10px; height: 10px; background: #3b82f6; border-radius: 50%; }
+        .timeline-time { font-size: 12px; color: #94a3b8; margin-left: 10px; }
+        .duration-box { font-size: 12px; color: #d97706; background: #fef3c7; padding: 2px 8px; border-radius: 10px; display: inline-block; margin-top: 5px; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <div class="admin-container">
+        <div class="action-bar">
+            <h1>⚙️ ระบบจัดการหลังบ้าน (Admin)</h1>
+            <div>
+                <button class="btn-primary" onclick="generateAndUploadCodes()">🔄 สร้างรหัส 500 ใบ</button>
+                <button class="btn-danger" onclick="clearDatabase()">🗑️ ล้างข้อมูล</button>
+            </div>
+        </div>
+
+        <div class="stats-cards">
+            <div class="card"><h3>รหัสทั้งหมด</h3><div class="value" id="statTotal">0</div></div>
+            <div class="card"><h3>ผ่านครบ 7 ฐานแล้ว</h3><div class="value" id="statCompleted" style="color: #10b981;">0</div></div>
+            <div class="card"><h3>แลกรางวัลแล้ว</h3><div class="value" id="statRedeemed" style="color: #3b82f6;">0</div></div>
+        </div>
+
+        <!-- ระบบแท็บ -->
+        <div class="tab-menu">
+            <button class="tab-btn active" onclick="switchTab('dashboard')">📊 ตารางข้อมูลรวม</button>
+            <button class="tab-btn" onclick="switchTab('leaderboard')">🏆 จัดอันดับ & พฤติกรรมเส้นทาง</button>
+        </div>
+
+        <!-- TAB 1: Dashboard ภาพรวม -->
+        <div id="tab-dashboard" class="tab-content active">
+            <div class="filter-group">
+                <input type="text" id="searchDashboard" class="search-box" onkeyup="renderDashboard()" placeholder="🔍 ค้นหารหัสสมาชิก 6 หลัก...">
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width: 10%; text-align: center;">ลำดับ</th>
+                        <th style="width: 25%;">รหัสสมาชิก</th>
+                        <th style="width: 20%; text-align: center;">ฐานที่ผ่าน</th>
+                        <th style="width: 25%; text-align: center;">สถานะ (กดดูไทม์ไลน์)</th>
+                        <th style="width: 20%; text-align: center;">รางวัล</th>
+                    </tr>
+                </thead>
+                <tbody id="tableDashboard">
+                    <tr><td colspan="5" style="text-align: center;">⏳ กำลังโหลด...</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- TAB 2: Leaderboard & พฤติกรรม -->
+        <div id="tab-leaderboard" class="tab-content">
+            <div class="filter-group">
+                <select id="filterStartStation" class="filter-select" onchange="renderLeaderboard()">
+                    <option value="all">แสดงทั้งหมด (ไม่กรองลำดับการเล่น)</option>
+                    <option value="0">เริ่มเล่นที่: Library Playground</option>
+                    <option value="1">เริ่มเล่นที่: Discovery Lab</option>
+                    <option value="2">เริ่มเล่นที่: Play Zone</option>
+                    <option value="3">เริ่มเล่นที่: Treasure Corner</option>
+                    <option value="4">เริ่มเล่นที่: Media Studio</option>
+                    <option value="5">เริ่มเล่นที่: Tech Station</option>
+                    <option value="6">เริ่มเล่นที่: Safety Checkpoint</option>
+                </select>
+                <input type="text" id="searchLeaderboard" class="search-box" onkeyup="renderLeaderboard()" placeholder="🔍 ค้นหารหัส...">
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width: 10%; text-align: center;">อันดับ</th>
+                        <th style="width: 20%;">รหัสสมาชิก</th>
+                        <th style="width: 20%;">เวลาที่ใช้รวม</th>
+                        <th style="width: 50%;">เส้นทางการเล่น (เรียงตามลำดับสแกน)</th>
+                    </tr>
+                </thead>
+                <tbody id="tableLeaderboard">
+                    <tr><td colspan="4" style="text-align: center;">⏳ กำลังจัดอันดับ...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Modal ประวัติเวลา -->
+    <div id="historyModal" class="modal">
+        <div class="modal-content">
+            <button class="close-btn" onclick="closeModal()">×</button>
+            <h2 style="margin-top: 0; margin-bottom: 5px;">📜 ไทม์ไลน์การเล่น</h2>
+            <div id="modalUserCode" style="color: #64748b; font-weight: bold; margin-bottom: 20px;">รหัส: -</div>
+            <ul class="timeline" id="timelineContent"></ul>
+        </div>
+    </div>
+
+    <script>
+        const firebaseConfig = {
+          apiKey: "AIzaSyAJlt9qKkkUqPrQL7RLoRAPO-ToYwY7Q2o",
+          authDomain: "eventstampcard.firebaseapp.com",
+          databaseURL: "https://eventstampcard-default-rtdb.asia-southeast1.firebasedatabase.app",
+          projectId: "eventstampcard",
+          storageBucket: "eventstampcard.firebasestorage.app",
+          messagingSenderId: "1072393228911",
+          appId: "1:1072393228911:web:66f14d85a50749e7b9b39a"
+        };
+        
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+        
+        let globalUsersData = {}; 
+
+        // จัดการแท็บ
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+            
+            document.getElementById(`tab-${tabId}`).classList.add('active');
+            event.target.classList.add('active');
+        }
+
+        async function generateAndUploadCodes() {
+            if(confirm("การสร้างใหม่จะลบข้อมูลเดิมทั้งหมด ยืนยันหรือไม่?")) {
+                let codesSet = new Set();
+                while(codesSet.size < 500) {
+                    codesSet.add(Math.floor(100000 + Math.random() * 900000).toString());
+                }
+                let updates = {};
+                codesSet.forEach(code => {
+                    updates[code] = { stations: Array(7).fill(false), isRedeemed: false };
+                });
+                await db.ref('users').set(updates);
+                alert("สร้างรหัส 6 หลักสำเร็จ!");
+            }
+        }
+
+        async function clearDatabase() {
+            if(confirm("ลบข้อมูลทั้งหมดออกจากระบบ แน่ใจหรือไม่?")) {
+                await db.ref('users').remove();
+            }
+        }
+
+        // ดึงข้อมูล Realtime
+        db.ref('users').on('value', (snapshot) => {
+            globalUsersData = snapshot.val() || {};
+            
+            let total = 0, completedCount = 0, redeemedCount = 0;
+            Object.keys(globalUsersData).forEach(code => {
+                total++;
+                let user = globalUsersData[code];
+                let passed = user.stations ? user.stations.filter(s => s === true).length : 0;
+                if(passed === 7) completedCount++;
+                if(user.isRedeemed) redeemedCount++;
+            });
+
+            document.getElementById('statTotal').innerText = total;
+            document.getElementById('statCompleted').innerText = completedCount;
+            document.getElementById('statRedeemed').innerText = redeemedCount;
+
+            renderDashboard();
+            renderLeaderboard();
+        });
+
+        // ---------------- TAB 1: เรนเดอร์ตารางภาพรวม (แก้หน่วง + จัดเรียงเลข) ----------------
+        function renderDashboard() {
+            const tbody = document.getElementById('tableDashboard');
+            const searchVal = document.getElementById("searchDashboard").value.trim().toLowerCase();
+            
+            let htmlContent = '';
+            let index = 1;
+
+            // เรียงลำดับรหัสสมาชิก (000000-999999) เสมอ
+            const sortedCodes = Object.keys(globalUsersData).sort();
+
+            sortedCodes.forEach((code) => {
+                if (searchVal && !code.includes(searchVal)) return;
+
+                const user = globalUsersData[code];
+                const passedStations = user.stations ? user.stations.filter(s => s === true).length : 0;
+                
+                let statusClass = passedStations === 0 ? 'none' : (passedStations < 7 ? 'playing' : 'completed');
+                let statusText = passedStations === 0 ? 'ยังไม่เริ่ม' : (passedStations < 7 ? 'กำลังเล่น' : 'ผ่านครบแล้ว');
+                let statusBadge = `<span class="badge ${statusClass} clickable-status" onclick="openModal('${code}')">${statusText} 🔍</span>`;
+                let redeemedBadge = user.isRedeemed ? '<span class="badge redeemed">รับแล้ว 🎁</span>' : '<span class="badge none">-</span>';
+
+                htmlContent += `
+                    <tr>
+                        <td style="text-align: center;">${index++}</td>
+                        <td style="font-family: monospace; font-size: 18px; font-weight: bold; letter-spacing: 1px;">${code}</td>
+                        <td style="text-align: center;"><b>${passedStations}</b> / 7</td>
+                        <td style="text-align: center;">${statusBadge}</td>
+                        <td style="text-align: center;">${redeemedBadge}</td>
+                    </tr>
+                `;
+            });
+
+            tbody.innerHTML = htmlContent || '<tr><td colspan="5" style="text-align: center;">ไม่มีข้อมูล</td></tr>';
+        }
+
+        // ---------------- TAB 2: เรนเดอร์ตารางจัดอันดับ (ปรับความเร็ว) ----------------
+        function renderLeaderboard() {
+            const tbody = document.getElementById('tableLeaderboard');
+            const searchVal = document.getElementById("searchLeaderboard").value.trim().toLowerCase();
+            const filterStart = document.getElementById("filterStartStation").value;
+
+            let rankedUsers = [];
+
+            // คัดเฉพาะคนที่เล่นครบ 7 ฐาน (และมีประวัติ)
+            Object.keys(globalUsersData).forEach(code => {
+                let user = globalUsersData[code];
+                const passedStations = user.stations ? user.stations.filter(s => s === true).length : 0;
+                
+                if (passedStations === 7 && user.scanHistory) {
+                    let scans = Object.values(user.scanHistory).sort((a,b) => a.time - b.time);
+                    if(scans.length > 0) {
+                        rankedUsers.push({ code: code, user: user, scans: scans });
+                    }
+                }
+            });
+
+            // จัดอันดับตามเวลาที่จบ (จากคนที่สแกนฐานที่ 7 เสร็จเร็วที่สุด หรือเวลากดรับของรางวัล)
+            rankedUsers.sort((a, b) => {
+                let timeA = a.user.redeemTime || a.scans[a.scans.length-1].time;
+                let timeB = b.user.redeemTime || b.scans[b.scans.length-1].time;
+                return timeA - timeB; 
+            });
+
+            let htmlContent = '';
+            let rank = 1;
+            
+            rankedUsers.forEach((item) => {
+                if (searchVal && !item.code.includes(searchVal)) return;
+
+                let firstStationId = item.scans[0].id.toString();
+                if (filterStart !== "all" && firstStationId !== filterStart) return;
+
+                let totalTimeText = "-";
+                if(item.user.loginTime) {
+                    let endTime = item.user.redeemTime || item.scans[item.scans.length-1].time;
+                    totalTimeText = getDuration(item.user.loginTime, endTime);
+                }
+
+                let pathHtml = `<div class="path-flow">`;
+                item.scans.forEach((scan, i) => {
+                    pathHtml += `<span>${scan.name}</span>`;
+                    if(i < item.scans.length - 1) pathHtml += `<span class="path-arrow">➔</span>`;
+                });
+                pathHtml += `</div>`;
+
+                htmlContent += `
+                    <tr>
+                        <td style="text-align: center; font-size: 18px; font-weight: bold; color: #d97706;">#${rank++}</td>
+                        <td style="font-family: monospace; font-size: 18px; font-weight: bold;">${item.code}</td>
+                        <td style="color: #64748b;">${totalTimeText}</td>
+                        <td>${pathHtml}</td>
+                    </tr>
+                `;
+            });
+
+            tbody.innerHTML = htmlContent || '<tr><td colspan="4" style="text-align: center; padding:20px;">ไม่พบประวัติผู้ที่ผ่านเกณฑ์</td></tr>';
+        }
+
+        // ---------------- Helper & Modal ----------------
+        function formatTime(ms) { return ms ? new Date(ms).toLocaleTimeString('th-TH') : '-'; }
+        
+        function getDuration(startMs, endMs) {
+            if(!startMs || !endMs || startMs > endMs) return '';
+            let diff = Math.floor((endMs - startMs) / 1000);
+            let m = Math.floor(diff / 60);
+            let s = diff % 60;
+            return m === 0 ? `${s} วินาที` : `${m} นาที ${s} วิ`;
+        }
+
+        function openModal(code) {
+            document.getElementById('historyModal').style.display = 'flex';
+            document.getElementById('modalUserCode').innerText = `รหัสสมาชิก: ${code}`;
+            const timeline = document.getElementById('timelineContent');
+            timeline.innerHTML = '';
+
+            const user = globalUsersData[code];
+            if(!user || (!user.loginTime && !user.scanHistory)) {
+                timeline.innerHTML = '<li>ไม่มีประวัติการเล่น (ไม่ได้สแกน QR ใดๆ)</li>'; return;
+            }
+
+            let lastTime = user.loginTime;
+            if(user.loginTime) {
+                timeline.innerHTML += `<li><b>🔐 เข้าสู่ระบบ</b> <span class="timeline-time">${formatTime(user.loginTime)}</span></li>`;
+            }
+
+            if(user.scanHistory) {
+                const scans = Object.values(user.scanHistory).sort((a, b) => a.time - b.time);
+                scans.forEach((scan) => {
+                    let durationHtml = lastTime ? `<br><span class="duration-box">⏱️ ใช้เวลา ${getDuration(lastTime, scan.time)}</span>` : '';
+                    timeline.innerHTML += `<li><b>📍 ฐาน: ${scan.name}</b> <span class="timeline-time">${formatTime(scan.time)}</span> ${durationHtml}</li>`;
+                    lastTime = scan.time;
+                });
+            }
+
+            if(user.isRedeemed && user.redeemTime) {
+                let durationHtml = lastTime ? `<br><span class="duration-box">⏱️ ใช้เวลา ${getDuration(lastTime, user.redeemTime)}</span>` : '';
+                timeline.innerHTML += `<li><b>🎁 แลกรับรางวัล</b> <span class="timeline-time">${formatTime(user.redeemTime)}</span> ${durationHtml}</li>`;
+            }
+        }
+
+        function closeModal() { document.getElementById('historyModal').style.display = 'none'; }
+    </script>
+</body>
+</html>
