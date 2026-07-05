@@ -31,40 +31,11 @@
             padding: 5px; overflow: hidden; transition: 0.3s ease;
         }
         
-        /* 1) กรณียังไม่ได้สแตมป์ (รอยประสีเทา) */
-        .station-node.unstamped { 
-            border: 2px dashed #94a3b8; 
-            background-color: #f8fafc; 
-            color: #475569; 
-            cursor: pointer; 
-        }
-        
-        /* 2) กรณีสแตมป์แล้ว (รอยประสีเขียว) */
-        .station-node.stamped { 
-            border: 2px dashed #10b981; 
-            background-color: #ecfdf5; 
-            cursor: pointer; /* เปลี่ยนให้กดได้ */
-            box-shadow: 0 4px 6px rgba(16,185,129,0.15);
-        }
-
-        /* การจัดวางรูปภาพให้อยู่ด้านหลังข้อความ */
-        .station-node img { 
-            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            width: 70%; height: 70%; object-fit: contain; z-index: 1; 
-            opacity: 0.25; /* ตอนยังไม่สแตมป์ให้ภาพจาง */
-        }
-        
-        /* ตอนสแตมป์แล้วให้รูปแสดง 100% และใหญ่ขึ้นเพราะไม่มีข้อความบัง */
-        .station-node.stamped img {
-            opacity: 1; 
-            width: 90%; height: 90%;
-        }
-
-        /* ข้อความชื่อฐาน (ใช้เฉพาะตอนยังไม่สแตมป์) */
-        .station-node span { 
-            position: relative; z-index: 2; 
-            text-shadow: 0px 0px 4px rgba(255,255,255,0.95), 0px 0px 2px rgba(255,255,255,1); 
-        }
+        .station-node.unstamped { border: 2px dashed #94a3b8; background-color: #f8fafc; color: #475569; cursor: pointer; }
+        .station-node.stamped { border: 2px dashed #10b981; background-color: #ecfdf5; cursor: pointer; box-shadow: 0 4px 6px rgba(16,185,129,0.15); }
+        .station-node img { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 70%; height: 70%; object-fit: contain; z-index: 1; opacity: 0.25; }
+        .station-node.stamped img { opacity: 1; width: 90%; height: 90%; }
+        .station-node span { position: relative; z-index: 2; text-shadow: 0px 0px 4px rgba(255,255,255,0.95), 0px 0px 2px rgba(255,255,255,1); }
         
         /* พิกัดตำแหน่งวงกลม */
         .st-0 { top: 50%; left: 50%; transform: translate(-50%, -50%); width: 110px; height: 110px; font-size: 12px; z-index: 10; box-shadow: 0 0 10px rgba(0,0,0,0.1); } 
@@ -77,6 +48,7 @@
 
         button { padding: 12px 20px; border: none; border-radius: 10px; cursor: pointer; font-size: 16px; font-weight: bold; width: 100%; margin-bottom: 10px; transition: 0.2s; }
         .btn-primary { background-color: #3b82f6; color: white; }
+        .btn-primary:disabled { background-color: #94a3b8; cursor: not-allowed; }
         .btn-redeem { background-color: #ef4444; color: white; margin-top: 15px;}
         .btn-redeem:disabled { background-color: #fca5a5; cursor: not-allowed; }
         .btn-cancel { background-color: #64748b; color: white; display: none; margin-top: 10px; }
@@ -88,21 +60,10 @@
         .success-banner { background-color: #fef3c7; border: 2px solid #f59e0b; color: #d97706; padding: 20px; border-radius: 15px; margin: 20px 0; font-size: 18px; font-weight: bold;}
 
         /* สไตล์สำหรับกล่องเนื้อหาที่ซ่อนไว้ */
-        .content-box { 
-            background-color: #f0f9ff; 
-            border: 2px solid #bae6fd; 
-            color: #0369a1; 
-            padding: 15px; 
-            border-radius: 15px; 
-            margin-bottom: 15px; 
-            text-align: left; 
-            font-size: 14px;
-            animation: fadeIn 0.3s ease;
-        }
+        .content-box { background-color: #f0f9ff; border: 2px solid #bae6fd; color: #0369a1; padding: 15px; border-radius: 15px; margin-bottom: 15px; text-align: left; font-size: 14px; animation: fadeIn 0.3s ease; }
         .content-box h3 { margin-top: 0; color: #0284c7; margin-bottom: 8px; font-size: 16px;}
         @keyframes fadeIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
 
-        /* ย่อส่วนแผนที่ลงเล็กน้อยสำหรับมือถือรุ่นเก่ามาก */
         @media (max-width: 360px) {
             .otp-box { width: 38px; height: 45px; font-size: 18px; }
             .otp-container { gap: 5px; }
@@ -112,19 +73,21 @@
 </head>
 <body>
 
+    <!-- หน้าต่าง Login -->
     <div class="container" id="loginScreen">
         <h2>🔐 เข้าสู่ระบบสะสมแต้ม</h2>
         <div class="otp-container" id="otpGroup">
-            <input type="tel" class="otp-box" maxlength="1" oninput="handleOtp(this, event)">
-            <input type="tel" class="otp-box" maxlength="1" oninput="handleOtp(this, event)">
-            <input type="tel" class="otp-box" maxlength="1" oninput="handleOtp(this, event)">
-            <input type="tel" class="otp-box" maxlength="1" oninput="handleOtp(this, event)">
-            <input type="tel" class="otp-box" maxlength="1" oninput="handleOtp(this, event)">
-            <input type="tel" class="otp-box" maxlength="1" oninput="handleOtp(this, event)">
+            <input type="tel" class="otp-box" maxlength="1" oninput="handleOtp(this)">
+            <input type="tel" class="otp-box" maxlength="1" oninput="handleOtp(this)">
+            <input type="tel" class="otp-box" maxlength="1" oninput="handleOtp(this)">
+            <input type="tel" class="otp-box" maxlength="1" oninput="handleOtp(this)">
+            <input type="tel" class="otp-box" maxlength="1" oninput="handleOtp(this)">
+            <input type="tel" class="otp-box" maxlength="1" oninput="handleOtp(this)">
         </div>
         <button id="btnLogin" class="btn-primary" onclick="login()">ตกลงเพื่อเข้าสู่ระบบ</button>
     </div>
 
+    <!-- หน้าต่างสแกนสะสมแต้ม -->
     <div class="container hidden" id="stampScreen">
         <h2>🎉 บัตรสะสมแต้ม</h2>
         <div class="user-info" id="displayUserCode">รหัสสมาชิก: XXXXXX</div>
@@ -153,6 +116,7 @@
     </div>
 
     <script>
+        // ตั้งค่า Firebase
         const firebaseConfig = {
           apiKey: "AIzaSyAJlt9qKkkUqPrQL7RLoRAPO-ToYwY7Q2o",
           authDomain: "eventstampcard.firebaseapp.com",
@@ -162,11 +126,10 @@
           messagingSenderId: "1072393228911",
           appId: "1:1072393228911:web:66f14d85a50749e7b9b39a"
         };
-        
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
         
-        // ข้อมูลฐาน (เพิ่มฟิลด์ content สำหรับเนื้อหาที่ซ่อนไว้)
+        // ข้อมูลฐาน
         const STATIONS = [
             { id: 0, name: "Library Playground", qr: "QR_STN_01", 
               imgUnstamped: "https://cdn.jsdelivr.net/gh/kongweha/Gametest@e1caf09903b8480a94b9baf8497f1d3302eed795/picture/LIBRARY%20PLAYGROUND1.webp", 
@@ -213,58 +176,119 @@
         let cancelRequested = false;
         let isProcessingScan = false;
 
-        function handleOtp(field, event) {
-            field.value = field.value.replace(/[^0-9]/g, '');
+        // -----------------------------------------------------------
+        // ระบบกรอกรหัส OTP အัจฉริยะ (แก้ไขข้อบกพร่องเรื่องเข้าสู่ระบบ)
+        // -----------------------------------------------------------
+        function handleOtp(field) {
+            field.value = field.value.replace(/[^0-9]/g, ''); // บังคับกรอกแค่ตัวเลข
+            
             if (field.value.length >= 1) {
-                field.value = field.value.charAt(0);
-                if (field.nextElementSibling) {
-                    field.nextElementSibling.focus();
+                field.value = field.value.substring(0, 1);
+                
+                let next = field.nextElementSibling;
+                if (next && next.tagName === 'INPUT') {
+                    next.focus(); // เด้งไปช่องถัดไป
+                } else {
+                    field.blur(); // ซ่อนคีย์บอร์ดมือถือ
+                    
+                    // เช็คว่ากรอกครบ 6 ช่องหรือยัง ถ้าครบแล้วค่อยเรียก login()
+                    let input = Array.from(document.querySelectorAll('.otp-box')).map(box => box.value).join('');
+                    if (input.length === 6) {
+                        login(); 
+                    }
                 }
             }
         }
-        
+
         document.querySelectorAll('.otp-box').forEach((box, index, list) => {
-            box.addEventListener('keyup', (e) => {
+            box.addEventListener('keydown', (e) => {
                 if (e.key === 'Backspace' || e.keyCode === 8) {
-                    if (box.value === '' && list[index - 1]) {
-                        list[index - 1].focus();
+                    if (box.value === '') {
+                        let prev = box.previousElementSibling;
+                        if (prev && prev.tagName === 'INPUT') {
+                            prev.focus();
+                            prev.value = ''; 
+                        }
+                    } else {
+                        box.value = ''; 
                     }
+                    e.preventDefault();
+                }
+            });
+
+            // รองรับการกด Copy รหัสมา Paste วางทีเดียว
+            box.addEventListener('paste', (e) => {
+                e.preventDefault();
+                let pasteData = (e.clipboardData || window.clipboardData).getData('text');
+                pasteData = pasteData.replace(/[^0-9]/g, '').substring(0, 6);
+                
+                for (let i = 0; i < pasteData.length; i++) {
+                    if (list[index + i]) {
+                        list[index + i].value = pasteData[i];
+                        if (i === pasteData.length - 1 && list[index + i + 1]) {
+                            list[index + i + 1].focus();
+                        }
+                    }
+                }
+                
+                let input = Array.from(list).map(b => b.value).join('');
+                if (input.length === 6) {
+                    list[5].blur();
+                    login();
                 }
             });
         });
 
+        // -----------------------------------------------------------
+        // ฟังก์ชันเข้าสู่ระบบ 
+        // -----------------------------------------------------------
         async function login() {
             let input = Array.from(document.querySelectorAll('.otp-box')).map(box => box.value).join('');
-            if (input.length !== 6) { alert("กรุณากรอกรหัสให้ครบ 6 หลัก"); return; }
+            if (input.length !== 6) { 
+                alert("กรุณากรอกรหัสให้ครบ 6 หลัก"); 
+                return; 
+            }
             
+            // เปลี่ยนสถานะปุ่มเพื่อป้องกันกดซ้ำ
             document.getElementById('btnLogin').disabled = true;
             document.getElementById('btnLogin').innerText = "กำลังตรวจสอบ...";
 
-            const snapshot = await db.ref(`users/${input}`).once('value');
-            if (snapshot.exists()) {
-                currentUserCode = input;
-                document.getElementById('displayUserCode').innerText = `รหัสสมาชิก: ${currentUserCode}`;
-                
-                if (!snapshot.val().loginTime) {
-                    await db.ref(`users/${currentUserCode}/loginTime`).set(Date.now());
-                }
-
-                document.getElementById('loginScreen').classList.add('hidden');
-                document.getElementById('stampScreen').classList.remove('hidden');
-                
-                dbRef = db.ref(`users/${currentUserCode}`);
-                dbRef.on('value', (snap) => {
-                    if(snap.exists()) {
-                        renderUI(snap.val());
+            try {
+                const snapshot = await db.ref(`users/${input}`).once('value');
+                if (snapshot.exists()) {
+                    currentUserCode = input;
+                    document.getElementById('displayUserCode').innerText = `รหัสสมาชิก: ${currentUserCode}`;
+                    
+                    if (!snapshot.val().loginTime) {
+                        await db.ref(`users/${currentUserCode}/loginTime`).set(Date.now());
                     }
-                });
-            } else {
-                alert("❌ ไม่พบรหัสนี้ในระบบ");
+
+                    document.getElementById('loginScreen').classList.add('hidden');
+                    document.getElementById('stampScreen').classList.remove('hidden');
+                    
+                    dbRef = db.ref(`users/${currentUserCode}`);
+                    dbRef.on('value', (snap) => {
+                        if(snap.exists()) {
+                            renderUI(snap.val());
+                        }
+                    });
+                } else {
+                    alert("❌ ไม่พบรหัสนี้ในระบบ");
+                    // คืนค่าปุ่มหากรหัสผิด
+                    document.getElementById('btnLogin').disabled = false;
+                    document.getElementById('btnLogin').innerText = "ตกลงเพื่อเข้าสู่ระบบ";
+                }
+            } catch (error) {
+                console.error(error);
+                alert("เกิดข้อผิดพลาดในการเชื่อมต่อฐานข้อมูล กรุณาลองอีกครั้ง");
                 document.getElementById('btnLogin').disabled = false;
                 document.getElementById('btnLogin').innerText = "ตกลงเพื่อเข้าสู่ระบบ";
             }
         }
 
+        // -----------------------------------------------------------
+        // ฟังก์ชันอัปเดตหน้าจอและการจัดการ UI (รวมระบบสลับตำแหน่งฐาน)
+        // -----------------------------------------------------------
         function renderUI(userData) {
             if (!userData) return;
             
@@ -279,6 +303,7 @@
             let count = 0;
             const userStations = userData.stations || {}; 
             
+            // คำนวณตำแหน่งสลับฐาน (Swap Position)
             let posMap = {0:0, 1:1, 2:2, 3:3, 4:4, 5:5, 6:6}; 
             
             if (userData.scanHistory) {
@@ -289,7 +314,7 @@
                     const targetCurrentPos = posMap[targetId];
                     
                     posMap[currentCenterId] = targetCurrentPos;
-                    posMap[targetId] = 0; 
+                    posMap[targetId] = 0; // ย้ายตัวล่าสุดมาตรงกลาง[cite: 2]
                 });
             }
 
@@ -302,7 +327,7 @@
                     count++;
                     node.className = `station-node st-${currentPosClass} stamped`;
                     node.innerHTML = `<img src="${st.imgStamped}" alt="${st.name}">`;
-                    node.onclick = () => toggleStationContent(index);
+                    node.onclick = () => toggleStationContent(index); // กดดูเนื้อหาได้[cite: 2]
                 } else {
                     node.className = `station-node st-${currentPosClass} unstamped`;
                     node.innerHTML = `
@@ -321,14 +346,17 @@
         function toggleStationContent(stationId) {
             const box = document.getElementById('contentBox');
             if (box.dataset.activeId == stationId && !box.classList.contains('hidden')) {
-                box.classList.add('hidden');
+                box.classList.add('hidden'); // กดซ้ำเพื่อปิด[cite: 2]
             } else {
                 box.dataset.activeId = stationId;
                 box.innerHTML = `<h3>📖 ${STATIONS[stationId].name}</h3><p>${STATIONS[stationId].content}</p>`;
-                box.classList.remove('hidden');
+                box.classList.remove('hidden'); // กดเพื่อเปิด[cite: 2]
             }
         }
 
+        // -----------------------------------------------------------
+        // ระบบสแกน QR Code (ระบบความปลอดภัย 90 วินาที)
+        // -----------------------------------------------------------
         function openScannerFor(stationIndex) {
             if (isScannerInitializing || (html5QrCode && html5QrCode.isScanning)) return;
             
@@ -354,17 +382,16 @@
                 async (decodedText) => {
                     if (isProcessingScan) return;
 
-                    // คาดหวังรูปแบบ: "QR_STN_01|1715420000000"
-                    const parts = decodedText.split('|');
+                    // รูปแบบที่คาดหวัง: "QR_STN_01|1715420000000"[cite: 2]
+                    const parts = decodedText.split('|');[cite: 2]
                     
                     if (parts.length === 2 && parts[0] === activeTargetStation.qr) {
-                        const qrTimestamp = parseInt(parts[1]);
-                        const currentTimestamp = Date.now();
-                        const timeDifference = currentTimestamp - qrTimestamp;
+                        const qrTimestamp = parseInt(parts[1]);[cite: 2]
+                        const currentTimestamp = Date.now();[cite: 2]
+                        const timeDifference = currentTimestamp - qrTimestamp;[cite: 2]
                         
-                        // อนุญาตให้สแกนได้ภายใน 90,000 มิลลิวินาที (90 วินาที)
-                        // ให้ระยะเวลาติดลบนิดหน่อยเผื่อเวลาเครื่องคนสร้างกับคนสแกนไม่ตรงกัน
-                        if (timeDifference <= 90000 && timeDifference >= -5000) {
+                        // อนุญาตให้สแกนได้ภายใน 90,000 มิลลิวินาที (90 วินาที)[cite: 2]
+                        if (timeDifference <= 90000 && timeDifference >= -5000) {[cite: 2]
                             isProcessingScan = true; 
                             stopScan(); 
                             
@@ -377,28 +404,27 @@
                                     await db.ref(`users/${currentUserCode}/stations/${targetId}`).set(true);[cite: 2]
                                     
                                     try {
-                                        const scanData = { id: targetId, name: targetName, time: Date.now() };
+                                        const scanData = { id: targetId, name: targetName, time: Date.now() };[cite: 2]
                                         await db.ref(`users/${currentUserCode}/scanHistory`).push(scanData);[cite: 2]
                                     } catch (historyErr) {
-                                        console.warn("ไม่สามารถบันทึกประวัติ scanHistory ได้:", historyErr);[cite: 2]
+                                        console.warn("ไม่สามารถบันทึกประวัติได้:", historyErr);
                                     }
                                 }
                             } catch (error) {
-                                console.error("Database Connection Error:", error);[cite: 2]
+                                console.error("Database Connection Error:", error);
                             }
                         } else {
                             isProcessingScan = true; 
-                            alert(`❌ QR Code นี้หมดอายุแล้ว (อายุเกิน 1.30 นาที)\nกรุณาสแกน QR Code ล่าสุด`);
+                            alert(`❌ QR Code นี้หมดอายุแล้ว (อายุเกิน 1.30 นาที)\nกรุณาสแกน QR Code ล่าสุด`);[cite: 2]
                             stopScan(); 
                         }
                     } else if (decodedText.includes(activeTargetStation.qr) && !decodedText.includes('|')) {
-                        // ป้องกันกรณีแอบเอา QR เก่าที่ไม่ได้เจาะจงเวลามาสแกน
                         isProcessingScan = true; 
-                        alert(`❌ รูปแบบ QR Code ไม่ถูกต้อง (ไม่อนุญาตให้ใช้ QR แบบเก่า)`);
+                        alert(`❌ รูปแบบ QR Code ไม่ถูกต้อง (ไม่อนุญาตให้ใช้ QR แบบเก่า)`);[cite: 2]
                         stopScan(); 
                     } else {
                         isProcessingScan = true; 
-                        alert(`❌ QR Code ไม่ถูกต้องสำหรับฐาน ${activeTargetStation.name}`);
+                        alert(`❌ QR Code ไม่ถูกต้องสำหรับฐาน ${activeTargetStation.name}`);[cite: 2]
                         stopScan(); 
                     }
                 },
