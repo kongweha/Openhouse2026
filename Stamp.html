@@ -64,6 +64,13 @@
         .content-box h3 { margin-top: 0; color: #0284c7; margin-bottom: 8px; font-size: 16px;}
         @keyframes fadeIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
 
+        /* สไตล์สำหรับกล่อง Rating */
+        .rating-box { background-color: #fffbeb; border: 2px solid #fcd34d; padding: 20px; border-radius: 15px; margin: 15px 0; text-align: center; animation: fadeIn 0.3s ease; }
+        .stars { display: flex; justify-content: center; gap: 10px; font-size: 35px; margin: 15px 0; cursor: pointer; color: #e2e8f0; }
+        .stars span { transition: color 0.2s; }
+        .stars span.active { color: #f59e0b; }
+        .display-stars { font-size: 14px; color: #d97706; margin-top: 12px; padding-top: 10px; border-top: 1px dashed #bae6fd; font-weight: bold; }
+
         @media (max-width: 360px) {
             .otp-box { width: 38px; height: 45px; font-size: 18px; }
             .otp-container { gap: 5px; }
@@ -73,7 +80,7 @@
 </head>
 <body>
 
-    <!-- หน้าต่าง Login (ลบ oninput ออกจาก HTML แล้ว) -->
+    <!-- หน้าต่าง Login -->
     <div class="container" id="loginScreen">
         <h2>🔐 เข้าสู่ระบบสะสมแต้ม</h2>
         <div class="otp-container" id="otpGroup">
@@ -98,8 +105,22 @@
 
         <div id="stampArea">
             <div id="statusText" style="font-weight: bold; margin-bottom: 5px; color: #10b981;">แต้มปัจจุบัน: 0 / 7</div>
-            <div style="font-size: 12px; color: #64748b; margin-bottom: 5px;">(คลิกที่วงกลมฐานที่ยังไม่ผ่านเพื่อสแกน QR Code)</div>
+            <div style="font-size: 12px; color: #64748b; margin-bottom: 5px;" id="subStatusText">(คลิกที่วงกลมฐานที่ยังไม่ผ่านเพื่อสแกน QR Code)</div>
             
+            <!-- กล่องให้คะแนน (ซ่อนไว้ตอนแรก) -->
+            <div id="ratingBox" class="rating-box hidden">
+                <h3 style="margin-top:0; color: #b45309;">⭐ ประเมินความพึงพอใจฐานนี้</h3>
+                <div id="ratingTitle" style="font-weight: bold; color: #92400e;"></div>
+                <div class="stars" id="starContainer">
+                    <span data-value="1">★</span>
+                    <span data-value="2">★</span>
+                    <span data-value="3">★</span>
+                    <span data-value="4">★</span>
+                    <span data-value="5">★</span>
+                </div>
+                <button id="btnSubmitRating" class="btn-primary" disabled onclick="submitRating()">ยืนยันให้คะแนน</button>
+            </div>
+
             <div class="map-wrapper" id="mapWrapper">
                 <div class="map-container" id="mapContainer"></div>
             </div>
@@ -175,31 +196,32 @@
         let isScannerInitializing = false;
         let cancelRequested = false;
         let isProcessingScan = false;
-        let isLoggingIn = false; // ตัวแปรป้องกันการกด/เรียก Login ซ้ำซ้อน
+        let isLoggingIn = false;
+        let globalUserData = null; // เก็บ UserData ล่าสุดสำหรับใช้โชว์ดาว
+        
+        // ตัวแปรสำหรับ Rating
+        let pendingRatingStationId = null;
+        let pendingRatingStationName = null;
+        let selectedRating = 0;
 
         // -----------------------------------------------------------
-        // 1. ระบบจัดการกล่องกรอกรหัส (เขียนใหม่ทั้งหมด)
+        // 1. ระบบจัดการกล่องกรอกรหัส
         // -----------------------------------------------------------
         const otpInputs = document.querySelectorAll('.otp-box');
 
         otpInputs.forEach((input, index) => {
-            // ดักจับเวลาพิมพ์
             input.addEventListener('input', function() {
-                this.value = this.value.replace(/[^0-9]/g, ''); // อนุญาตเฉพาะตัวเลข
-                
+                this.value = this.value.replace(/[^0-9]/g, ''); 
                 if (this.value !== '') {
-                    // ถ้ายังไม่ถึงกล่องสุดท้าย ให้เด้งไปกล่องถัดไป
                     if (index < otpInputs.length - 1) {
                         otpInputs[index + 1].focus();
                     } else {
-                        // ถ้าถึงกล่องสุดท้ายแล้ว
                         this.blur();
-                        login(); // ออโต้ล็อกอิน
+                        login(); 
                     }
                 }
             });
 
-            // ดักจับการกดปุ่มลบ (Backspace)
             input.addEventListener('keydown', function(e) {
                 if (e.key === 'Backspace' || e.keyCode === 8) {
                     if (this.value === '') {
@@ -214,7 +236,6 @@
                 }
             });
 
-            // ดักจับเวลากดวาง (Paste) รหัส 6 ตัวพร้อมกัน
             input.addEventListener('paste', function(e) {
                 e.preventDefault();
                 let pasteData = (e.clipboardData || window.clipboardData).getData('text');
@@ -237,7 +258,7 @@
         // 2. ฟังก์ชัน Login เข้าสู่ระบบ 
         // -----------------------------------------------------------
         async function login() {
-            if (isLoggingIn) return; // ถ้าระบบกำลังล็อกอินอยู่ ให้ข้ามไป (กันเบิ้ล)
+            if (isLoggingIn) return; 
             
             let input = Array.from(otpInputs).map(box => box.value).join('');
             if (input.length !== 6) { 
@@ -267,7 +288,8 @@
                     dbRef = db.ref(`users/${currentUserCode}`);
                     dbRef.on('value', (snap) => {
                         if(snap.exists()) {
-                            renderUI(snap.val());
+                            globalUserData = snap.val();
+                            renderUI(globalUserData);
                         }
                     });
                 } else {
@@ -277,7 +299,6 @@
                 console.error(error);
                 alert("เกิดข้อผิดพลาดในการเชื่อมต่อฐานข้อมูล กรุณาลองอีกครั้ง");
             } finally {
-                // คืนค่าปุ่มกลับมาเหมือนเดิม เผื่อผู้ใช้กรอกผิดแล้วจะแก้รหัสใหม่
                 isLoggingIn = false;
                 btn.disabled = false;
                 btn.innerText = "ตกลงเพื่อเข้าสู่ระบบ";
@@ -324,6 +345,7 @@
                     count++;
                     node.className = `station-node st-${currentPosClass} stamped`;
                     node.innerHTML = `<img src="${st.imgStamped}" alt="${st.name}">`;
+                    // ส่ง true เข้าไปเผื่อบังคับเปิดกล่องเนื้อหา
                     node.onclick = () => toggleStationContent(index); 
                 } else {
                     node.className = `station-node st-${currentPosClass} unstamped`;
@@ -340,24 +362,99 @@
             document.getElementById('btnRedeem').disabled = (count < 7);
         }
 
-        function toggleStationContent(stationId) {
+        // เพิ่มการดึงดาวมาโชว์ที่กล่องเนื้อหา
+        function toggleStationContent(stationId, forceOpen = false) {
             const box = document.getElementById('contentBox');
-            if (box.dataset.activeId == stationId && !box.classList.contains('hidden')) {
+            if (!forceOpen && box.dataset.activeId == stationId && !box.classList.contains('hidden')) {
                 box.classList.add('hidden'); 
             } else {
                 box.dataset.activeId = stationId;
-                box.innerHTML = `<h3>📖 ${STATIONS[stationId].name}</h3><p>${STATIONS[stationId].content}</p>`;
+                
+                // เช็คว่ามีข้อมูล Rating ไหม
+                let ratingHtml = "";
+                if (globalUserData && globalUserData.ratings && globalUserData.ratings[stationId]) {
+                    const starCount = globalUserData.ratings[stationId];
+                    const stars = "★".repeat(starCount) + "☆".repeat(5 - starCount);
+                    ratingHtml = `<div class="display-stars">⭐ คะแนนความพึงพอใจ: <span style="font-size:18px;">${stars}</span></div>`;
+                }
+
+                box.innerHTML = `<h3>📖 ${STATIONS[stationId].name}</h3><p>${STATIONS[stationId].content}</p>${ratingHtml}`;
                 box.classList.remove('hidden'); 
             }
         }
 
         // -----------------------------------------------------------
-        // 4. ระบบสแกน QR Code (ความปลอดภัยสูง 90 วินาที)
+        // 4. ระบบ Rating ก่อนบันทึกผ่านฐาน
+        // -----------------------------------------------------------
+        function showRatingBox(id, name) {
+            pendingRatingStationId = id;
+            pendingRatingStationName = name;
+            selectedRating = 0;
+            
+            document.getElementById('ratingTitle').innerText = name;
+            document.getElementById('ratingBox').classList.remove('hidden');
+            document.getElementById('mapWrapper').style.display = 'none'; // ซ่อนแผนที่ชั่วคราว
+            document.getElementById('btnSubmitRating').disabled = true;
+
+            const stars = document.querySelectorAll('#starContainer span');
+            stars.forEach(star => {
+                star.classList.remove('active');
+                star.onclick = function() {
+                    selectedRating = parseInt(this.getAttribute('data-value'));
+                    stars.forEach(s => s.classList.remove('active'));
+                    for(let i=0; i<selectedRating; i++) {
+                        stars[i].classList.add('active');
+                    }
+                    document.getElementById('btnSubmitRating').disabled = false;
+                };
+            });
+        }
+
+        async function submitRating() {
+            if (selectedRating === 0 || pendingRatingStationId === null) return;
+            
+            const btn = document.getElementById('btnSubmitRating');
+            btn.disabled = true;
+            btn.innerText = "กำลังบันทึก...";
+
+            try {
+                // 1. บันทึกว่าผ่านฐาน
+                await db.ref(`users/${currentUserCode}/stations/${pendingRatingStationId}`).set(true);
+                // 2. บันทึกคะแนน
+                await db.ref(`users/${currentUserCode}/ratings/${pendingRatingStationId}`).set(selectedRating);
+                
+                // 3. บันทึกประวัติเพื่อทำสลับตำแหน่งตรงกลาง
+                try {
+                    const scanData = { id: pendingRatingStationId, name: pendingRatingStationName, time: Date.now() };
+                    await db.ref(`users/${currentUserCode}/scanHistory`).push(scanData);
+                } catch (historyErr) {
+                    console.warn("ไม่สามารถบันทึกประวัติได้:", historyErr);
+                }
+
+                // ซ่อนกล่อง Rating และแสดงแผนที่กลับมา
+                document.getElementById('ratingBox').classList.add('hidden');
+                document.getElementById('mapWrapper').style.display = 'flex';
+                
+                // แสดง Content ของฐานนั้นทันที
+                toggleStationContent(pendingRatingStationId, true);
+                
+            } catch(e) {
+                console.error(e);
+                alert("เกิดข้อผิดพลาดในการบันทึก กรุณาลองใหม่");
+            } finally {
+                btn.innerText = "ยืนยันให้คะแนน";
+                pendingRatingStationId = null;
+            }
+        }
+
+        // -----------------------------------------------------------
+        // 5. ระบบสแกน QR Code
         // -----------------------------------------------------------
         function openScannerFor(stationIndex) {
             if (isScannerInitializing || (html5QrCode && html5QrCode.isScanning)) return;
             
             document.getElementById('contentBox').classList.add('hidden');
+            document.getElementById('ratingBox').classList.add('hidden'); // เผื่อเปิดค้าง
             
             activeTargetStation = STATIONS[stationIndex];
             cancelRequested = false;
@@ -386,7 +483,6 @@
                         const currentTimestamp = Date.now();
                         const timeDifference = currentTimestamp - qrTimestamp;
                         
-                        // เช็คเวลา 90 วินาที
                         if (timeDifference <= 90000 && timeDifference >= -5000) {
                             isProcessingScan = true; 
                             stopScan(); 
@@ -397,14 +493,10 @@
                             try {
                                 const snap = await db.ref(`users/${currentUserCode}/stations/${targetId}`).once('value');
                                 if (!snap.val()) {
-                                    await db.ref(`users/${currentUserCode}/stations/${targetId}`).set(true);
-                                    
-                                    try {
-                                        const scanData = { id: targetId, name: targetName, time: Date.now() };
-                                        await db.ref(`users/${currentUserCode}/scanHistory`).push(scanData);
-                                    } catch (historyErr) {
-                                        console.warn("ไม่สามารถบันทึกประวัติได้:", historyErr);
-                                    }
+                                    // หากยังไม่เคยสแกน ให้เปิดกล่องให้คะแนน (หน่วงเวลาเล็กน้อยให้กล้องปิดสนิท)
+                                    setTimeout(() => {
+                                        showRatingBox(targetId, targetName);
+                                    }, 200);
                                 }
                             } catch (error) {
                                 console.error("Database Connection Error:", error);
@@ -456,7 +548,10 @@
         function resetScannerUI() {
             document.getElementById('reader').style.display = 'none';
             document.getElementById('btnCancel').style.display = 'none';
-            document.getElementById('mapWrapper').style.display = 'flex';
+            // โชว์แผนที่กลับมาเฉพาะในกรณีที่ไม่ได้กำลังให้เรทติ้ง
+            if (document.getElementById('ratingBox').classList.contains('hidden')) {
+                document.getElementById('mapWrapper').style.display = 'flex';
+            }
             activeTargetStation = null;
             isScannerInitializing = false;
             cancelRequested = false;
@@ -478,6 +573,8 @@
                     dbRef = null;
                 }
                 currentUserCode = "";
+                globalUserData = null;
+                
                 otpInputs.forEach(box => box.value = '');
                 document.getElementById('btnLogin').disabled = false;
                 document.getElementById('btnLogin').innerText = "ตกลงเพื่อเข้าสู่ระบบ";
@@ -487,6 +584,7 @@
                 document.getElementById('successBanner').classList.add('hidden');
                 document.getElementById('stampArea').classList.remove('hidden');
                 document.getElementById('contentBox').classList.add('hidden');
+                document.getElementById('ratingBox').classList.add('hidden');
             } catch (error) {
                 location.reload(); 
             }
