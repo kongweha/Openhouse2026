@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Event Stamp System</title>
+    <!-- โหลด Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+    <script src="https://unpkg.com/html5-qrcode"></script>
+    <link rel="stylesheet" href="assets/css/stamp.css">
+</head>
+<body>
+
+    <!-- หน้าต่าง Login -->
+    <div class="container" id="loginScreen">
+        <div class="lang-toggle" onclick="toggleLanguage()">
+            <span id="btnLangEn" class="active">EN</span> | <span id="btnLangTh">TH</span>
+        </div>
+        <h2 id="txtLoginTitle">🔐 Login to System</h2>
+        <div class="otp-container" id="otpGroup">
+            <input type="tel" class="otp-box" maxlength="1">
+            <input type="tel" class="otp-box" maxlength="1">
+            <input type="tel" class="otp-box" maxlength="1">
+            <input type="tel" class="otp-box" maxlength="1">
+            <input type="tel" class="otp-box" maxlength="1">
+            <input type="tel" class="otp-box" maxlength="1">
+        </div>
+        <button id="btnLogin" class="btn-primary" onclick="login()">Login</button>
+    </div>
+
+    <!-- หน้าต่างหลักของระบบ -->
+    <div class="container hidden" id="stampScreen">
+        <div class="lang-toggle" onclick="toggleLanguage()">
+            <span id="btnLangEn2" class="active">EN</span> | <span id="btnLangTh2">TH</span>
+        </div>
+        
+        <h2 id="txtCardTitle">🎉 Stamp Card</h2>
+        <div class="user-info" id="displayUserCode">User ID: XXXXXX</div>
+        
+        <!-- View 1: หน้าของรางวัล (Reward Page) -->
+        <div id="rewardView" class="hidden">
+            <div class="success-banner">
+                <div id="txtSuccessTitle" style="font-size: 18px; margin-bottom: 8px;">🎁 รับของรางวัลเรียบร้อยแล้ว!</div>
+                <div id="txtSuccessSub" style="font-size: 15px; font-weight: normal;">(ไม่สามารถเล่นซ้ำได้)</div>
+            </div>
+            
+            <div id="rewardMapPlaceholder" style="margin: 20px 0; padding: 25px 15px; border: 2px dashed #cbd5e1; border-radius: 16px; color: #94a3b8; font-size: 14px; background-color: #f8fafc;">
+                <div id="txtMapPlaceholder">[ พื้นที่สำหรับใส่แผนที่จุดรับของรางวัล ]</div>
+            </div>
+
+            <!-- ปุ่มหมุนล้อชะตา -->
+            <button id="btnDrawCard" class="btn-gacha" onclick="openCardDraw()">🔮 หมุนล้อชะตา</button>
+            
+            <button id="btnViewStamps" class="btn-primary" onclick="switchView('stamp')">ดูบัตรสะสมแต้ม</button>
+            <button id="btnLogoutReward" class="btn-logout" onclick="logout()">ออกจากระบบ</button>
+        </div>
+
+        <!-- View 2: หน้าสแกนฐาน -->
+        <div id="stampView">
+            <div id="statusText" style="font-weight: bold; margin-bottom: 5px; color: #10b981; font-size: 18px;">Current Stamps: 0 / 7</div>
+            <div style="font-size: 12px; color: #64748b; margin-bottom: 5px;" id="subStatusText">(Click on unstamped circles to scan QR Code)</div>
+            
+            <div id="ratingBox" class="rating-box hidden">
+                <h3 id="txtRatingHeader" style="margin-top:0; color: #b45309;">⭐ How was this station?</h3>
+                <div id="ratingTitle" style="font-weight: bold; color: #92400e; margin-bottom: 10px; font-size: 16px;"></div>
+                <div class="stars" id="starContainer">
+                    <span data-value="1"><div class="emoji">😵‍💫</div><div class="rating-label" id="emj1">Confused</div></span>
+                    <span data-value="2"><div class="emoji">🤔</div><div class="rating-label" id="emj2">Complex</div></span>
+                    <span data-value="3"><div class="emoji">😐</div><div class="rating-label" id="emj3">Okay</div></span>
+                    <span data-value="4"><div class="emoji">🙂</div><div class="rating-label" id="emj4">Clear</div></span>
+                    <span data-value="5"><div class="emoji">🤩</div><div class="rating-label" id="emj5">Super Clear</div></span>
+                </div>
+                <button id="btnSubmitRating" class="btn-primary" disabled onclick="submitRating()">Submit Rating</button>
+            </div>
+
+            <div class="map-wrapper" id="mapWrapper">
+                <div class="map-container" id="mapContainer"></div>
+            </div>
+            
+            <div id="contentBox" class="content-box hidden"></div>
+
+            <div id="reader"></div>
+            <button id="btnCancel" class="btn-cancel" onclick="stopScan()">❌ Cancel Camera</button>
+            
+            <button id="btnRedeem" class="btn-redeem" onclick="redeemReward()" disabled>🎁 Redeem Reward</button>
+            <button id="btnBackToReward" class="btn-back-reward" style="display:none;" onclick="switchView('reward')">⬅ กลับไปหน้าของรางวัล</button>
+            <button id="btnLogoutStamp" class="btn-logout" onclick="logout()">Logout</button>
+        </div>
+
+        <!-- View 3: หน้าสุ่มการ์ดชะตา (แสดงรูปภาพการ์ด) -->
+        <div id="cardDrawView" class="hidden">
+            <h2 id="txtDrawTitle" style="color: #8b5cf6; margin-top: 5px;">🔮 หมุนล้อชะตา</h2>
+            
+            <div id="drawIntroArea">
+                <div id="shufflingIcon" style="font-size: 80px; margin: 25px 0; filter: drop-shadow(0 4px 8px rgba(0,0,0,0.1));">🎴</div>
+                <button id="btnStartDraw" class="btn-gacha" onclick="startCardDraw()" style="font-size: 18px; padding: 16px;">เริ่มสุ่มการ์ด</button>
+            </div>
+
+            <div id="drawResultArea" class="card-result hidden">
+                <!-- พื้นที่แสดงภาพการ์ด (สามารถนำไฟล์รูปมาวางแทนที่ src ได้ตามเลขการ์ด 01.webp ถึง 16.webp) -->
+                <img id="drawnCardImage" src="" alt="Destiny Card" class="destiny-card-img">
+            </div>
+
+            <button id="btnBackFromDraw" class="btn-back-reward" onclick="switchView('reward')" style="margin-top: 25px;">⬅ กลับไปหน้าของรางวัล</button>
+        </div>
+    </div>
+
+    <!-- Popup ประเมินก่อนรับรางวัล -->
+    <div id="finalAssessmentOverlay" class="modal-overlay hidden">
+        <div class="modal-content">
+            <h3 id="txtFinalHeader" style="margin-top: 0; color: #be185d; font-size: 20px;">📝 Final Assessment</h3>
+            <p id="txtFinalDesc" style="font-size: 15px; color: #831843; margin-bottom: 20px; line-height: 1.6; text-align: left; font-weight: 500;">
+                Based on today's activities, how likely are you to use the physical library space (e.g., Chula AIX) this semester?
+            </p>
+            <div class="final-stars" id="finalStarContainer">
+                <span data-value="1">★</span>
+                <span data-value="2">★</span>
+                <span data-value="3">★</span>
+                <span data-value="4">★</span>
+                <span data-value="5">★</span>
+            </div>
+            <button id="btnSubmitFinal" class="btn-primary" style="margin-top: 20px; background-color: #ec4899; box-shadow: 0 4px 6px rgba(236,72,153,0.3);" disabled onclick="submitFinalAssessment()">Confirm & Claim</button>
+        </div>
+    </div>
+    <script src="assets/js/config/firebase-config.js"></script>
+    <script src="assets/js/pages/stamp.js"></script>
+</body>
+</html>

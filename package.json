@@ -1,0 +1,13 @@
+{
+  "name": "openhouse2026",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Static stamp-card experience for Open House 2026.",
+  "scripts": {
+    "check": "node scripts/validate-static-site.mjs",
+    "serve": "node scripts/serve.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

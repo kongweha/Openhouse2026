@@ -1,235 +1,4 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Event Stamp System</title>
-    <!-- โหลด Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
-    <script src="https://unpkg.com/html5-qrcode"></script>
-    <style>
-        *, *::before, *::after { box-sizing: border-box; }
-        body { font-family: 'Segoe UI', Tahoma, sans-serif; background-color: #f3f4f6; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; padding: 15px; }
-        
-        .container { background: white; padding: 35px 20px 25px 20px; border-radius: 24px; box-shadow: 0 10px 25px rgba(0,0,0,0.08); text-align: center; max-width: 420px; width: 100%; position: relative; }
-        
-        /* Language Toggle */
-        .lang-toggle { position: absolute; top: 15px; right: 20px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 20px; padding: 4px 10px; font-size: 13px; font-weight: bold; cursor: pointer; color: #94a3b8; display: flex; gap: 5px; z-index: 100; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
-        .lang-toggle span { transition: color 0.2s; }
-        .lang-toggle span.active { color: #3b82f6; }
-        .lang-toggle span:hover:not(.active) { color: #64748b; }
-
-        /* สไตล์กล่องกรอกรหัส 6 ช่อง */
-        .otp-container { display: flex; gap: 8px; justify-content: center; margin: 20px 0; }
-        .otp-box { width: 45px; height: 50px; border: 2px solid #cbd5e1; border-radius: 12px; font-size: 22px; text-align: center; font-weight: bold; color: #334155; -webkit-appearance: none; background-color: #f8fafc; transition: border-color 0.2s;}
-        .otp-box:focus { border-color: #3b82f6; outline: none; background-color: #fff; box-shadow: 0 0 0 3px rgba(59,130,246,0.15); }
-
-        /* ตัวครอบแผนที่ */
-        .map-wrapper { width: 100%; display: flex; justify-content: center; align-items: center; margin: 20px 0; overflow: visible; }
-        .map-container { position: relative; width: 330px; height: 330px; flex-shrink: 0; }
-        
-        /* สไตล์หลักของวงกลมแต่ละฐาน */
-        .station-node { 
-            position: absolute; width: 85px; height: 85px; border-radius: 50%; 
-            display: flex; flex-direction: column; align-items: center; justify-content: center; 
-            text-align: center; font-size: 10px; font-weight: bold; line-height: 1.1;
-            padding: 5px; overflow: hidden; transition: transform 0.3s ease; 
-            will-change: transform;
-        }
-        
-        .station-node.unstamped { border: 2px dashed #94a3b8; background-color: #f8fafc; color: #475569; cursor: pointer; }
-        .station-node.stamped { border: 2px dashed #10b981; background-color: #ecfdf5; cursor: pointer; box-shadow: 0 4px 10px rgba(16,185,129,0.2); }
-        .station-node img { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 70%; height: 70%; object-fit: contain; z-index: 1; opacity: 0.25; }
-        .station-node.stamped img { opacity: 1; width: 90%; height: 90%; }
-        .station-node span { position: relative; z-index: 2; text-shadow: 0px 0px 4px rgba(255,255,255,0.95), 0px 0px 2px rgba(255,255,255,1); }
-        
-        /* พิกัดตำแหน่งวงกลม */
-        .st-0 { top: 50%; left: 50%; transform: translate(-50%, -50%); width: 110px; height: 110px; font-size: 12px; z-index: 10; box-shadow: 0 0 15px rgba(0,0,0,0.08); } 
-        .st-4 { top: 0px; left: 50%; transform: translateX(-50%); } 
-        .st-1 { top: 45px; right: 0px; } 
-        .st-6 { bottom: 45px; right: 0px; } 
-        .st-5 { bottom: 0px; left: 50%; transform: translateX(-50%); } 
-        .st-2 { bottom: 45px; left: 0px; } 
-        .st-3 { top: 45px; left: 0px; } 
-
-        button { padding: 14px 20px; border: none; border-radius: 14px; cursor: pointer; font-size: 16px; font-weight: bold; width: 100%; margin-bottom: 10px; transition: transform 0.1s ease, background-color 0.2s ease; will-change: transform; }
-        button:active { transform: scale(0.97); }
-        .btn-primary { background-color: #3b82f6; color: white; box-shadow: 0 4px 6px rgba(59,130,246,0.25); }
-        .btn-primary:disabled { background-color: #94a3b8; cursor: not-allowed; box-shadow: none; transform: scale(1); }
-        .btn-redeem { background-color: #f87171; color: white; margin-top: 15px; box-shadow: 0 4px 6px rgba(248,113,113,0.25); }
-        .btn-redeem:disabled { background-color: #fca5a5; cursor: not-allowed; box-shadow: none; }
-        .btn-cancel { background-color: #64748b; color: white; display: none; margin-top: 10px; }
-        .btn-logout { background-color: #94a3b8; color: white; margin-top: 10px; font-size: 14px; padding: 10px; }
-        .btn-back-reward { background-color: #f59e0b; color: white; margin-top: 15px; box-shadow: 0 4px 6px rgba(245,158,11,0.25); }
-        .btn-gacha { background-color: #8b5cf6; color: white; box-shadow: 0 4px 6px rgba(139,92,246,0.25); }
-        
-        #reader { width: 100%; margin-bottom: 15px; display: none; border-radius: 16px; overflow: hidden; background: #000; }
-        .hidden { display: none !important; }
-        .user-info { background-color: #e0e7ff; padding: 8px 18px; border-radius: 20px; font-size: 14px; font-weight: bold; color: #4338ca; display: inline-block; margin-bottom: 15px; box-shadow: inset 0 2px 4px rgba(0,0,0,0.02); }
-        
-        /* กล่องเนื้อหาและเรตติ้ง */
-        .content-box { background-color: #f0fdf4; border: 2px solid #bbf7d0; color: #166534; padding: 18px; border-radius: 20px; margin-bottom: 15px; text-align: left; font-size: 14px; animation: fadeIn 0.2s ease; box-shadow: 0 4px 6px rgba(187,247,208,0.3);}
-        .content-box h3 { margin-top: 0; color: #15803d; margin-bottom: 8px; font-size: 16px;}
-        
-        .rating-box { background-color: #fffbeb; border: 2px solid #fde68a; padding: 22px 12px; border-radius: 20px; margin: 15px 0; text-align: center; animation: fadeIn 0.2s ease; box-shadow: 0 6px 12px rgba(253,230,138,0.3);}
-        
-        /* ระบบ Emoji ประเมินฐาน */
-        .stars { display: flex; justify-content: center; gap: 6px; margin: 15px 0; cursor: pointer; padding: 0 4px; }
-        .stars span { will-change: transform, filter, opacity, background-color; transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), filter 0.2s ease, opacity 0.2s ease, background-color 0.2s ease; opacity: 0.6; filter: grayscale(100%); padding: 8px 2px; border-radius: 12px; flex: 1; border: 2px solid transparent; color: #78716c; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; line-height: 1.1; }
-        .stars span.active { opacity: 1; filter: grayscale(0%); transform: scale(1.06); font-weight: bold; color: #b45309; background-color: #fef08a; border-color: #fde047; box-shadow: 0 4px 8px rgba(253, 224, 71, 0.3); }
-        .stars span .emoji { font-size: 26px; margin-bottom: 2px; } 
-        .stars span .rating-label { font-size: 11px; }
-        .display-stars { font-size: 14px; color: #d97706; margin-top: 15px; padding-top: 12px; border-top: 1px dashed #fcd34d; font-weight: bold; text-align: center;}
-        
-        /* Success Banner */
-        .success-banner { background-color: #fffbeb; border: 2px solid #f59e0b; color: #d97706; padding: 25px 15px; border-radius: 16px; margin: 15px 0; font-weight: bold; box-shadow: 0 4px 10px rgba(245,158,11,0.15); animation: fadeIn 0.3s ease;}
-
-        /* สไตล์สำหรับกล่องประเมินรับรางวัล */
-        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 999; display: flex; justify-content: center; align-items: center; padding: 20px; backdrop-filter: blur(3px); }
-        .modal-content { background: #fff5f8; border: 3px solid #fbcfe8; padding: 30px 25px; border-radius: 24px; text-align: center; max-width: 400px; width: 100%; box-shadow: 0 15px 30px rgba(244,114,182,0.2); }
-        .final-stars { display: flex; justify-content: center; gap: 10px; font-size: 42px; margin: 20px 0; cursor: pointer; color: #e2e8f0; text-shadow: 0 2px 4px rgba(0,0,0,0.05); }
-        .final-stars span { transition: color 0.15s, transform 0.15s; will-change: transform, color; }
-        .final-stars span.active { color: #f472b6; transform: scale(1.15); text-shadow: 0px 4px 12px rgba(244, 114, 182, 0.4); }
-
-        /* สไตล์สำหรับกล่องแสดงรูปการ์ดชะตา */
-        .card-result { background: transparent; padding: 10px 0; text-align: center; animation: popIn 0.5s cubic-bezier(0.2, 0.8, 0.2, 1); }
-        .destiny-card-img { width: 100%; max-width: 280px; height: auto; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.15); display: block; margin: 0 auto; }
-        
-        @keyframes shuffle { 0% { transform: scale(1) rotate(0deg); } 25% { transform: scale(1.08) rotate(5deg); } 75% { transform: scale(1.08) rotate(-5deg); } 100% { transform: scale(1) rotate(0deg); } }
-        .shuffle-anim { animation: shuffle 0.25s infinite; }
-
-        /* แอนิเมชันตอนสลับหน้า */
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
-        @keyframes popIn { from { opacity: 0; transform: scale(0.96); } to { opacity: 1; transform: scale(1); } }
-        .view-animate { animation: popIn 0.3s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; }
-
-        @media (max-width: 360px) {
-            .otp-box { width: 38px; height: 45px; font-size: 18px; }
-            .otp-container { gap: 5px; }
-            .map-container { transform: scale(0.9); }
-            .stars span .emoji { font-size: 22px; }
-            .stars span .rating-label { font-size: 9px; }
-            .final-stars { font-size: 36px; }
-        }
-    </style>
-</head>
-<body>
-
-    <!-- หน้าต่าง Login -->
-    <div class="container" id="loginScreen">
-        <div class="lang-toggle" onclick="toggleLanguage()">
-            <span id="btnLangEn" class="active">EN</span> | <span id="btnLangTh">TH</span>
-        </div>
-        <h2 id="txtLoginTitle">🔐 Login to System</h2>
-        <div class="otp-container" id="otpGroup">
-            <input type="tel" class="otp-box" maxlength="1">
-            <input type="tel" class="otp-box" maxlength="1">
-            <input type="tel" class="otp-box" maxlength="1">
-            <input type="tel" class="otp-box" maxlength="1">
-            <input type="tel" class="otp-box" maxlength="1">
-            <input type="tel" class="otp-box" maxlength="1">
-        </div>
-        <button id="btnLogin" class="btn-primary" onclick="login()">Login</button>
-    </div>
-
-    <!-- หน้าต่างหลักของระบบ -->
-    <div class="container hidden" id="stampScreen">
-        <div class="lang-toggle" onclick="toggleLanguage()">
-            <span id="btnLangEn2" class="active">EN</span> | <span id="btnLangTh2">TH</span>
-        </div>
-        
-        <h2 id="txtCardTitle">🎉 Stamp Card</h2>
-        <div class="user-info" id="displayUserCode">User ID: XXXXXX</div>
-        
-        <!-- View 1: หน้าของรางวัล (Reward Page) -->
-        <div id="rewardView" class="hidden">
-            <div class="success-banner">
-                <div id="txtSuccessTitle" style="font-size: 18px; margin-bottom: 8px;">🎁 รับของรางวัลเรียบร้อยแล้ว!</div>
-                <div id="txtSuccessSub" style="font-size: 15px; font-weight: normal;">(ไม่สามารถเล่นซ้ำได้)</div>
-            </div>
-            
-            <div id="rewardMapPlaceholder" style="margin: 20px 0; padding: 25px 15px; border: 2px dashed #cbd5e1; border-radius: 16px; color: #94a3b8; font-size: 14px; background-color: #f8fafc;">
-                <div id="txtMapPlaceholder">[ พื้นที่สำหรับใส่แผนที่จุดรับของรางวัล ]</div>
-            </div>
-
-            <!-- ปุ่มหมุนล้อชะตา -->
-            <button id="btnDrawCard" class="btn-gacha" onclick="openCardDraw()">🔮 หมุนล้อชะตา</button>
-            
-            <button id="btnViewStamps" class="btn-primary" onclick="switchView('stamp')">ดูบัตรสะสมแต้ม</button>
-            <button id="btnLogoutReward" class="btn-logout" onclick="logout()">ออกจากระบบ</button>
-        </div>
-
-        <!-- View 2: หน้าสแกนฐาน -->
-        <div id="stampView">
-            <div id="statusText" style="font-weight: bold; margin-bottom: 5px; color: #10b981; font-size: 18px;">Current Stamps: 0 / 7</div>
-            <div style="font-size: 12px; color: #64748b; margin-bottom: 5px;" id="subStatusText">(Click on unstamped circles to scan QR Code)</div>
-            
-            <div id="ratingBox" class="rating-box hidden">
-                <h3 id="txtRatingHeader" style="margin-top:0; color: #b45309;">⭐ How was this station?</h3>
-                <div id="ratingTitle" style="font-weight: bold; color: #92400e; margin-bottom: 10px; font-size: 16px;"></div>
-                <div class="stars" id="starContainer">
-                    <span data-value="1"><div class="emoji">😵‍💫</div><div class="rating-label" id="emj1">Confused</div></span>
-                    <span data-value="2"><div class="emoji">🤔</div><div class="rating-label" id="emj2">Complex</div></span>
-                    <span data-value="3"><div class="emoji">😐</div><div class="rating-label" id="emj3">Okay</div></span>
-                    <span data-value="4"><div class="emoji">🙂</div><div class="rating-label" id="emj4">Clear</div></span>
-                    <span data-value="5"><div class="emoji">🤩</div><div class="rating-label" id="emj5">Super Clear</div></span>
-                </div>
-                <button id="btnSubmitRating" class="btn-primary" disabled onclick="submitRating()">Submit Rating</button>
-            </div>
-
-            <div class="map-wrapper" id="mapWrapper">
-                <div class="map-container" id="mapContainer"></div>
-            </div>
-            
-            <div id="contentBox" class="content-box hidden"></div>
-
-            <div id="reader"></div>
-            <button id="btnCancel" class="btn-cancel" onclick="stopScan()">❌ Cancel Camera</button>
-            
-            <button id="btnRedeem" class="btn-redeem" onclick="redeemReward()" disabled>🎁 Redeem Reward</button>
-            <button id="btnBackToReward" class="btn-back-reward" style="display:none;" onclick="switchView('reward')">⬅ กลับไปหน้าของรางวัล</button>
-            <button id="btnLogoutStamp" class="btn-logout" onclick="logout()">Logout</button>
-        </div>
-
-        <!-- View 3: หน้าสุ่มการ์ดชะตา (แสดงรูปภาพการ์ด) -->
-        <div id="cardDrawView" class="hidden">
-            <h2 id="txtDrawTitle" style="color: #8b5cf6; margin-top: 5px;">🔮 หมุนล้อชะตา</h2>
-            
-            <div id="drawIntroArea">
-                <div id="shufflingIcon" style="font-size: 80px; margin: 25px 0; filter: drop-shadow(0 4px 8px rgba(0,0,0,0.1));">🎴</div>
-                <button id="btnStartDraw" class="btn-gacha" onclick="startCardDraw()" style="font-size: 18px; padding: 16px;">เริ่มสุ่มการ์ด</button>
-            </div>
-
-            <div id="drawResultArea" class="card-result hidden">
-                <!-- พื้นที่แสดงภาพการ์ด (สามารถนำไฟล์รูปมาวางแทนที่ src ได้ตามเลขการ์ด 01.webp ถึง 16.webp) -->
-                <img id="drawnCardImage" src="" alt="Destiny Card" class="destiny-card-img">
-            </div>
-
-            <button id="btnBackFromDraw" class="btn-back-reward" onclick="switchView('reward')" style="margin-top: 25px;">⬅ กลับไปหน้าของรางวัล</button>
-        </div>
-    </div>
-
-    <!-- Popup ประเมินก่อนรับรางวัล -->
-    <div id="finalAssessmentOverlay" class="modal-overlay hidden">
-        <div class="modal-content">
-            <h3 id="txtFinalHeader" style="margin-top: 0; color: #be185d; font-size: 20px;">📝 Final Assessment</h3>
-            <p id="txtFinalDesc" style="font-size: 15px; color: #831843; margin-bottom: 20px; line-height: 1.6; text-align: left; font-weight: 500;">
-                Based on today's activities, how likely are you to use the physical library space (e.g., Chula AIX) this semester?
-            </p>
-            <div class="final-stars" id="finalStarContainer">
-                <span data-value="1">★</span>
-                <span data-value="2">★</span>
-                <span data-value="3">★</span>
-                <span data-value="4">★</span>
-                <span data-value="5">★</span>
-            </div>
-            <button id="btnSubmitFinal" class="btn-primary" style="margin-top: 20px; background-color: #ec4899; box-shadow: 0 4px 6px rgba(236,72,153,0.3);" disabled onclick="submitFinalAssessment()">Confirm & Claim</button>
-        </div>
-    </div>
-
-    <script>
-        let currentLang = 'en';
+let currentLang = 'en';
         const LANG = {
             en: {
                 loginTitle: "🔐 Login to System",
@@ -315,35 +84,24 @@
 
         // รายการการ์ดทั้ง 16 ใบ (สามารถระบุพาธไฟล์รูปภาพการ์ดได้ที่ฟิลد img)
         const DESTINY_CARDS = [
-            { id: 1, img: "picture/Card_1.webp" },
-            { id: 2, img: "picture/Card_2.webp" },
-            { id: 3, img: "picture/Card_3.webp" },
-            { id: 4, img: "picture/Card_4.webp" },
-            { id: 5, img: "picture/Card_5.webp" },
-            { id: 6, img: "picture/Card_6.webp" },
-            { id: 7, img: "picture/Card_7.webp" },
-            { id: 8, img: "picture/Card_1.webp" },
-            { id: 9, img: "picture/Card_1.webp" },
-            { id: 10, img: "picture/Card_1.webp" },
-            { id: 11, img: "picture/Card_1.webp" },
-            { id: 12, img: "picture/Card_1.webp" },
-            { id: 13, img: "picture/Card_1.webp" },
-            { id: 14, img: "picture/Card_1.webp" },
-            { id: 15, img: "picture/Card_1.webp" },
-            { id: 16, img: "picture/Card_1.webp" }
+            { id: 1, img: "assets/images/cards/Card_1.webp" },
+            { id: 2, img: "assets/images/cards/Card_2.webp" },
+            { id: 3, img: "assets/images/cards/Card_3.webp" },
+            { id: 4, img: "assets/images/cards/Card_4.webp" },
+            { id: 5, img: "assets/images/cards/Card_5.webp" },
+            { id: 6, img: "assets/images/cards/Card_6.webp" },
+            { id: 7, img: "assets/images/cards/Card_7.webp" },
+            { id: 8, img: "assets/images/cards/Card_1.webp" },
+            { id: 9, img: "assets/images/cards/Card_1.webp" },
+            { id: 10, img: "assets/images/cards/Card_1.webp" },
+            { id: 11, img: "assets/images/cards/Card_1.webp" },
+            { id: 12, img: "assets/images/cards/Card_1.webp" },
+            { id: 13, img: "assets/images/cards/Card_1.webp" },
+            { id: 14, img: "assets/images/cards/Card_1.webp" },
+            { id: 15, img: "assets/images/cards/Card_1.webp" },
+            { id: 16, img: "assets/images/cards/Card_1.webp" }
         ];
-
-        const firebaseConfig = {
-          apiKey: "AIzaSyAJlt9qKkkUqPrQL7RLoRAPO-ToYwY7Q2o",
-          authDomain: "eventstampcard.firebaseapp.com",
-          databaseURL: "https://eventstampcard-default-rtdb.asia-southeast1.firebasedatabase.app",
-          projectId: "eventstampcard",
-          storageBucket: "eventstampcard.firebasestorage.app",
-          messagingSenderId: "1072393228911",
-          appId: "1:1072393228911:web:66f14d85a50749e7b9b39a"
-        };
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.database();
+const db = window.openHouseDb;
         
         const STATIONS = [
             { id: 0, name: "Library Playground", qr: "QR_STN_01", 
@@ -910,6 +668,3 @@
         }
 
         applyLanguage();
-    </script>
-</body>
-</html>
