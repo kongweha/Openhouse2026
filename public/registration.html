@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ลงทะเบียน | Chula Library Open House 2026</title>
+    <link rel="stylesheet" href="assets/css/registration.css">
+</head>
+<body>
+    <main class="registration-card">
+        <p class="eyebrow">CHULA LIBRARY OPEN HOUSE 2026</p>
+        <h1>รับรหัสสะสมแสตมป์</h1>
+        <p class="intro">ลงทะเบียนหนึ่งครั้งเพื่อรับรหัส 6 หลักสำหรับเข้าใช้งาน Stamp Card</p>
+
+        <div class="tabs" role="tablist" aria-label="เมนูลงทะเบียน">
+            <button class="tab active" id="registerTab" type="button" role="tab" aria-selected="true">ลงทะเบียน</button>
+            <button class="tab" id="recoverTab" type="button" role="tab" aria-selected="false">ลืมรหัส</button>
+        </div>
+
+        <section id="registerPanel" role="tabpanel" aria-labelledby="registerTab">
+            <form id="registerForm">
+                <label for="studentId">รหัสนิสิต</label>
+                <input id="studentId" name="studentId" type="text" inputmode="numeric" autocomplete="username" maxlength="10" pattern="[0-9]{10}" placeholder="กรอกรหัสนิสิต 10 หลัก" required>
+
+                <label for="visitedOpenHouse">เคยมา Chula Library Open มั้ย</label>
+                <select id="visitedOpenHouse" name="visitedOpenHouse" required>
+                    <option value="" selected disabled>กรุณาเลือกคำตอบ</option>
+                    <option value="yes">เคย</option>
+                    <option value="no">ไม่เคย</option>
+                </select>
+
+                <button class="primary-button" type="submit">ยืนยันการลงทะเบียน</button>
+            </form>
+        </section>
+
+        <section id="recoverPanel" class="hidden" role="tabpanel" aria-labelledby="recoverTab">
+            <form id="recoverForm">
+                <label for="recoverStudentId">รหัสนิสิต</label>
+                <input id="recoverStudentId" name="studentId" type="text" inputmode="numeric" autocomplete="username" maxlength="10" pattern="[0-9]{10}" placeholder="กรอกรหัสนิสิต 10 หลัก" required>
+                <button class="primary-button" type="submit">ค้นหารหัสของฉัน</button>
+            </form>
+        </section>
+
+        <section id="resultPanel" class="result hidden" aria-live="polite">
+            <p id="resultMessage"></p>
+            <strong id="accessCode" class="access-code"></strong>
+            <a class="primary-button link-button" href="Stamp.html">ไปหน้า Stamp Card</a>
+        </section>
+
+        <p id="formStatus" class="status" role="status" aria-live="polite"></p>
+        <a class="back-link" href="Stamp.html">มีรหัสแล้ว? เข้าสู่ Stamp Card</a>
+    </main>
+
+    <script src="assets/js/config/app-config.js"></script>
+    <script src="assets/js/shared/api-client.js"></script>
+    <script src="assets/js/pages/registration.js"></script>
+</body>
+</html>

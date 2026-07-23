@@ -1,113 +1,121 @@
 # Project SSOT — OpenHouse2026
 
 อัปเดตล่าสุด: 2026-07-23  
-สถานะ: ใช้งานเป็น static web application และอยู่ระหว่าง hardening ก่อน production
+สถานะ: ฟีเจอร์ registration/backend อยู่บน `feature/registration-backend`
+และยังไม่ deploy production
 
 เอกสารนี้คือแหล่งข้อเท็จจริงหลักของโปรเจ็กต์ หากโค้ดและเอกสารไม่ตรงกัน
-ให้ตรวจสอบพฤติกรรมจากโค้ด แล้วแก้เอกสารนี้ใน change เดียวกัน
+ให้ตรวจพฤติกรรมจากโค้ดและแก้เอกสารใน change เดียวกัน
 
-## 1. เป้าหมายระบบ
+## 1. เป้าหมายและ flow
 
 ระบบรองรับกิจกรรมสะสมตราประทับ 7 ฐาน:
 
-1. Admin สร้างรหัสสมาชิก 6 หลักจำนวน 500 รหัส
-2. ผู้เข้าร่วมล็อกอินด้วยรหัสสมาชิก
-3. ผู้เข้าร่วมสแกน Dynamic QR ของแต่ละฐาน
-4. ผู้เข้าร่วมให้คะแนนแต่ละฐาน
-5. เมื่อครบ 7 ฐาน ผู้เข้าร่วมประเมินภาพรวมและแลกรางวัล
-6. หลังแลกรางวัล ผู้เข้าร่วมสุ่มการ์ดชะตาได้หนึ่งใบ
-7. Admin ดูสถิติ เส้นทาง ระยะเวลา คะแนน และ export CSV
+1. Admin สร้าง pool รหัส Stamp Card 6 หลักจำนวน 500 รหัส
+2. ผู้เข้าร่วมลงทะเบียนด้วยรหัสนิสิต 10 หลักและตอบว่าเคยมางานหรือไม่
+3. Backend จองรหัสว่างที่มีค่าน้อยที่สุดและผูกรหัสนิสิตกับรหัส Stamp Card
+4. ผู้ที่ลืมรหัสค้นหารหัสเดิมด้วยรหัสนิสิตได้
+5. ผู้เข้าร่วมล็อกอิน สแกน Dynamic QR และให้คะแนนแต่ละฐาน
+6. เมื่อครบ 7 ฐาน ผู้เข้าร่วมประเมินภาพรวม แลกรางวัล และสุ่มการ์ดหนึ่งใบ
+7. Admin ดูความสัมพันธ์รหัสนิสิต/Stamp Card สถิติ เส้นทาง คะแนน และ CSV
 
-## 2. ขอบเขตและเทคโนโลยี
+ฐาน ID 0 และ 1 ใช้ชื่อ `Library journey` และ `Query Quarry` ตามลำดับ
 
-- Frontend: HTML, CSS และ JavaScript แบบไม่ใช้ framework
-- Hosting: GitHub Pages ผ่าน `.github/workflows/static.yml`
-- Database: Firebase Realtime Database โปรเจ็กต์ `eventstampcard`
-- Authentication: ยังไม่มี Firebase Authentication
-- Build step: ไม่มี; deploy เนื้อหาใน `public/` โดยตรง
-- Runtime สำหรับเครื่องมือ: Node.js 20 ขึ้นไป
+## 2. Architecture และเทคโนโลยี
 
-External browser dependencies:
+```text
+GitHub Pages (public/)
+        │ HTTPS JSON
+        ▼
+Firebase HTTPS Function: api (asia-southeast1)
+        │ Firebase Admin SDK / transactions
+        ▼
+Firebase Realtime Database: eventstampcard
+```
 
-- Firebase compat SDK `9.22.2`
-- QRCode.js `1.0.0`
-- html5-qrcode จาก unpkg (ยังไม่ได้ pin version)
+- Frontend: HTML, CSS, JavaScript แบบไม่ใช้ framework
+- Static hosting: GitHub Pages จาก `public/`
+- Backend: Firebase Functions v2, Node.js 22
+- Database access: Firebase Admin SDK จาก Functions เท่านั้น
+- Admin API: ไม่มี authentication เพิ่มเติมตามขอบเขตที่เจ้าของระบบยืนยัน
+  เมื่อ 2026-07-23
+- Firebase Functions dependencies:
+  - `firebase-functions` 7.3.0
+  - `firebase-admin` 14.2.0
+- Browser dependencies:
+  - QRCode.js 1.0.0
+  - html5-qrcode จาก unpkg (ยังไม่ได้ pin version)
 
-รูปฐานและรูปการ์ดเป็น local assets ใน repo คัดลอกแบบ byte-for-byte จาก
-`kongweha/Gametest` commit
-`251da3aac066dd9b0c0b2c126ace4f7e513a5a74`
+ไม่มี Firebase web config หรือ Firebase client SDK ใน `public/`
+ค่า `OpenHouseConfig.api.baseUrl` เป็น public endpoint ไม่ใช่ credential
 
-## 3. Entry points และ URL contract
+## 3. Entry points
 
 | Route | หน้าที่ |
 | --- | --- |
-| `public/index.html` | หน้าผู้เข้าร่วมและบัตรสะสมตรา |
-| `public/admin.html` | Dashboard และคำสั่งจัดการข้อมูล |
+| `public/registration.html` | ลงทะเบียนและค้นหารหัสที่ลืม |
+| `public/Stamp.html` | Stamp Card ของผู้เข้าร่วม (canonical) |
+| `public/index.html` | Redirect จาก URL รากไป `Stamp.html` |
+| `public/admin.html` | Admin dashboard |
 | `public/generate-qr.html` | สร้าง Dynamic QR ของแต่ละฐาน |
-| `public/Stamp.html` | Compatibility redirect ไป `index.html` |
 | `public/GenerateQR.html` | Compatibility redirect ไป `generate-qr.html` |
 
-ห้ามลบ compatibility routes จนกว่าจะยืนยันว่า QR, bookmark และเอกสารภายนอก
-ทั้งหมดเปลี่ยน URL แล้ว
+ห้ามลบ compatibility routes โดยไม่มี migration plan
 
-## 4. โครงสร้าง source
+## 4. โครงสร้าง source และ ownership
 
 ```text
-public/
+public/                         deployable static web root
+  registration.html
+  Stamp.html
   index.html
   admin.html
   generate-qr.html
-  Stamp.html
-  GenerateQR.html
   assets/
     css/
-      stamp.css
-      admin.css
-      generate-qr.css
     js/
-      config/app-config.js
-      config/firebase-config.js
-      pages/stamp.js
-      pages/admin.js
-      pages/generate-qr.js
-      shared/legacy-redirect.js
+      config/app-config.js      frontend display/runtime config
+      shared/api-client.js      HTTPS API client
+      pages/
     images/
-      README.md
-      stations/            รูปสถานะยังไม่เก็บ/เก็บแล้วของ 7 ฐาน
-      cards/               รูปการ์ด 7 ใบและ README
+functions/
+  src/
+    index.js                    HTTP routing + database operations
+    domain.js                   pure validation/allocation domain logic
+    event-config.js             trusted backend event config
+  test/domain.test.js
 docs/
   PROJECT_SSOT.md
   HANDOFF.md
 scripts/
   validate-static-site.mjs
   serve.mjs
+firebase.json
+.firebaserc
 ```
-
-ไฟล์ใน `public/` เท่านั้นที่เป็น deployable artifact ส่วน `docs/` และ `scripts/`
-ไม่ถูกเผยแพร่โดย GitHub Pages
-
-### Source ownership
 
 | ข้อมูล/พฤติกรรม | Source of truth |
 | --- | --- |
-| รายชื่อฐาน, station ID, QR code, รูปและคำอธิบายฐาน | `assets/js/config/app-config.js` |
-| จำนวนฐาน | `OpenHouseConfig.stations.length` ห้าม hard-code ซ้ำ |
-| จำนวน/ความยาวรหัสสมาชิก | `OpenHouseConfig.participants` |
-| อายุ QR และ clock skew | `OpenHouseConfig.qr` |
-| Mapping รูปการ์ด | `OpenHouseConfig.destinyCards` |
-| ไฟล์ภาพ production และ provenance | `assets/images/` |
-| Firebase web configuration | `assets/js/config/firebase-config.js` |
-| Redirect จาก URL เก่า | `assets/js/shared/legacy-redirect.js` |
+| ชื่อ/ID/QR ของฐานฝั่ง trusted backend | `functions/src/event-config.js` |
+| รูป คำอธิบาย และ display config ฝั่ง frontend | `public/assets/js/config/app-config.js` |
+| Registration allocation และ validation | `functions/src/domain.js` |
+| HTTP/data operations | `functions/src/index.js` |
+| API base URL และ poll interval | `public/assets/js/config/app-config.js` |
+| API request shape | `public/assets/js/shared/api-client.js` |
+| ภาพ production และ provenance | `public/assets/images/` |
 
-หน้า Stamp, Admin และ QR generator ต้องสร้างรายการฐานจาก `OpenHouseConfig`
-เท่านั้น ตัว validator จะ reject รหัส `QR_STN_*` ที่เขียนซ้ำนอก config
+Validator บังคับให้ station, จำนวนรหัส, ความยาวรหัส และ QR timing ใน frontend
+ตรงกับ backend และ reject Firebase client config/direct database access ใน
+`public/`
 
 ## 5. Data contract
 
-ข้อมูลหลักอยู่ใต้ path `users/{code}` โดย `code` เป็นเลข 6 หลัก
-
 ```text
-users/{code}
+users/{accessCode}
+  registration:
+    studentId: string
+    hasVisitedOpenHouse: boolean
+    registeredAt: number
   stations: boolean[7] | object
   isRedeemed: boolean
   loginTime?: number
@@ -116,132 +124,143 @@ users/{code}
   scanHistory/{pushId}?: { id: number, name: string, time: number }
   finalIntentionRating?: number
   drawnCardId?: number
+
+studentRegistrations/{studentId}
+  studentId: string
+  accessCode: string
+  hasVisitedOpenHouse: boolean
+  registeredAt: number
 ```
 
-เวลาเป็น Unix epoch milliseconds จาก `Date.now()` ฝั่ง browser
-และไม่ได้รับการรับรองโดย server
+- `studentId` ต้องเป็นเลข 10 หลัก
+- `accessCode` ต้องเป็นเลข 6 หลัก
+- การลงทะเบียนใช้ root Realtime Database transaction เพื่อจองรหัสแบบ atomic
+- เลือกรหัสที่ยังไม่มี registration/login/scan/redeem โดยเรียงค่าตัวเลขน้อยไปมาก
+- ลงทะเบียนรหัสนิสิตเดิมซ้ำเป็น idempotent และคืนรหัสเดิม
+- เวลา login, scan, redeem และ registration มาจาก backend
 
-## 6. QR contract
+## 6. HTTP API contract
 
-Payload ปัจจุบัน:
+Public:
+
+| Method | Path | หน้าที่ |
+| --- | --- | --- |
+| `GET` | `/health` | Health check |
+| `POST` | `/registration/register` | ลงทะเบียน/คืนรหัสเดิม |
+| `POST` | `/registration/recover` | ค้นหารหัสจากรหัสนิสิต |
+| `POST` | `/participants/login` | Login และตั้งเวลาเริ่ม |
+| `GET` | `/participants/{code}` | อ่านสถานะ participant |
+| `POST` | `/participants/{code}/stations/{id}` | ตรวจ QR และบันทึกคะแนน |
+| `POST` | `/participants/{code}/redeem` | ประเมินและแลกรางวัล |
+| `POST` | `/participants/{code}/draw` | สุ่ม/คืนการ์ดเดิม |
+
+Admin (public; ไม่มี authentication):
+
+| Method | Path | หน้าที่ |
+| --- | --- | --- |
+| `GET` | `/admin/users` | อ่านข้อมูลผู้ใช้ |
+| `POST` | `/admin/codes/reset` | สร้าง pool ใหม่และลบ registration เดิม |
+| `DELETE` | `/admin/users/clear` | ล้าง users และ registrations |
+
+คำสั่ง reset/clear ยังมี confirmation token ใน request body เพิ่มอีกชั้น
+
+## 7. QR contract
+
+Payload:
 
 ```text
-QR_STN_0N|<browser_timestamp_ms>
+QR_STN_0N|<generator_timestamp_ms>
 ```
 
 - Generator สร้าง payload ใหม่ทุก 90 วินาที
-- Scanner ยอมรับ QR ที่มีอายุไม่เกิน 90 วินาที
-- Scanner ยอมให้ timestamp นำหน้าเวลาของเครื่องผู้ใช้ได้ 5 วินาที
-- ไม่มี signature, nonce ฝั่ง server หรือ replay protection
+- Frontend ตรวจรูปแบบเพื่อ feedback ที่เร็ว
+- Backend ตรวจ station code, อายุไม่เกิน 90 วินาที และ future skew ไม่เกิน 5 วินาที
+- บันทึกสถานะ/คะแนน/เวลา scan ใน transaction เดียว
 
-ค่าตัวเลขทั้งสามรายการอ่านจาก `OpenHouseConfig.qr`
+ยังไม่มี signature หรือ nonce ดังนั้นผู้ใช้ที่รู้รูปแบบยัง forge QR ได้
 
-สัญญานี้ต้องคงเดิมจนกว่าจะออกแบบ backend verification และ migration plan
+## 8. ความปลอดภัยและความเป็นส่วนตัว
 
-## 7. Firebase และความปลอดภัย
+สิ่งที่แก้แล้วใน feature branch:
 
-`public/assets/js/config/firebase-config.js` มี Firebase web configuration
-ซึ่งเป็น client identifier ที่ต้องเปิดเผยใน browser ไม่ใช่ service-account secret
-ความปลอดภัยจริงต้องมาจาก Firebase Authentication และ Realtime Database Rules
+- browser ไม่เชื่อม Realtime Database โดยตรง
+- ไม่มี Firebase API config ใน deployable frontend
+- การจองรหัส, scan, redeem และ draw ถูกตรวจใน backend transaction
+- Admin render ค่า database ผ่าน HTML escaping
 
-สถานะ rules และ authentication ปัจจุบันยังไม่ได้รับการตรวจจาก repo นี้
-ห้ามสรุปว่าฐานข้อมูลปลอดภัยเพียงเพราะ config ไม่มี private key
+ความเสี่ยงที่ยังเหลือ:
 
-ความเสี่ยงที่ต้องแก้ก่อน production:
+1. **Critical — Admin API ไม่มี authentication**: ผู้ที่รู้ endpoint สามารถอ่าน
+   ข้อมูล สร้าง pool ใหม่ หรือล้างข้อมูลได้ แม้ destructive routes จะมี
+   confirmation token คงที่ใน request body
+2. **Critical — QR ยัง forge ได้**: ต้องใช้ signature/nonce ที่ backend ออกให้
+3. **High — Recover endpoint ใช้รหัสนิสิตอย่างเดียว**: ผู้ที่เดารหัสได้อาจค้น
+   access code ของผู้อื่น ต้องเพิ่ม OTP/identity proof หรือ rate limit/App Check
+4. **High — ยังไม่ได้ review production Database Rules**: ควรปิด client access
+   และทดสอบ rules ก่อนเปิดใช้
+5. **Medium — CORS เปิดทุก origin**: จำกัดเป็น production domain หลังยืนยัน URL
+6. **Medium — html5-qrcode ไม่ได้ pin version/SRI**
 
-1. **Critical — Admin ไม่มี authentication/authorization**  
-   ทุกคนที่เปิดหน้าได้อาจสร้างรหัสใหม่ ล้างข้อมูล และอ่าน/export ข้อมูลได้
-   หาก Database Rules อนุญาต
-2. **Critical — QR ปลอมได้**  
-   ผู้ใช้สร้าง payload ชื่อฐานและ timestamp ปัจจุบันเองได้ทั้งหมด
-3. **High — Client เขียนผลสำเร็จและสถานะแลกรางวัลเอง**  
-   ต้องย้าย validation สำคัญไป trusted backend หรือ Cloud Functions
-4. **High — ยังไม่ทราบ Database Rules**  
-   ต้อง export/review rules และทำ Firebase Auth ก่อนเปิดใช้จริง
-5. **Medium — การเขียนคะแนน/ประวัติแยกหลาย request**  
-   อาจเกิด partial update ควรเปลี่ยนเป็น atomic multi-location update
-6. **Medium — Admin render บางค่าจากฐานข้อมูลด้วย `innerHTML`**  
-   ควร escape หรือสร้าง DOM nodes เพื่อป้องกัน stored XSS
-7. **Medium — html5-qrcode ไม่ได้ pin version/SRI**  
-   ทำให้ dependency เปลี่ยนโดยไม่ผ่าน review ได้
+ห้าม commit service-account key หรือ production data
 
-## 8. Known functional gaps
+## 9. Known gaps
 
-- Card IDs 8–16 ยังชี้กลับไป `card-01.webp` เป็น placeholder
-- การจับเวลาอาศัยนาฬิกาอุปกรณ์ผู้ใช้ จึงแก้ไขหรือคลาดเคลื่อนได้
-- ไม่มี automated browser/E2E test และไม่มี Firebase emulator test
-- ยังไม่มีสถานะ loading/error ที่สม่ำเสมอสำหรับทุก Firebase operation
+- Card IDs 8–16 ยังใช้ `card-01.webp` เป็น placeholder
+- ไม่มี Firebase Emulator integration test หรือ browser E2E
+- feature branch ยังเชื่อม API URL production ซึ่งยังไม่มี Function deploy
+- การ reset/clear เป็น destructive production operation และต้องขออนุมัติ
 
-## 9. คำสั่งมาตรฐาน
+## 10. คำสั่งมาตรฐาน
 
 ```bash
 npm run check
 npm run serve
+cd functions
+npm install
+npm test
 ```
 
-`npm run check` ตรวจ:
+ใช้ Node.js 22 ขึ้นไป `npm run check` ตรวจ static references, syntax,
+frontend/backend config drift, ไม่มี Firebase client exposure, image signature
+และ domain tests
 
-- entry point และไฟล์หลักครบ
-- local `href`/`src` ไม่ชี้ไฟล์หาย
-- หน้า canonical ไม่มี inline CSS/JavaScript
-- JavaScript parse ผ่าน
-- app config ถูกโหลดก่อน page script
-- station IDs/QR codes ถูกต้องและไม่ซ้ำ
-- ไม่มี station QR config กระจายนอก `app-config.js`
-- ภาพที่ config อ้างมีอยู่จริงและชนิดไฟล์ตรงกับ PNG/WebP
-- ไม่มีไฟล์ภาพ production ที่ไม่ได้อ้างใช้งาน
+## 11. Deployment plan
 
-## 10. Deployment
+Frontend และ backend ต้อง deploy เป็นลำดับ:
 
-เมื่อ push ไป `main`, GitHub Actions จะ:
+1. ติดตั้ง Firebase CLI และ authenticate บัญชีที่มีสิทธิ์
+2. รัน `firebase deploy --only functions:api --project eventstampcard`
+3. ทดสอบ `/health`, registration, recovery และ Admin กับข้อมูลทดสอบ
+4. Review production Database Rules และปิด direct client access
+5. Merge `feature/registration-backend` เข้า `main`; GitHub Pages จะ deploy
+   `public/`
 
-1. checkout source
-2. ตรวจ static site
-3. configure GitHub Pages
-4. upload เฉพาะ `public/`
-5. deploy ไป environment `github-pages`
+ห้าม merge frontend นี้เข้า `main` ก่อน backend พร้อม เพราะ Stamp/Admin ใหม่
+ไม่สามารถ fallback ไป Firebase client เดิม
 
-การ deploy, การแก้ Firebase Rules และการล้างข้อมูล production
-มีนโยบายดังนี้:
+Routine repository push ได้รับอนุมัติจากเจ้าของระบบ แต่การ deploy Functions,
+แก้ production rules, ล้างข้อมูล, rewrite history และ
+force-push ต้องขออนุมัติเป็นรายครั้ง
 
-- เจ้าของระบบให้ standing instruction เมื่อ 2026-07-23 ให้ commit และ push
-  งาน repository ที่เสร็จทุกครั้ง
-- การ push งานปกติไป `main` ซึ่งทำให้ GitHub Pages deploy ถือว่าได้รับอนุมัติ
-- การแก้ Firebase production rules, ล้างข้อมูล, rotate credentials,
-  rewrite history หรือ force-push ยังต้องขออนุมัติเป็นรายครั้ง
+## 12. Definition of done
 
-## 11. Definition of done
-
-ทุก change ต้อง:
-
-1. รักษา entry points และ data/QR contract หรือบันทึก migration ชัดเจน
+1. รักษา route/data contract หรือบันทึก migration
 2. ผ่าน `npm run check`
-3. อัปเดต SSOT หากข้อเท็จจริงด้าน architecture/behavior เปลี่ยน
-4. อัปเดต `docs/HANDOFF.md` ทุกครั้ง
-5. ระบุ manual test ที่ทำและส่วนที่ยังทดสอบไม่ได้
-6. ไม่เพิ่ม private credential หรือ production data ลง Git
-7. Commit การเปลี่ยนแปลงที่อยู่ในขอบเขตงานและ push ไป `origin`
-8. ตรวจว่า local branch ตรงกับ remote ก่อนส่งมอบ
-
-## 12. ลำดับงานแนะนำ
-
-1. เพิ่ม Firebase Authentication และ role-based admin authorization
-2. ออกแบบ signed QR และ server-side verification
-3. ตรวจและ version-control Database Rules พร้อม emulator tests
-4. เพิ่มรูปการ์ดจริงและกำหนด mapping 1–16 ให้ครบ
-5. เพิ่ม browser smoke tests สำหรับ login, scan, rating, redeem และ admin
+3. อัปเดต SSOT และ `docs/HANDOFF.md`
+4. ระบุส่วนที่ยังทดสอบ live ไม่ได้
+5. ไม่เพิ่ม credential หรือ production data
+6. Commit และ push current branch ไป `origin`
+7. ตรวจ local branch ตรงกับ remote ก่อนส่งมอบ
 
 ## 13. Decision log
 
-- 2026-07-23: แยก deployable files ไป `public/`
-- 2026-07-23: แยก inline CSS/JS เป็น page assets
-- 2026-07-23: รวม Firebase client initialization ไว้ไฟล์เดียว
-- 2026-07-23: เพิ่ม compatibility redirects สำหรับ URL เดิม
-- 2026-07-23: กำหนด SSOT/Handoff เป็นเอกสารบังคับผ่าน `AGENTS.md`
-- 2026-07-23: เจ้าของระบบกำหนด standing instruction ให้ commit และ push
-  ทุกงานที่เสร็จ โดย routine push ไป `main` อนุญาตให้ deploy GitHub Pages ได้
-- 2026-07-23: รวม station, participant, QR timing และ card mapping เป็น
-  `app-config.js` source เดียว และให้ทุกหน้าสร้าง UI จาก config
-- 2026-07-23: รวม legacy redirect logic เป็นไฟล์เดียว พร้อมคง URL เดิม
-- 2026-07-23: นำรูปฐาน 14 ไฟล์และการ์ด 7 ไฟล์จาก `Gametest`
-  commit `251da3a` มาเป็น local assets, เปลี่ยนชื่อให้อ่านง่าย และเลิกพึ่ง CDN
+- 2026-07-23: แยก deployable files ไป `public/` และคง legacy redirects
+- 2026-07-23: ใช้ SSOT/Handoff เป็น continuity documents บังคับ
+- 2026-07-23: นำรูป 21 ไฟล์จาก `Gametest` commit `251da3a` มาเป็น local assets
+- 2026-07-23: เปลี่ยนฐาน 1/2 เป็น `Library journey` และ `Query Quarry`
+- 2026-07-23: แยก browser ออกจาก Realtime Database ผ่าน HTTPS Function
+- 2026-07-23: เพิ่ม atomic registration mapping และ recovery
+- 2026-07-23: เจ้าของระบบเลือกไม่สร้าง Admin key เพิ่ม; Admin API จึงเป็น public
+- 2026-07-23: ให้ `Stamp.html` เป็น participant canonical เพียงชุดเดียว และให้
+  `index.html` redirect เพื่อรักษา URL รากโดยไม่ทำโค้ดซ้ำ
+- 2026-07-23: ทำงานบน feature branch จนกว่า backend production จะ deploy

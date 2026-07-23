@@ -17,8 +17,8 @@ The source-to-local mapping is documented below.
 
 | Station | Uncollected source | Collected source |
 | --- | --- | --- |
-| Library Playground | `LIBRARY PLAYGROUND1.webp` | `LIBRARY PLAYGROUND2.webp` |
-| Discovery Lab | `Discovery LAB1.webp` | `Discovery LAB2.webp` |
+| Library journey | `LIBRARY PLAYGROUND1.webp` | `LIBRARY PLAYGROUND2.webp` |
+| Query Quarry | `Discovery LAB1.webp` | `Discovery LAB2.webp` |
 | Play Zone | `Play ZONE1.webp` | `Play ZONE2.webp` |
 | Perfect Match | `Treasure corner1.webp` | `Treasure corner2.webp` |
 | Camera Go! | `Media studio1.webp` | `Media studio2.webp` |

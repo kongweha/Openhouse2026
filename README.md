@@ -1,12 +1,12 @@
 # OpenHouse2026
 
 เว็บสะสมตราประทับสำหรับกิจกรรม Open House 2026 ประกอบด้วยหน้าผู้เข้าร่วม
-หน้าสร้าง QR ประจำฐาน และหน้าผู้ดูแลระบบ โดยใช้ Firebase Realtime Database
-เป็นแหล่งข้อมูลกลาง
+หน้าลงทะเบียน หน้าสร้าง QR และหน้าผู้ดูแลระบบ โดยให้ browser ติดต่อ
+Firebase Realtime Database ผ่าน HTTPS Function API
 
 ## เริ่มต้นใช้งาน
 
-ต้องใช้ Node.js 20 ขึ้นไปสำหรับคำสั่งตรวจสอบและ local server
+ต้องใช้ Node.js 22 ขึ้นไปสำหรับคำสั่งตรวจสอบและ local server
 
 ```bash
 npm run check
@@ -15,7 +15,8 @@ npm run serve
 
 จากนั้นเปิด:
 
-- ผู้เข้าร่วม: <http://localhost:4173/>
+- ผู้เข้าร่วม: <http://localhost:4173/Stamp.html>
+- ลงทะเบียน/ลืมรหัส: <http://localhost:4173/registration.html>
 - ผู้ดูแล: <http://localhost:4173/admin.html>
 - เครื่องสร้าง QR: <http://localhost:4173/generate-qr.html>
 
@@ -27,7 +28,7 @@ npm run serve
 ```text
 public/                  deployable web root
   assets/css/            styles แยกตามหน้า
-  assets/js/config/      app config และ Firebase client configuration
+  assets/js/config/      frontend app config
   assets/js/pages/       logic แยกตามหน้า
   assets/js/shared/      logic ที่หลาย entry point ใช้ร่วมกัน
   assets/images/cards/   รูปการ์ดชะตา
@@ -35,6 +36,7 @@ docs/
   PROJECT_SSOT.md        ข้อเท็จจริงและสถาปัตยกรรมปัจจุบัน
   HANDOFF.md             สถานะส่งมอบงานล่าสุด
 scripts/                 validation และ local server
+functions/               Firebase HTTPS Function API
 ```
 
 ## แก้อะไรที่ไหน
@@ -43,15 +45,18 @@ scripts/                 validation และ local server
 | --- | --- |
 | ชื่อฐาน, รหัส QR, เนื้อหาฐาน, รูปฐาน | `public/assets/js/config/app-config.js` |
 | จำนวนรหัสสมาชิกและอายุ QR | `public/assets/js/config/app-config.js` |
-| Firebase client config | `public/assets/js/config/firebase-config.js` |
-| หน้าผู้เข้าร่วม | `public/index.html`, `assets/js/pages/stamp.js` |
+| Backend event config | `functions/src/event-config.js` |
+| API และ database operations | `functions/src/index.js` |
+| ลงทะเบียน/ลืมรหัส | `public/registration.html`, `assets/js/pages/registration.js` |
+| หน้าผู้เข้าร่วม | `public/Stamp.html`, `assets/js/pages/stamp.js` |
 | หน้า Admin | `public/admin.html`, `assets/js/pages/admin.js` |
 | เครื่องสร้าง QR | `public/generate-qr.html`, `assets/js/pages/generate-qr.js` |
 | รูปการ์ด | `public/assets/images/cards/` |
 | รูปฐาน | `public/assets/images/stations/` |
 
-`Stamp.html` และ `GenerateQR.html` เป็น compatibility routes สำหรับ URL เก่า
-ไม่ใช่สำเนาของแอป และใช้ redirect logic ร่วมกันจากไฟล์เดียว
+`Stamp.html` เป็นหน้าผู้เข้าร่วม canonical เพียงชุดเดียว ส่วน `index.html`
+redirect ไป `Stamp.html` เพื่อรักษา URL รากโดยไม่ทำโค้ดซ้ำ
+`GenerateQR.html` ยังคงเป็น compatibility redirect ไป `generate-qr.html`
 
 รูป production ทั้ง 21 ไฟล์เก็บใน repo และอ้างผ่าน `app-config.js`
 ดูแหล่งที่มาและ mapping ได้ที่
@@ -62,6 +67,6 @@ scripts/                 validation และ local server
 
 ## ข้อควรระวัง
 
-ระบบปัจจุบันยังมีความเสี่ยงระดับสูงด้านสิทธิ์ Admin และการปลอม QR
-ห้ามนำไปใช้กับข้อมูลสำคัญหรือของรางวัลที่มีมูลค่าสูงก่อนทำ security hardening
-ตามรายการใน SSOT
+Feature backend ยังไม่ deploy และ frontend ใหม่อยู่บน feature branch
+Admin API ไม่มี authentication ตามขอบเขตปัจจุบัน ดู deployment order และ
+ความเสี่ยงเรื่อง Admin, QR และ forgot-code ใน SSOT ก่อน merge เข้า `main`
