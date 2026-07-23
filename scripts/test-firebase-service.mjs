@@ -68,6 +68,16 @@ class FakeReference {
 
   async transaction(update) {
     const current = clone(valueAt(this.database.data, this.path));
+    if (!this.database.warmTransactionPaths.has(this.path)) {
+      this.database.warmTransactionPaths.add(this.path);
+      const localNext = update(null);
+      if (localNext === undefined) {
+        return {
+          committed: false,
+          snapshot: new FakeSnapshot(current),
+        };
+      }
+    }
     const next = update(current);
     if (next === undefined) {
       return {
@@ -100,6 +110,7 @@ class FakeDatabase {
     this.data = clone(data);
     this.pushIndex = 0;
     this.readPaths = new Set();
+    this.warmTransactionPaths = new Set();
   }
 
   ref(path = "") {

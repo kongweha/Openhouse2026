@@ -123,6 +123,26 @@
     return String(minimum + (values[0] % range));
   }
 
+  async function transactionFromServerSnapshot(
+    reference,
+    update,
+    prefetchedSnapshot,
+  ) {
+    const snapshot =
+      prefetchedSnapshot ?? (await reference.once("value"));
+    const serverValue = snapshot.val();
+    let isFirstUpdate = true;
+
+    return reference.transaction((localValue) => {
+      const currentValue =
+        isFirstUpdate && localValue == null
+          ? serverValue
+          : localValue;
+      isFirstUpdate = false;
+      return update(currentValue);
+    });
+  }
+
   async function register(studentIdValue, hasVisitedValue) {
     const studentId = normalizeStudentId(studentIdValue);
     const hasVisitedOpenHouse =
@@ -159,18 +179,21 @@
       const candidateUser = candidateSnapshot.val();
       if (!isUnusedParticipant(candidateUser)) continue;
 
-      const claim = await userReference.transaction((user) => {
-        const currentUser = user ?? candidateUser;
-        if (!isUnusedParticipant(currentUser)) return;
-        return {
-          ...currentUser,
-          registration: {
-            studentId,
-            hasVisitedOpenHouse,
-            registeredAt,
-          },
-        };
-      });
+      const claim = await transactionFromServerSnapshot(
+        userReference,
+        (user) => {
+          if (!isUnusedParticipant(user)) return;
+          return {
+            ...user,
+            registration: {
+              studentId,
+              hasVisitedOpenHouse,
+              registeredAt,
+            },
+          };
+        },
+        candidateSnapshot,
+      );
       if (!claim.committed) continue;
 
       const releaseClaim = () =>
@@ -242,13 +265,15 @@
 
   async function login(accessCodeValue) {
     const accessCode = normalizeAccessCode(accessCodeValue);
-    const transaction = await db
-      .ref(`users/${accessCode}`)
-      .transaction((user) => {
+    const userReference = db.ref(`users/${accessCode}`);
+    const transaction = await transactionFromServerSnapshot(
+      userReference,
+      (user) => {
         if (!user?.registration?.studentId) return;
         user.loginTime ??= Date.now();
         return user;
-      });
+      },
+    );
     if (!transaction.committed) {
       fail("CODE_NOT_REGISTERED", "Participant code is not registered.");
     }
@@ -281,9 +306,10 @@
       .ref(`users/${accessCode}/scanHistory`)
       .push().key;
     const scannedAt = Date.now();
-    const transaction = await db
-      .ref(`users/${accessCode}`)
-      .transaction((user) => {
+    const userReference = db.ref(`users/${accessCode}`);
+    const transaction = await transactionFromServerSnapshot(
+      userReference,
+      (user) => {
         if (!user?.registration?.studentId || user.isRedeemed) return;
         user.stations ??= Array(stations.length).fill(false);
         if (user.stations[stationId] === true) return user;
@@ -297,7 +323,8 @@
           time: scannedAt,
         };
         return user;
-      });
+      },
+    );
     if (!transaction.committed) {
       fail("STATION_UPDATE_REJECTED", "Station update was rejected.");
     }
@@ -315,9 +342,10 @@
       finalRatingValue,
       "INVALID_FINAL_RATING",
     );
-    const transaction = await db
-      .ref(`users/${accessCode}`)
-      .transaction((user) => {
+    const userReference = db.ref(`users/${accessCode}`);
+    const transaction = await transactionFromServerSnapshot(
+      userReference,
+      (user) => {
         if (!user?.registration?.studentId) return;
         if (stationValues(user).filter(Boolean).length !== stations.length) {
           return;
@@ -328,7 +356,8 @@
           user.isRedeemed = true;
         }
         return user;
-      });
+      },
+    );
     if (!transaction.committed) {
       fail(
         "REDEEM_NOT_READY",
@@ -345,14 +374,16 @@
 
   async function draw(accessCodeValue) {
     const accessCode = normalizeAccessCode(accessCodeValue);
-    const transaction = await db
-      .ref(`users/${accessCode}`)
-      .transaction((user) => {
+    const userReference = db.ref(`users/${accessCode}`);
+    const transaction = await transactionFromServerSnapshot(
+      userReference,
+      (user) => {
         if (!user?.registration?.studentId || !user.isRedeemed) return;
         user.drawnCardId ??=
           Math.floor(Math.random() * config.destinyCards.length) + 1;
         return user;
-      });
+      },
+    );
     if (!transaction.committed) {
       fail("DRAW_NOT_READY", "Reward must be redeemed first.");
     }

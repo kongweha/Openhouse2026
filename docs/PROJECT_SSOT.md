@@ -139,8 +139,10 @@ studentRegistrations/{studentId}
 - การจองใช้ transaction เฉพาะ `users/{accessCode}` แล้ว transaction mapping ที่
   `studentRegistrations/{studentId}` ไม่ส่งข้อมูลทั้ง root กลับ Firebase
 - Firebase transaction updater อาจได้รับ `null` ในรอบแรกแม้อ่าน child path แล้ว
-  service จึงใช้ candidate snapshot ที่อ่านจาก server เป็น fallback รอบแรก
-  และปล่อยให้ Firebase ตรวจ conflict/retry ก่อน commit
+  service จึงใช้ `transactionFromServerSnapshot()` เป็น helper กลางสำหรับ
+  registration claim, login, complete station, redeem และ draw โดยใช้ snapshot
+  จาก server เป็น fallback เฉพาะรอบแรก แล้วปล่อยให้ Firebase ตรวจ
+  conflict/retry ก่อน commit
 - หากมีคำขอลงทะเบียนรหัสนิสิตเดียวกันพร้อมกัน ระบบคืนรหัสเดิมและปล่อยรหัสที่
   claim เกินกลับเข้า pool
 - เลือกรหัสที่ยังไม่มี registration/login/scan/redeem เรียงจากค่าน้อยไปมาก

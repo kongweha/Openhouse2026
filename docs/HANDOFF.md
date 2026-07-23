@@ -7,6 +7,14 @@
 
 ## งานรอบล่าสุด
 
+- ตรวจ production หลังผู้ใช้ลงทะเบียน: registered users 1, student mappings 1,
+  ทั้งสองฝั่งตรงกัน แต่ยังไม่มี `loginTime`
+- สาเหตุ Login แจ้ง code not found คือ transaction updater ได้ `null` รอบแรก
+  เช่นเดียวกับ Registration ไม่ใช่ข้อมูล Registration หาย
+- เพิ่ม `transactionFromServerSnapshot()` เป็น helper กลางและใช้กับ registration
+  claim, Login, complete station, redeem และ draw
+- service tests จำลอง cold transaction callback เป็น `null` รอบแรกแล้ว
+  เพื่อกัน regression ทุก participant flow
 - ตรวจ production แบบ read-only หลัง reset: มี 500 รหัสและเข้ารูปแบบรหัสว่างครบ
 - abort-only browser test ยืนยันว่า Firebase transaction updater รอบแรกยังได้
   `null` แม้ pre-read child path; ไม่มี transaction ใด commit ระหว่างการทดสอบ
