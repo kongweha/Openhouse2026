@@ -15,7 +15,7 @@ npm run serve
 
 จากนั้นเปิด:
 
-- ผู้เข้าร่วม: <http://localhost:4173/>
+- ผู้เข้าร่วม: <http://localhost:4173/Stamp.html>
 - ลงทะเบียน/ลืมรหัส: <http://localhost:4173/registration.html>
 - ผู้ดูแล: <http://localhost:4173/admin.html>
 - เครื่องสร้าง QR: <http://localhost:4173/generate-qr.html>
@@ -48,14 +48,15 @@ functions/               Firebase HTTPS Function API
 | Backend event config | `functions/src/event-config.js` |
 | API และ database operations | `functions/src/index.js` |
 | ลงทะเบียน/ลืมรหัส | `public/registration.html`, `assets/js/pages/registration.js` |
-| หน้าผู้เข้าร่วม | `public/index.html`, `assets/js/pages/stamp.js` |
+| หน้าผู้เข้าร่วม | `public/Stamp.html`, `assets/js/pages/stamp.js` |
 | หน้า Admin | `public/admin.html`, `assets/js/pages/admin.js` |
 | เครื่องสร้าง QR | `public/generate-qr.html`, `assets/js/pages/generate-qr.js` |
 | รูปการ์ด | `public/assets/images/cards/` |
 | รูปฐาน | `public/assets/images/stations/` |
 
-`Stamp.html` และ `GenerateQR.html` เป็น compatibility routes สำหรับ URL เก่า
-ไม่ใช่สำเนาของแอป และใช้ redirect logic ร่วมกันจากไฟล์เดียว
+`Stamp.html` เป็นหน้าผู้เข้าร่วม canonical เพียงชุดเดียว ส่วน `index.html`
+redirect ไป `Stamp.html` เพื่อรักษา URL รากโดยไม่ทำโค้ดซ้ำ
+`GenerateQR.html` ยังคงเป็น compatibility redirect ไป `generate-qr.html`
 
 รูป production ทั้ง 21 ไฟล์เก็บใน repo และอ้างผ่าน `app-config.js`
 ดูแหล่งที่มาและ mapping ได้ที่
@@ -67,5 +68,5 @@ functions/               Firebase HTTPS Function API
 ## ข้อควรระวัง
 
 Feature backend ยังไม่ deploy และ frontend ใหม่อยู่บน feature branch
-ดู deployment order และความเสี่ยงเรื่อง QR/forgot-code ใน SSOT ก่อน merge
-เข้า `main`
+Admin API ไม่มี authentication ตามขอบเขตปัจจุบัน ดู deployment order และ
+ความเสี่ยงเรื่อง Admin, QR และ forgot-code ใน SSOT ก่อน merge เข้า `main`

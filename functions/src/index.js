@@ -1,10 +1,9 @@
 "use strict";
 
-const { randomInt, timingSafeEqual } = require("node:crypto");
+const { randomInt } = require("node:crypto");
 const { initializeApp } = require("firebase-admin/app");
 const { getDatabase } = require("firebase-admin/database");
 const { logger } = require("firebase-functions");
-const { defineSecret } = require("firebase-functions/params");
 const { onRequest } = require("firebase-functions/v2/https");
 const {
   DomainError,
@@ -20,7 +19,6 @@ const { EVENT_CONFIG } = require("./event-config");
 initializeApp({ databaseURL: EVENT_CONFIG.firebaseDatabaseUrl });
 
 const database = getDatabase();
-const adminApiKey = defineSecret("OPENHOUSE_ADMIN_API_KEY");
 const REGION = "asia-southeast1";
 const PARTICIPANT_ROUTE = new RegExp(
   `^/participants/(\\d{${EVENT_CONFIG.participantCodeLength}})` +
@@ -42,20 +40,6 @@ function requireMethod(request, method) {
       `Expected ${method}.`,
       405,
     );
-  }
-}
-
-function requireAdmin(request) {
-  const received = String(request.get("x-admin-key") ?? "");
-  const expected = String(adminApiKey.value() ?? "");
-  const receivedBuffer = Buffer.from(received);
-  const expectedBuffer = Buffer.from(expected);
-  if (
-    !received ||
-    receivedBuffer.length !== expectedBuffer.length ||
-    !timingSafeEqual(receivedBuffer, expectedBuffer)
-  ) {
-    throw new DomainError("ADMIN_UNAUTHORIZED", "Admin access denied.", 401);
   }
 }
 
@@ -273,7 +257,6 @@ function generateParticipantCodes(count) {
 
 async function resetParticipantCodes(request, response) {
   requireMethod(request, "POST");
-  requireAdmin(request);
   if (request.body?.confirmation !== "RESET_ALL_USERS") {
     throw new DomainError(
       "RESET_CONFIRMATION_REQUIRED",
@@ -292,7 +275,6 @@ async function resetParticipantCodes(request, response) {
 
 async function clearParticipants(request, response) {
   requireMethod(request, "DELETE");
-  requireAdmin(request);
   if (request.body?.confirmation !== "DELETE_ALL_USERS") {
     throw new DomainError(
       "DELETE_CONFIRMATION_REQUIRED",
@@ -308,7 +290,6 @@ async function clearParticipants(request, response) {
 
 async function getAdminUsers(request, response) {
   requireMethod(request, "GET");
-  requireAdmin(request);
   const snapshot = await database.ref("users").get();
   sendJson(response, 200, { users: snapshot.val() ?? {} });
 }
@@ -383,7 +364,6 @@ exports.api = onRequest(
   {
     region: REGION,
     cors: true,
-    secrets: [adminApiKey],
     timeoutSeconds: 30,
     memory: "256MiB",
   },

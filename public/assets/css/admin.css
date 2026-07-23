@@ -1,10 +1,6 @@
 *, *::before, *::after { box-sizing: border-box; }
 body { font-family: 'Segoe UI', Tahoma, sans-serif; background-color: #f1f5f9; margin: 0; padding: 20px; color: #334155; }
 .hidden { display: none !important; }
-.admin-auth { max-width: 440px; margin: 12vh auto 0; padding: 30px; border-radius: 15px; background: #fff; box-shadow: 0 8px 30px rgba(15,23,42,.1); }
-.admin-auth form { display: grid; gap: 10px; }
-.admin-auth input { padding: 12px; border: 2px solid #cbd5e1; border-radius: 8px; font: inherit; }
-.auth-error { color: #b91c1c; min-height: 20px; }
 .muted { color: #64748b; }
 .admin-container { background: white; padding: 30px; border-radius: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); max-width: 1200px; margin: 0 auto; }
 h1 { margin-top: 0; color: #1e293b; font-size: 24px; }

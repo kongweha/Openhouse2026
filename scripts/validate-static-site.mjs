@@ -113,7 +113,7 @@ if (await exists(publicRoot)) {
     }
 
     if (
-      ["index.html", "admin.html", "generate-qr.html", "registration.html"].includes(
+      ["Stamp.html", "admin.html", "generate-qr.html", "registration.html"].includes(
         path.basename(htmlFile),
       )
     ) {

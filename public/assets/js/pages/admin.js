@@ -4,9 +4,7 @@ const APP_CONFIG = window.OpenHouseConfig;
 const API = window.OpenHouseApi;
 const STATIONS = APP_CONFIG.stations;
 const STATION_COUNT = STATIONS.length;
-const ADMIN_KEY_STORAGE = "openHouseAdminKey";
 let globalUsersData = {};
-let adminKey = sessionStorage.getItem(ADMIN_KEY_STORAGE) ?? "";
 
 document.documentElement.style.setProperty("--station-count", STATION_COUNT);
 STATIONS.forEach((station) => {
@@ -48,56 +46,20 @@ function switchTab(tabId, button) {
     button.classList.add("active");
 }
 
-function showAdmin() {
-    document.getElementById("adminAuth").classList.add("hidden");
-    document.getElementById("adminApp").classList.remove("hidden");
-}
-
-function showLogin(message = "") {
-    document.getElementById("adminAuth").classList.remove("hidden");
-    document.getElementById("adminApp").classList.add("hidden");
-    document.getElementById("adminAuthError").textContent = message;
-}
-
 async function loadUsers() {
     try {
-        const { users } = await API.admin.getUsers(adminKey);
+        const { users } = await API.admin.getUsers();
         globalUsersData = users ?? {};
-        showAdmin();
         updateViews();
     } catch (error) {
-        if (error.code === "ADMIN_UNAUTHORIZED") {
-            sessionStorage.removeItem(ADMIN_KEY_STORAGE);
-            adminKey = "";
-            showLogin("Admin API key ไม่ถูกต้อง");
-            return;
-        }
         alert("โหลดข้อมูลไม่สำเร็จ กรุณาลองใหม่");
     }
-}
-
-document.getElementById("adminLoginForm").addEventListener("submit", async (event) => {
-    event.preventDefault();
-    const button = event.currentTarget.querySelector("button");
-    button.disabled = true;
-    adminKey = document.getElementById("adminKey").value;
-    sessionStorage.setItem(ADMIN_KEY_STORAGE, adminKey);
-    await loadUsers();
-    button.disabled = false;
-});
-
-function logoutAdmin() {
-    sessionStorage.removeItem(ADMIN_KEY_STORAGE);
-    adminKey = "";
-    globalUsersData = {};
-    document.getElementById("adminKey").value = "";
-    showLogin();
 }
 
 async function generateAndUploadCodes() {
     if (!confirm("การสร้างรหัสใหม่จะลบข้อมูลผู้ใช้และการลงทะเบียนเดิมทั้งหมด ยืนยันหรือไม่?")) return;
     try {
-        const { total } = await API.admin.resetCodes(adminKey);
+        const { total } = await API.admin.resetCodes();
         alert(`สร้างรหัสใหม่ ${total} ใบแล้ว`);
         await loadUsers();
     } catch (error) {
@@ -108,7 +70,7 @@ async function generateAndUploadCodes() {
 async function clearDatabase() {
     if (!confirm("ลบข้อมูลผู้ใช้และการลงทะเบียนทั้งหมดออกจากระบบ ยืนยันหรือไม่?")) return;
     try {
-        await API.admin.clearUsers(adminKey);
+        await API.admin.clearUsers();
         await loadUsers();
     } catch (error) {
         alert("ล้างข้อมูลไม่สำเร็จ");
@@ -281,8 +243,4 @@ function closeModal() {
     document.getElementById("historyModal").style.display = "none";
 }
 
-if (adminKey) {
-    loadUsers();
-} else {
-    showLogin();
-}
+loadUsers();

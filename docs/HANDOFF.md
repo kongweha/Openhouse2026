@@ -16,8 +16,10 @@ Branch: `feature/registration-backend`
 - ผูกข้อมูลสองทาง `studentRegistrations/{studentId}` และ
   `users/{accessCode}/registration`
 - ย้าย Stamp login, scan/rating, redeem และ draw จาก Firebase client ไป API
-- ย้าย Admin อ่าน/reset/clear ไป API และให้ใส่ Admin key ต่อ session
+- ย้าย Admin อ่าน/reset/clear ไป API โดยไม่สร้าง key ใหม่ตามคำสั่งเจ้าของระบบ
 - ลบ Firebase SDK/config ออกจาก `public/`
+- ให้ `Stamp.html` เป็น participant canonical เพียงชุดเดียว และลด `index.html`
+  เหลือ redirect ไป `Stamp.html`
 - เพิ่ม validator ป้องกัน Firebase client exposure และ frontend/backend config drift
 - เพิ่ม unit tests สำหรับ validation, allocation, idempotency และ QR
 
@@ -43,30 +45,32 @@ Branch: `feature/registration-backend`
 - Functions package import กับ dependency versions ที่ pin ไว้: ผ่าน
 - Firebase client exposure scan ใน `public/`: ไม่พบ
 - ชื่อฐานเก่าคงเหลือเฉพาะ source filename provenance ของภาพ
-- Local HTTP smoke test: 8 canonical/legacy/asset routes ตอบ `200`
+- Local HTTP smoke test: root, `index.html`, `Stamp.html`, registration และ Admin
+  ตอบ `200`; root/index เป็น redirect และมี participant implementation
+  เฉพาะ `Stamp.html`
 - Browser mobile smoke test หน้า registration: tabs สลับถูกต้อง, ไม่มี page error
+- Browser redirect smoke test: `/` ไป `Stamp.html`, login UI แสดง และลิงก์จาก
+  registration ทั้งสองจุดไป `Stamp.html` โดยไม่มี page error
 
 ## สิ่งที่ยังไม่ได้ทำ
 
-- ไม่ได้ set `OPENHOUSE_ADMIN_API_KEY`
 - ไม่ได้ deploy Firebase Functions
 - ไม่ได้แก้ Firebase Realtime Database Rules
 - ไม่ได้อ่านหรือล้าง production data
 - ไม่ได้ทดสอบ end-to-end กับ Firebase จริง
 - ไม่ได้ merge เข้า `main`; production GitHub Pages จึงยังไม่เปลี่ยน
 
-เหตุผล: การตั้ง secret/deploy Functions/แก้ rules เป็น production action
+เหตุผล: การ deploy Functions/แก้ rules เป็น production action
 ที่ต้องขออนุมัติรายครั้ง และ environment นี้ยังไม่มี Firebase CLI/auth
 
 ## ขั้นตอนเปิดใช้
 
-1. ขออนุมัติ owner สำหรับการ set secret และ deploy Functions
+1. ขออนุมัติ owner สำหรับการ deploy Functions
 2. ติดตั้ง/authenticate Firebase CLI
 3. รัน:
 
    ```bash
-   firebase functions:secrets:set OPENHOUSE_ADMIN_API_KEY
-   firebase deploy --only functions
+   firebase deploy --only functions:api --project eventstampcard
    ```
 
 4. ทดสอบ health, register, recover, Stamp และ Admin กับข้อมูลทดสอบ
@@ -80,7 +84,7 @@ client fallback
 
 - QR payload ยัง forge ได้เพราะไม่มี signature/nonce
 - Forgot-code ใช้รหัสนิสิตอย่างเดียว ควรเพิ่ม OTP/rate limit/App Check
-- Admin เป็น shared secret ไม่ใช่ user identity/role
+- Admin API ไม่มี authentication และสามารถอ่าน/reset/clear ข้อมูลได้
 - CORS ยังเปิดทุก origin
 - Card IDs 8–16 ยังเป็น placeholder
 - html5-qrcode ยังไม่ pin version

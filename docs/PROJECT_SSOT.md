@@ -37,8 +37,8 @@ Firebase Realtime Database: eventstampcard
 - Static hosting: GitHub Pages จาก `public/`
 - Backend: Firebase Functions v2, Node.js 22
 - Database access: Firebase Admin SDK จาก Functions เท่านั้น
-- Admin authorization: secret `OPENHOUSE_ADMIN_API_KEY` ส่งผ่าน header
-  `x-admin-key`; browser เก็บ key เฉพาะ `sessionStorage`
+- Admin API: ไม่มี authentication เพิ่มเติมตามขอบเขตที่เจ้าของระบบยืนยัน
+  เมื่อ 2026-07-23
 - Firebase Functions dependencies:
   - `firebase-functions` 7.3.0
   - `firebase-admin` 14.2.0
@@ -54,10 +54,10 @@ Firebase Realtime Database: eventstampcard
 | Route | หน้าที่ |
 | --- | --- |
 | `public/registration.html` | ลงทะเบียนและค้นหารหัสที่ลืม |
-| `public/index.html` | Stamp Card ของผู้เข้าร่วม |
-| `public/admin.html` | Admin dashboard ที่ต้องใส่ API key |
+| `public/Stamp.html` | Stamp Card ของผู้เข้าร่วม (canonical) |
+| `public/index.html` | Redirect จาก URL รากไป `Stamp.html` |
+| `public/admin.html` | Admin dashboard |
 | `public/generate-qr.html` | สร้าง Dynamic QR ของแต่ละฐาน |
-| `public/Stamp.html` | Compatibility redirect ไป `index.html` |
 | `public/GenerateQR.html` | Compatibility redirect ไป `generate-qr.html` |
 
 ห้ามลบ compatibility routes โดยไม่มี migration plan
@@ -67,6 +67,7 @@ Firebase Realtime Database: eventstampcard
 ```text
 public/                         deployable static web root
   registration.html
+  Stamp.html
   index.html
   admin.html
   generate-qr.html
@@ -153,7 +154,7 @@ Public:
 | `POST` | `/participants/{code}/redeem` | ประเมินและแลกรางวัล |
 | `POST` | `/participants/{code}/draw` | สุ่ม/คืนการ์ดเดิม |
 
-Admin (`x-admin-key` required):
+Admin (public; ไม่มี authentication):
 
 | Method | Path | หน้าที่ |
 | --- | --- | --- |
@@ -185,21 +186,22 @@ QR_STN_0N|<generator_timestamp_ms>
 - browser ไม่เชื่อม Realtime Database โดยตรง
 - ไม่มี Firebase API config ใน deployable frontend
 - การจองรหัส, scan, redeem และ draw ถูกตรวจใน backend transaction
-- Admin key อยู่ใน Firebase Functions secret และไม่ commit
 - Admin render ค่า database ผ่าน HTML escaping
 
 ความเสี่ยงที่ยังเหลือ:
 
-1. **Critical — QR ยัง forge ได้**: ต้องใช้ signature/nonce ที่ backend ออกให้
-2. **High — Recover endpoint ใช้รหัสนิสิตอย่างเดียว**: ผู้ที่เดารหัสได้อาจค้น
+1. **Critical — Admin API ไม่มี authentication**: ผู้ที่รู้ endpoint สามารถอ่าน
+   ข้อมูล สร้าง pool ใหม่ หรือล้างข้อมูลได้ แม้ destructive routes จะมี
+   confirmation token คงที่ใน request body
+2. **Critical — QR ยัง forge ได้**: ต้องใช้ signature/nonce ที่ backend ออกให้
+3. **High — Recover endpoint ใช้รหัสนิสิตอย่างเดียว**: ผู้ที่เดารหัสได้อาจค้น
    access code ของผู้อื่น ต้องเพิ่ม OTP/identity proof หรือ rate limit/App Check
-3. **High — ยังไม่ได้ review production Database Rules**: ควรปิด client access
+4. **High — ยังไม่ได้ review production Database Rules**: ควรปิด client access
    และทดสอบ rules ก่อนเปิดใช้
-4. **Medium — Admin ใช้ shared secret**: ควรย้ายเป็น Firebase Auth + role claim
 5. **Medium — CORS เปิดทุก origin**: จำกัดเป็น production domain หลังยืนยัน URL
 6. **Medium — html5-qrcode ไม่ได้ pin version/SRI**
 
-ห้าม commit Admin API key, service-account key หรือ production data
+ห้าม commit service-account key หรือ production data
 
 ## 9. Known gaps
 
@@ -227,18 +229,17 @@ frontend/backend config drift, ไม่มี Firebase client exposure, image s
 Frontend และ backend ต้อง deploy เป็นลำดับ:
 
 1. ติดตั้ง Firebase CLI และ authenticate บัญชีที่มีสิทธิ์
-2. จาก root รัน `firebase functions:secrets:set OPENHOUSE_ADMIN_API_KEY`
-3. รัน `firebase deploy --only functions`
-4. ทดสอบ `/health`, registration, recovery และ Admin กับข้อมูลทดสอบ
-5. Review production Database Rules และปิด direct client access
-6. Merge `feature/registration-backend` เข้า `main`; GitHub Pages จะ deploy
+2. รัน `firebase deploy --only functions:api --project eventstampcard`
+3. ทดสอบ `/health`, registration, recovery และ Admin กับข้อมูลทดสอบ
+4. Review production Database Rules และปิด direct client access
+5. Merge `feature/registration-backend` เข้า `main`; GitHub Pages จะ deploy
    `public/`
 
 ห้าม merge frontend นี้เข้า `main` ก่อน backend พร้อม เพราะ Stamp/Admin ใหม่
 ไม่สามารถ fallback ไป Firebase client เดิม
 
 Routine repository push ได้รับอนุมัติจากเจ้าของระบบ แต่การ deploy Functions,
-ตั้ง/rotate secret, แก้ production rules, ล้างข้อมูล, rewrite history และ
+แก้ production rules, ล้างข้อมูล, rewrite history และ
 force-push ต้องขออนุมัติเป็นรายครั้ง
 
 ## 12. Definition of done
@@ -259,5 +260,7 @@ force-push ต้องขออนุมัติเป็นรายครั
 - 2026-07-23: เปลี่ยนฐาน 1/2 เป็น `Library journey` และ `Query Quarry`
 - 2026-07-23: แยก browser ออกจาก Realtime Database ผ่าน HTTPS Function
 - 2026-07-23: เพิ่ม atomic registration mapping และ recovery
-- 2026-07-23: ใช้ Firebase Functions secret สำหรับ shared Admin API key
+- 2026-07-23: เจ้าของระบบเลือกไม่สร้าง Admin key เพิ่ม; Admin API จึงเป็น public
+- 2026-07-23: ให้ `Stamp.html` เป็น participant canonical เพียงชุดเดียว และให้
+  `index.html` redirect เพื่อรักษา URL รากโดยไม่ทำโค้ดซ้ำ
 - 2026-07-23: ทำงานบน feature branch จนกว่า backend production จะ deploy

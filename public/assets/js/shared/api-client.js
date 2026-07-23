@@ -30,9 +30,6 @@
           headers: {
             Accept: "application/json",
             ...(options.body ? { "Content-Type": "application/json" } : {}),
-            ...(options.adminKey
-              ? { "x-admin-key": options.adminKey }
-              : {}),
           },
           body: options.body ? JSON.stringify(options.body) : undefined,
           signal: controller.signal,
@@ -110,18 +107,15 @@
         }),
     }),
     admin: Object.freeze({
-      getUsers: (adminKey) =>
-        request("/admin/users", { adminKey }),
-      resetCodes: (adminKey) =>
+      getUsers: () => request("/admin/users"),
+      resetCodes: () =>
         request("/admin/codes/reset", {
           method: "POST",
-          adminKey,
           body: { confirmation: "RESET_ALL_USERS" },
         }),
-      clearUsers: (adminKey) =>
+      clearUsers: () =>
         request("/admin/users/clear", {
           method: "DELETE",
-          adminKey,
           body: { confirmation: "DELETE_ALL_USERS" },
         }),
     }),
