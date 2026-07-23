@@ -48,9 +48,14 @@ scripts/                 validation และ local server
 | หน้า Admin | `public/admin.html`, `assets/js/pages/admin.js` |
 | เครื่องสร้าง QR | `public/generate-qr.html`, `assets/js/pages/generate-qr.js` |
 | รูปการ์ด | `public/assets/images/cards/` |
+| รูปฐาน | `public/assets/images/stations/` |
 
 `Stamp.html` และ `GenerateQR.html` เป็น compatibility routes สำหรับ URL เก่า
 ไม่ใช่สำเนาของแอป และใช้ redirect logic ร่วมกันจากไฟล์เดียว
+
+รูป production ทั้ง 21 ไฟล์เก็บใน repo และอ้างผ่าน `app-config.js`
+ดูแหล่งที่มาและ mapping ได้ที่
+[`public/assets/images/README.md`](public/assets/images/README.md)
 
 อ่าน [PROJECT_SSOT.md](docs/PROJECT_SSOT.md) ก่อนแก้ระบบ และอัปเดต
 [HANDOFF.md](docs/HANDOFF.md) ทุกครั้งก่อนส่งต่องาน

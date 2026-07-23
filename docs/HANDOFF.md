@@ -2,90 +2,66 @@
 
 อัปเดตล่าสุด: 2026-07-23  
 ผู้ส่งมอบ: Codex  
-สถานะ: จัด source of truth และลดข้อมูลซ้ำแล้ว รอ security hardening
+สถานะ: Local image assets พร้อมใช้งาน รอ security hardening
 
 ## งานรอบล่าสุด
 
-- เพิ่ม `public/assets/js/config/app-config.js` เป็น source เดียวสำหรับ:
-  - รายชื่อ/รหัส/เนื้อหา/รูปของฐานกิจกรรม
-  - จำนวนและความยาวรหัสสมาชิก
-  - อายุ QR และ clock skew
-  - mapping รูปการ์ด
-- หน้า Stamp, Admin และ QR generator อ่าน config ชุดเดียวกัน
-- ลบรายการ `<option>` ฐานที่เขียนซ้ำใน HTML แล้วสร้างจาก config
-- สร้างช่อง OTP ตาม `participants.codeLength`
-- เปลี่ยนจำนวนฐานที่ hard-code เป็น `stations.length`
-- รวม redirect logic ของ `Stamp.html` และ `GenerateQR.html` เป็น
-  `assets/js/shared/legacy-redirect.js`
-- จัด indentation และเพิ่ม section comments ใน page scripts
-- เพิ่มตาราง “แก้อะไรที่ไหน” ใน README
-- ขยาย validator ให้ป้องกัน station QR config ซ้ำและตรวจลำดับโหลด config
+- นำไฟล์ทั้งหมด 21 ไฟล์จาก `kongweha/Gametest/picture` ที่ commit
+  `251da3aac066dd9b0c0b2c126ace4f7e513a5a74` เข้า repo
+- ตรวจ Git blob SHA ตรงต้นทางทุกไฟล์แบบ byte-for-byte
+- แยกไฟล์เป็น:
+  - `public/assets/images/stations/` — 14 รูปสำหรับ 7 ฐาน
+  - `public/assets/images/cards/` — รูปการ์ด 7 ใบ
+- เปลี่ยนชื่อเป็น lowercase kebab-case โดยไม่แปลงคุณภาพ
+- คง `card-02.png` เป็น PNG ตามต้นฉบับ ไฟล์อื่นเป็น WebP
+- เปลี่ยน `app-config.js` ให้ใช้ local assets แทน jsDelivr CDN
+- เพิ่ม `public/assets/images/README.md` บันทึก provenance และ mapping
+- ขยาย validator ให้ตรวจ:
+  - ทุกภาพที่ config อ้างต้องมีจริง
+  - file signature ต้องตรงกับ `.png`/`.webp`
+  - ห้ามมีภาพ production ที่ไม่ได้อ้างใช้งาน
 
-## Source ที่ต้องใช้
+## Source of truth
 
 | งาน | ไฟล์ |
 | --- | --- |
-| แก้ข้อมูลกิจกรรม/QR/จำนวนรหัส/การ์ด | `public/assets/js/config/app-config.js` |
-| แก้ Firebase client identity | `public/assets/js/config/firebase-config.js` |
-| แก้ participant behavior | `public/assets/js/pages/stamp.js` |
-| แก้ Admin behavior | `public/assets/js/pages/admin.js` |
-| แก้ QR generator behavior | `public/assets/js/pages/generate-qr.js` |
-| ดู architecture และ risk | `docs/PROJECT_SSOT.md` |
+| Mapping รูปฐานและการ์ด | `public/assets/js/config/app-config.js` |
+| รูปฐาน | `public/assets/images/stations/` |
+| รูปการ์ด | `public/assets/images/cards/` |
+| แหล่งที่มาและ source filename | `public/assets/images/README.md` |
+| Architecture และ risks | `docs/PROJECT_SSOT.md` |
 
-ห้ามเขียน station name, station ID หรือ `QR_STN_*` ซ้ำใน page files
-ให้แก้ที่ `app-config.js` เท่านั้น
+อย่าใส่ path ภาพซ้ำใน page scripts ให้แก้ `app-config.js` เท่านั้น
 
-## ผลตรวจที่ต้องผ่าน
+## ผลตรวจรอบนี้
 
-```bash
-npm run check
-npm run serve
-```
-
-ตรวจ local routes:
-
-- `/`
-- `/admin.html`
-- `/generate-qr.html`
-- `/Stamp.html`
-- `/GenerateQR.html`
-
-ผลตรวจรอบนี้:
-
-- Static validation: ผ่าน
-- JavaScript syntax: ผ่านทุกไฟล์
-- App config structure/unique QR checks: ผ่าน
-- Duplicate station config guard: ผ่าน
+- Source folder inventory: 21 ไฟล์ / 15,418,658 bytes
+- Git blob SHA verification: ผ่านทั้ง 21 ไฟล์
+- Static validation: ผ่านโดยไม่มี warning
+- Image existence/signature checks: ผ่าน
+- Unreferenced production image check: ผ่าน
+- External runtime station image URL check: ไม่เหลือ
 - `git diff --check`: ผ่าน
-- Byte-identical file scan ใต้ `public/`: ไม่พบไฟล์ซ้ำ
-- Local HTTP smoke test: canonical routes, legacy routes, shared config และ
-  shared redirect ตอบ `200`
-- Known warnings: ขาดรูปการ์ด 7 ไฟล์
-
-ยังต้องทำ manual test ด้วย Firebase test environment:
-
-1. login และ OTP paste
-2. QR ถูกฐาน/ผิดฐาน/หมดอายุ
-3. rating และ scan history
-4. แลกรางวัลและสุ่มการ์ด
-5. Admin filter, dashboard และ CSV export
+- Local route smoke test: canonical และ legacy routes ตอบ `200`
+- Local image HTTP test: 21/21 ไฟล์ตอบ `200`, ขนาดรวมตรง
+  15,418,658 bytes
+- MIME spot check: `card-02.png` เป็น `image/png` และรูปฐานเป็น `image/webp`
 
 ## Known blockers
 
-- รูป `Card_1.webp` ถึง `Card_7.webp` ยังไม่มี
-- การ์ด 8–16 ยังใช้ Card 1 เป็น placeholder
+- Card IDs 8–16 ยังใช้ `card-01.webp` เป็น placeholder
 - Admin ยังไม่มี authentication/authorization
 - QR ยัง forge ได้
 - ยังไม่ได้ review Firebase Database Rules
 - html5-qrcode ยังไม่ pin version
+- ยังไม่มี Firebase test environment สำหรับ end-to-end test
 
 ## งานถัดไป
 
-1. เพิ่ม Firebase Authentication และ admin role
-2. ออกแบบ signed QR ที่ตรวจโดย trusted backend
-3. เพิ่ม Database Rules และ emulator tests
-4. เพิ่ม card artwork/mapping ให้ครบ
-5. เพิ่ม browser smoke tests
+1. ยืนยันว่าต้องการการ์ดเฉพาะ 7 แบบ หรือส่งภาพ Card 8–16 เพิ่ม
+2. เพิ่ม Firebase Authentication และ admin role
+3. ออกแบบ signed QR ที่ตรวจโดย trusted backend
+4. เพิ่ม Database Rules/emulator tests และ browser smoke tests
 
 ## Git / deployment
 

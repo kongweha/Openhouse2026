@@ -1,14 +1,14 @@
 # Destiny card artwork
 
-Place the production WebP files in this directory:
+Production card files in this directory:
 
-- `Card_1.webp`
-- `Card_2.webp`
-- `Card_3.webp`
-- `Card_4.webp`
-- `Card_5.webp`
-- `Card_6.webp`
-- `Card_7.webp`
+- `card-01.webp`
+- `card-02.png`
+- `card-03.webp`
+- `card-04.webp`
+- `card-05.webp`
+- `card-06.webp`
+- `card-07.webp`
 
-Card IDs 8–16 currently reuse `Card_1.webp`. The mapping is defined once in
+Card IDs 8–16 currently reuse `card-01.webp`. The mapping is defined once in
 `public/assets/js/config/app-config.js`.

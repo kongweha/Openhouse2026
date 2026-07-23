@@ -63,6 +63,7 @@ const requiredFiles = [
   "public/assets/js/pages/admin.js",
   "public/assets/js/pages/generate-qr.js",
   "public/assets/js/shared/legacy-redirect.js",
+  "public/assets/images/README.md",
   "public/assets/images/cards/README.md",
   "docs/PROJECT_SSOT.md",
   "docs/HANDOFF.md",
@@ -158,12 +159,45 @@ if (await exists(publicRoot)) {
       }
     }
 
-    const cardReferences = new Set(
-      appConfig?.destinyCards?.map((card) => card.imagePath) ?? [],
+    const configuredImageReferences = new Set(
+      [
+        ...(appConfig?.stations?.flatMap((station) =>
+          Object.values(station.images),
+        ) ?? []),
+        ...(appConfig?.destinyCards?.map((card) => card.imagePath) ?? []),
+      ].map((reference) => reference.replaceAll("\\", "/")),
     );
-    for (const reference of cardReferences) {
-      if (!(await exists(path.join(publicRoot, reference)))) {
-        warnings.push(`Missing optional card artwork: public/${reference}`);
+    for (const reference of configuredImageReferences) {
+      const imagePath = path.join(publicRoot, reference);
+      if (!(await exists(imagePath))) {
+        errors.push(`Missing configured image: public/${reference}`);
+        continue;
+      }
+
+      const content = await readFile(imagePath);
+      const isPng =
+        content.subarray(0, 8).toString("hex") === "89504e470d0a1a0a";
+      const isWebp =
+        content.subarray(0, 4).toString("ascii") === "RIFF" &&
+        content.subarray(8, 12).toString("ascii") === "WEBP";
+      if (
+        (reference.endsWith(".png") && !isPng) ||
+        (reference.endsWith(".webp") && !isWebp)
+      ) {
+        errors.push(`Image content does not match extension: public/${reference}`);
+      }
+    }
+
+    const localImageAssets = files
+      .filter((file) =>
+        /assets[\\/]images[\\/](?:cards|stations)[\\/].*\.(?:png|webp)$/i.test(
+          file,
+        ),
+      )
+      .map((file) => path.relative(publicRoot, file).replaceAll("\\", "/"));
+    for (const imageAsset of localImageAssets) {
+      if (!configuredImageReferences.has(imageAsset)) {
+        errors.push(`Unreferenced local image asset: public/${imageAsset}`);
       }
     }
 

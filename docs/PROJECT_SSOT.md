@@ -32,7 +32,10 @@ External browser dependencies:
 - Firebase compat SDK `9.22.2`
 - QRCode.js `1.0.0`
 - html5-qrcode จาก unpkg (ยังไม่ได้ pin version)
-- รูปฐานกิจกรรมจาก jsDelivr ที่ pin ด้วย Git commit
+
+รูปฐานและรูปการ์ดเป็น local assets ใน repo คัดลอกแบบ byte-for-byte จาก
+`kongweha/Gametest` commit
+`251da3aac066dd9b0c0b2c126ace4f7e513a5a74`
 
 ## 3. Entry points และ URL contract
 
@@ -68,8 +71,10 @@ public/
       pages/admin.js
       pages/generate-qr.js
       shared/legacy-redirect.js
-    images/cards/
+    images/
       README.md
+      stations/            รูปสถานะยังไม่เก็บ/เก็บแล้วของ 7 ฐาน
+      cards/               รูปการ์ด 7 ใบและ README
 docs/
   PROJECT_SSOT.md
   HANDOFF.md
@@ -90,6 +95,7 @@ scripts/
 | จำนวน/ความยาวรหัสสมาชิก | `OpenHouseConfig.participants` |
 | อายุ QR และ clock skew | `OpenHouseConfig.qr` |
 | Mapping รูปการ์ด | `OpenHouseConfig.destinyCards` |
+| ไฟล์ภาพ production และ provenance | `assets/images/` |
 | Firebase web configuration | `assets/js/config/firebase-config.js` |
 | Redirect จาก URL เก่า | `assets/js/shared/legacy-redirect.js` |
 
@@ -161,8 +167,7 @@ QR_STN_0N|<browser_timestamp_ms>
 
 ## 8. Known functional gaps
 
-- Repo ยังไม่มี `Card_1.webp` ถึง `Card_7.webp`; การแสดงการ์ดจะเป็น broken image
-- Card IDs 8–16 ยังชี้กลับไป `Card_1.webp` เป็น placeholder
+- Card IDs 8–16 ยังชี้กลับไป `card-01.webp` เป็น placeholder
 - การจับเวลาอาศัยนาฬิกาอุปกรณ์ผู้ใช้ จึงแก้ไขหรือคลาดเคลื่อนได้
 - ไม่มี automated browser/E2E test และไม่มี Firebase emulator test
 - ยังไม่มีสถานะ loading/error ที่สม่ำเสมอสำหรับทุก Firebase operation
@@ -183,7 +188,8 @@ npm run serve
 - app config ถูกโหลดก่อน page script
 - station IDs/QR codes ถูกต้องและไม่ซ้ำ
 - ไม่มี station QR config กระจายนอก `app-config.js`
-- แจ้งเตือนรูปการ์ดที่ยังขาด
+- ภาพที่ config อ้างมีอยู่จริงและชนิดไฟล์ตรงกับ PNG/WebP
+- ไม่มีไฟล์ภาพ production ที่ไม่ได้อ้างใช้งาน
 
 ## 10. Deployment
 
@@ -237,3 +243,5 @@ npm run serve
 - 2026-07-23: รวม station, participant, QR timing และ card mapping เป็น
   `app-config.js` source เดียว และให้ทุกหน้าสร้าง UI จาก config
 - 2026-07-23: รวม legacy redirect logic เป็นไฟล์เดียว พร้อมคง URL เดิม
+- 2026-07-23: นำรูปฐาน 14 ไฟล์และการ์ด 7 ไฟล์จาก `Gametest`
+  commit `251da3a` มาเป็น local assets, เปลี่ยนชื่อให้อ่านง่าย และเลิกพึ่ง CDN

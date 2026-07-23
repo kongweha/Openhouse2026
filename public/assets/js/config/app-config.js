@@ -1,8 +1,7 @@
 (() => {
   "use strict";
 
-  const stationImageRoot =
-    "https://cdn.jsdelivr.net/gh/kongweha/Gametest@e1caf09903b8480a94b9baf8497f1d3302eed795/picture";
+  const stationImageRoot = "assets/images/stations";
   const cardImageRoot = "assets/images/cards";
 
   const stations = [
@@ -11,8 +10,8 @@
       name: "Library Playground",
       qrCode: "QR_STN_01",
       images: {
-        unstamped: `${stationImageRoot}/LIBRARY%20PLAYGROUND1.webp`,
-        stamped: `${stationImageRoot}/LIBRARY%20PLAYGROUND2.webp`,
+        unstamped: `${stationImageRoot}/library-playground-uncollected.webp`,
+        stamped: `${stationImageRoot}/library-playground-collected.webp`,
       },
       content: {
         en: "Welcome to the activity and relaxation space! Designed for you to enjoy learning in new ways.",
@@ -24,8 +23,8 @@
       name: "Discovery Lab",
       qrCode: "QR_STN_02",
       images: {
-        unstamped: `${stationImageRoot}/Discovery%20LAB1.webp`,
-        stamped: `${stationImageRoot}/Discovery%20LAB2.webp`,
+        unstamped: `${stationImageRoot}/discovery-lab-uncollected.webp`,
+        stamped: `${stationImageRoot}/discovery-lab-collected.webp`,
       },
       content: {
         en: "Discover new ideas at Discovery Lab. We have tools and resources to help you infinitely expand your creativity.",
@@ -37,8 +36,8 @@
       name: "Play Zone",
       qrCode: "QR_STN_03",
       images: {
-        unstamped: `${stationImageRoot}/Play%20ZONE1.webp`,
-        stamped: `${stationImageRoot}/Play%20ZONE2.webp`,
+        unstamped: `${stationImageRoot}/play-zone-uncollected.webp`,
+        stamped: `${stationImageRoot}/play-zone-collected.webp`,
       },
       content: {
         en: "Time to relax! This zone lets you unwind from heavy reading with games and interesting activities.",
@@ -50,8 +49,8 @@
       name: "Perfect Match: TAIC Collections",
       qrCode: "QR_STN_04",
       images: {
-        unstamped: `${stationImageRoot}/Treasure%20corner1.webp`,
-        stamped: `${stationImageRoot}/Treasure%20corner2.webp`,
+        unstamped: `${stationImageRoot}/perfect-match-uncollected.webp`,
+        stamped: `${stationImageRoot}/perfect-match-collected.webp`,
       },
       content: {
         en: "A treasure trove of knowledge! This corner gathers rare books and media you might not know we have.",
@@ -63,8 +62,8 @@
       name: "Camera Go!",
       qrCode: "QR_STN_05",
       images: {
-        unstamped: `${stationImageRoot}/Media%20studio1.webp`,
-        stamped: `${stationImageRoot}/Media%20studio2.webp`,
+        unstamped: `${stationImageRoot}/camera-go-uncollected.webp`,
+        stamped: `${stationImageRoot}/camera-go-collected.webp`,
       },
       content: {
         en: "Spark your creativity with our full-service media studio. Record audio, shoot video, or edit—all here!",
@@ -76,8 +75,8 @@
       name: "Joy Tech Station",
       qrCode: "QR_STN_06",
       images: {
-        unstamped: `${stationImageRoot}/8.webp`,
-        stamped: `${stationImageRoot}/1145405557.webp`,
+        unstamped: `${stationImageRoot}/joy-tech-uncollected.webp`,
+        stamped: `${stationImageRoot}/joy-tech-collected.webp`,
       },
       content: {
         en: "Update on new tech trends. Drop by to try out the cutting-edge gadgets we've prepared for you.",
@@ -89,8 +88,8 @@
       name: "Green Mission",
       qrCode: "QR_STN_07",
       images: {
-        unstamped: `${stationImageRoot}/Safety%20Checkpoint1.webp`,
-        stamped: `${stationImageRoot}/Safety%20Checkpoint2.webp`,
+        unstamped: `${stationImageRoot}/green-mission-uncollected.webp`,
+        stamped: `${stationImageRoot}/green-mission-collected.webp`,
       },
       content: {
         en: "Safety is key. Learn how to maintain public spaces and follow rules for orderliness.",
@@ -99,12 +98,22 @@
     },
   ];
 
+  const cardImageFiles = [
+    "card-01.webp",
+    "card-02.png",
+    "card-03.webp",
+    "card-04.webp",
+    "card-05.webp",
+    "card-06.webp",
+    "card-07.webp",
+  ];
+
   const destinyCards = Array.from({ length: 16 }, (_, index) => {
     const id = index + 1;
-    const imageNumber = id <= 7 ? id : 1;
+    const imageFile = cardImageFiles[index] ?? cardImageFiles[0];
     return {
       id,
-      imagePath: `${cardImageRoot}/Card_${imageNumber}.webp`,
+      imagePath: `${cardImageRoot}/${imageFile}`,
     };
   });
 
