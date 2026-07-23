@@ -106,7 +106,6 @@ window.addEventListener('load', () => {
 // Participant session state
 let currentUserCode = "";
 let html5QrCode;
-let pollTimer = null;
 let activeTargetStation = null;
 let isScannerInitializing = false;
 let cancelRequested = false;
@@ -271,7 +270,6 @@ async function login() {
         document.getElementById('stampScreen').classList.remove('hidden');
         document.getElementById('displayUserCode').innerText = l.userIdPrefix + currentUserCode;
         renderUI(globalUserData);
-        startParticipantPolling();
     } catch (error) {
         alert(
             error.code === 'CODE_NOT_REGISTERED'
@@ -284,20 +282,6 @@ async function login() {
         btn.disabled = false;
         btn.innerText = l.loginBtn;
     }
-}
-
-function startParticipantPolling() {
-    if (pollTimer) window.clearInterval(pollTimer);
-    pollTimer = window.setInterval(async () => {
-        if (!currentUserCode) return;
-        try {
-            const { participant } = await API.participant.get(currentUserCode);
-            globalUserData = participant;
-            renderUI(globalUserData);
-        } catch (error) {
-            console.warn("Participant refresh failed", error);
-        }
-    }, APP_CONFIG.api.pollIntervalMs);
 }
 
 // Stamp-card rendering
@@ -660,7 +644,6 @@ async function submitFinalAssessment() {
 function logout() {
     try {
         stopScan();
-        if(pollTimer) { window.clearInterval(pollTimer); pollTimer = null; }
         currentUserCode = ""; globalUserData = null;
         currentScreenView = null;
         pendingRatingStationId = null;

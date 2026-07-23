@@ -127,11 +127,6 @@
   }
 
   window.OpenHouseConfig = deepFreeze({
-    api: {
-      baseUrl: "https://asia-southeast1-eventstampcard.cloudfunctions.net/api",
-      pollIntervalMs: 3_000,
-      requestTimeoutMs: 15_000,
-    },
     participants: {
       codeLength: 6,
       generationCount: 500,

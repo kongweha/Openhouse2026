@@ -1,5 +1,4 @@
 import { readFile, readdir, stat } from "node:fs/promises";
-import { createRequire } from "node:module";
 import path from "node:path";
 import vm from "node:vm";
 
@@ -7,7 +6,6 @@ const projectRoot = process.cwd();
 const publicRoot = path.join(projectRoot, "public");
 const errors = [];
 const warnings = [];
-const require = createRequire(import.meta.url);
 
 async function exists(target) {
   try {
@@ -62,7 +60,8 @@ const requiredFiles = [
   "public/assets/css/generate-qr.css",
   "public/assets/css/registration.css",
   "public/assets/js/config/app-config.js",
-  "public/assets/js/shared/api-client.js",
+  "public/assets/js/config/firebase-config.js",
+  "public/assets/js/shared/firebase-service.js",
   "public/assets/js/pages/stamp.js",
   "public/assets/js/pages/admin.js",
   "public/assets/js/pages/generate-qr.js",
@@ -72,12 +71,7 @@ const requiredFiles = [
   "public/assets/images/cards/README.md",
   "docs/PROJECT_SSOT.md",
   "docs/HANDOFF.md",
-  "functions/src/index.js",
-  "functions/src/domain.js",
-  "functions/src/event-config.js",
-  "functions/test/domain.test.js",
-  "firebase.json",
-  ".firebaserc",
+  "scripts/test-firebase-service.mjs",
 ];
 
 for (const relativeFile of requiredFiles) {
@@ -129,6 +123,30 @@ if (await exists(publicRoot)) {
         );
       }
     }
+
+    if (
+      ["Stamp.html", "admin.html", "registration.html"].includes(
+        path.basename(htmlFile),
+      )
+    ) {
+      const firebaseConfigPosition = html.indexOf(
+        "assets/js/config/firebase-config.js",
+      );
+      const firebaseServicePosition = html.indexOf(
+        "assets/js/shared/firebase-service.js",
+      );
+      const pageScriptPosition = html.indexOf("assets/js/pages/");
+      if (
+        firebaseConfigPosition === -1 ||
+        firebaseServicePosition === -1 ||
+        firebaseConfigPosition > firebaseServicePosition ||
+        firebaseServicePosition > pageScriptPosition
+      ) {
+        errors.push(
+          `${relativeHtml} must load Firebase config/service before its page script.`,
+        );
+      }
+    }
   }
 
   for (const jsFile of jsFiles) {
@@ -140,14 +158,19 @@ if (await exists(publicRoot)) {
     }
   }
 
+  const allowedFirebaseFiles = new Set([
+    path.join(publicRoot, "assets", "js", "config", "firebase-config.js"),
+    path.join(publicRoot, "assets", "js", "shared", "firebase-service.js"),
+  ]);
   for (const file of files) {
     if (!/\.(?:html|js)$/i.test(file)) continue;
     const source = await readFile(file, "utf8");
     if (
-      /firebaseConfig|openHouseDb|firebase-database|firebasejs/i.test(source)
+      !allowedFirebaseFiles.has(file) &&
+      /openHouseDb|firebase\.database\(|\.ref\(["'`]/i.test(source)
     ) {
       errors.push(
-        `${path.relative(projectRoot, file)} exposes or directly uses Firebase.`,
+        `${path.relative(projectRoot, file)} bypasses the shared Firebase service.`,
       );
     }
   }
@@ -181,42 +204,6 @@ if (await exists(publicRoot)) {
         errors.push("QR codes in app-config.js must be unique.");
       }
 
-      const backendConfigPath = path.join(
-        projectRoot,
-        "functions",
-        "src",
-        "event-config.js",
-      );
-      if (await exists(backendConfigPath)) {
-        delete require.cache[require.resolve(backendConfigPath)];
-        const { EVENT_CONFIG } = require(backendConfigPath);
-        const frontendStations = appConfig.stations.map(
-          ({ id, name, qrCode }) => ({ id, name, qrCode }),
-        );
-        if (
-          JSON.stringify(frontendStations) !==
-          JSON.stringify(EVENT_CONFIG.stations)
-        ) {
-          errors.push(
-            "Frontend and backend station configurations are out of sync.",
-          );
-        }
-        if (
-          appConfig.participants.codeLength !==
-            EVENT_CONFIG.participantCodeLength ||
-          appConfig.participants.generationCount !==
-            EVENT_CONFIG.participantGenerationCount ||
-          appConfig.destinyCards.length !==
-            EVENT_CONFIG.destinyCardCount ||
-          appConfig.qr.maxAgeMs !== EVENT_CONFIG.qrMaxAgeMs ||
-          appConfig.qr.allowedFutureClockSkewMs !==
-            EVENT_CONFIG.qrAllowedFutureClockSkewMs
-        ) {
-          errors.push(
-            "Frontend and backend participant/QR settings are out of sync.",
-          );
-        }
-      }
     }
 
     const configuredImageReferences = new Set(
