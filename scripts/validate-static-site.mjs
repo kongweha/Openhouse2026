@@ -57,10 +57,13 @@ const requiredFiles = [
   "public/assets/css/stamp.css",
   "public/assets/css/admin.css",
   "public/assets/css/generate-qr.css",
+  "public/assets/js/config/app-config.js",
   "public/assets/js/config/firebase-config.js",
   "public/assets/js/pages/stamp.js",
   "public/assets/js/pages/admin.js",
   "public/assets/js/pages/generate-qr.js",
+  "public/assets/js/shared/legacy-redirect.js",
+  "public/assets/images/cards/README.md",
   "docs/PROJECT_SSOT.md",
   "docs/HANDOFF.md",
 ];
@@ -91,12 +94,28 @@ if (await exists(publicRoot)) {
     }
 
     if (
-      ["index.html", "admin.html", "generate-qr.html"].includes(
-        path.basename(htmlFile),
-      ) &&
-      (/<style(?:\s|>)/i.test(html) || /<script(?![^>]*\bsrc=)[^>]*>/i.test(html))
+      /<style(?:\s|>)/i.test(html) ||
+      /<script(?![^>]*\bsrc=)[^>]*>/i.test(html)
     ) {
       errors.push(`${relativeHtml} contains inline CSS or JavaScript.`);
+    }
+
+    if (
+      ["index.html", "admin.html", "generate-qr.html"].includes(
+        path.basename(htmlFile),
+      )
+    ) {
+      const configPosition = html.indexOf("assets/js/config/app-config.js");
+      const pageScriptPosition = html.indexOf("assets/js/pages/");
+      if (
+        configPosition === -1 ||
+        pageScriptPosition === -1 ||
+        configPosition > pageScriptPosition
+      ) {
+        errors.push(
+          `${relativeHtml} must load app-config.js before its page script.`,
+        );
+      }
     }
   }
 
@@ -109,24 +128,54 @@ if (await exists(publicRoot)) {
     }
   }
 
-  const stampScriptPath = path.join(
+  const appConfigPath = path.join(
     publicRoot,
     "assets",
     "js",
-    "pages",
-    "stamp.js",
+    "config",
+    "app-config.js",
   );
-  if (await exists(stampScriptPath)) {
-    const stampScript = await readFile(stampScriptPath, "utf8");
-    const cardReferences = new Set(
-      [...stampScript.matchAll(/["'](assets\/images\/cards\/[^"']+)["']/g)].map(
-        (match) => match[1],
-      ),
-    );
+  if (await exists(appConfigPath)) {
+    const appConfigSource = await readFile(appConfigPath, "utf8");
+    const sandbox = { window: {} };
+    new vm.Script(appConfigSource, {
+      filename: path.relative(projectRoot, appConfigPath),
+    }).runInNewContext(sandbox);
+    const appConfig = sandbox.window.OpenHouseConfig;
 
+    if (!appConfig || !Array.isArray(appConfig.stations)) {
+      errors.push("app-config.js did not expose a valid station configuration.");
+    } else {
+      const stationIds = appConfig.stations.map((station) => station.id);
+      const qrCodes = appConfig.stations.map((station) => station.qrCode);
+      const expectedIds = appConfig.stations.map((_, index) => index);
+
+      if (stationIds.join(",") !== expectedIds.join(",")) {
+        errors.push("Station IDs in app-config.js must be contiguous from zero.");
+      }
+      if (new Set(qrCodes).size !== qrCodes.length) {
+        errors.push("QR codes in app-config.js must be unique.");
+      }
+    }
+
+    const cardReferences = new Set(
+      appConfig?.destinyCards?.map((card) => card.imagePath) ?? [],
+    );
     for (const reference of cardReferences) {
       if (!(await exists(path.join(publicRoot, reference)))) {
         warnings.push(`Missing optional card artwork: public/${reference}`);
+      }
+    }
+
+    for (const file of files.filter((file) => file !== appConfigPath)) {
+      if (!/\.(?:html|js)$/.test(file)) {
+        continue;
+      }
+      const source = await readFile(file, "utf8");
+      if (/QR_STN_\d+/i.test(source)) {
+        errors.push(
+          `${path.relative(projectRoot, file)} duplicates station QR configuration.`,
+        );
       }
     }
   }

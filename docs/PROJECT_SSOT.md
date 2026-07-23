@@ -62,11 +62,14 @@ public/
       admin.css
       generate-qr.css
     js/
+      config/app-config.js
       config/firebase-config.js
       pages/stamp.js
       pages/admin.js
       pages/generate-qr.js
+      shared/legacy-redirect.js
     images/cards/
+      README.md
 docs/
   PROJECT_SSOT.md
   HANDOFF.md
@@ -77,6 +80,21 @@ scripts/
 
 ไฟล์ใน `public/` เท่านั้นที่เป็น deployable artifact ส่วน `docs/` และ `scripts/`
 ไม่ถูกเผยแพร่โดย GitHub Pages
+
+### Source ownership
+
+| ข้อมูล/พฤติกรรม | Source of truth |
+| --- | --- |
+| รายชื่อฐาน, station ID, QR code, รูปและคำอธิบายฐาน | `assets/js/config/app-config.js` |
+| จำนวนฐาน | `OpenHouseConfig.stations.length` ห้าม hard-code ซ้ำ |
+| จำนวน/ความยาวรหัสสมาชิก | `OpenHouseConfig.participants` |
+| อายุ QR และ clock skew | `OpenHouseConfig.qr` |
+| Mapping รูปการ์ด | `OpenHouseConfig.destinyCards` |
+| Firebase web configuration | `assets/js/config/firebase-config.js` |
+| Redirect จาก URL เก่า | `assets/js/shared/legacy-redirect.js` |
+
+หน้า Stamp, Admin และ QR generator ต้องสร้างรายการฐานจาก `OpenHouseConfig`
+เท่านั้น ตัว validator จะ reject รหัส `QR_STN_*` ที่เขียนซ้ำนอก config
 
 ## 5. Data contract
 
@@ -109,6 +127,8 @@ QR_STN_0N|<browser_timestamp_ms>
 - Scanner ยอมรับ QR ที่มีอายุไม่เกิน 90 วินาที
 - Scanner ยอมให้ timestamp นำหน้าเวลาของเครื่องผู้ใช้ได้ 5 วินาที
 - ไม่มี signature, nonce ฝั่ง server หรือ replay protection
+
+ค่าตัวเลขทั้งสามรายการอ่านจาก `OpenHouseConfig.qr`
 
 สัญญานี้ต้องคงเดิมจนกว่าจะออกแบบ backend verification และ migration plan
 
@@ -143,7 +163,6 @@ QR_STN_0N|<browser_timestamp_ms>
 
 - Repo ยังไม่มี `Card_1.webp` ถึง `Card_7.webp`; การแสดงการ์ดจะเป็น broken image
 - Card IDs 8–16 ยังชี้กลับไป `Card_1.webp` เป็น placeholder
-- ชื่อฐานใน Admin/QR generator บางรายการยังเป็นชื่อเก่า ไม่ตรงกับชื่อในหน้าผู้ใช้
 - การจับเวลาอาศัยนาฬิกาอุปกรณ์ผู้ใช้ จึงแก้ไขหรือคลาดเคลื่อนได้
 - ไม่มี automated browser/E2E test และไม่มี Firebase emulator test
 - ยังไม่มีสถานะ loading/error ที่สม่ำเสมอสำหรับทุก Firebase operation
@@ -161,6 +180,9 @@ npm run serve
 - local `href`/`src` ไม่ชี้ไฟล์หาย
 - หน้า canonical ไม่มี inline CSS/JavaScript
 - JavaScript parse ผ่าน
+- app config ถูกโหลดก่อน page script
+- station IDs/QR codes ถูกต้องและไม่ซ้ำ
+- ไม่มี station QR config กระจายนอก `app-config.js`
 - แจ้งเตือนรูปการ์ดที่ยังขาด
 
 ## 10. Deployment
@@ -201,8 +223,7 @@ npm run serve
 2. ออกแบบ signed QR และ server-side verification
 3. ตรวจและ version-control Database Rules พร้อม emulator tests
 4. เพิ่มรูปการ์ดจริงและกำหนด mapping 1–16 ให้ครบ
-5. รวม station configuration เป็น source เดียวเพื่อลดชื่อ/รหัสไม่ตรงกัน
-6. เพิ่ม browser smoke tests สำหรับ login, scan, rating, redeem และ admin
+5. เพิ่ม browser smoke tests สำหรับ login, scan, rating, redeem และ admin
 
 ## 13. Decision log
 
@@ -213,3 +234,6 @@ npm run serve
 - 2026-07-23: กำหนด SSOT/Handoff เป็นเอกสารบังคับผ่าน `AGENTS.md`
 - 2026-07-23: เจ้าของระบบกำหนด standing instruction ให้ commit และ push
   ทุกงานที่เสร็จ โดย routine push ไป `main` อนุญาตให้ deploy GitHub Pages ได้
+- 2026-07-23: รวม station, participant, QR timing และ card mapping เป็น
+  `app-config.js` source เดียว และให้ทุกหน้าสร้าง UI จาก config
+- 2026-07-23: รวม legacy redirect logic เป็นไฟล์เดียว พร้อมคง URL เดิม

@@ -12,15 +12,7 @@
     <div class="container">
         <h2>⏱️ QR Code (อายุ 1.30 นาที)</h2>
         
-        <select id="stationSelect" onchange="stationChanged()">
-            <option value="QR_STN_01">ฐาน 1: Library Playground</option>
-            <option value="QR_STN_02">ฐาน 2: Discovery Lab</option>
-            <option value="QR_STN_03">ฐาน 3: Play Zone</option>
-            <option value="QR_STN_04">ฐาน 4: Treasure Corner</option>
-            <option value="QR_STN_05">ฐาน 5: Media Studio</option>
-            <option value="QR_STN_06">ฐาน 6: Tech Station</option>
-            <option value="QR_STN_07">ฐาน 7: Safety Checkpoint</option>
-        </select>
+        <select id="stationSelect" onchange="stationChanged()"></select>
 
         <div id="qrcode-container">
             <div id="qrcode"></div>
@@ -33,6 +25,7 @@
         
         <div id="timerDisplay" class="timer">--:--</div>
     </div>
+    <script src="assets/js/config/app-config.js"></script>
     <script src="assets/js/pages/generate-qr.js"></script>
 </body>
 </html>

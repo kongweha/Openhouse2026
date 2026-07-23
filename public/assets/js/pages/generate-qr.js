@@ -1,66 +1,74 @@
-let qrCodeObj = null;
-        let countdownId = null;
-        const refreshRate = 90; // 90 วินาที (1 นาที 30 วินาที)
-        let timeLeft = 0;
+const APP_CONFIG = window.OpenHouseConfig;
+const stationSelect = document.getElementById("stationSelect");
 
-        function generateRandomQR() {
-            const baseQR = document.getElementById('stationSelect').value;
-            const currentTimestamp = Date.now();
-            
-            // นำรหัสฐานมาต่อด้วยเครื่องหมาย | และเวลาปัจจุบัน (มิลลิวินาที)
-            const dynamicQRText = `${baseQR}|${currentTimestamp}`;
+let countdownId = null;
+let timeLeft = 0;
 
-            document.getElementById('qr-text').innerText = `Data: ${baseQR} (อัปเดตล่าสุด)`;
-            
-            const qrContainer = document.getElementById("qrcode");
-            qrContainer.innerHTML = ""; 
-            
-            qrCodeObj = new QRCode(qrContainer, {
-                text: dynamicQRText,
-                width: 220,
-                height: 220,
-                colorDark : "#0f172a",
-                colorLight : "#ffffff",
-                correctLevel : QRCode.CorrectLevel.H
-            });
-        }
+APP_CONFIG.stations.forEach((station, index) => {
+  const option = document.createElement("option");
+  option.value = station.qrCode;
+  option.textContent = `ฐาน ${index + 1}: ${station.name}`;
+  stationSelect.appendChild(option);
+});
 
-        function updateTimer() {
-            if (timeLeft <= 0) {
-                generateRandomQR();
-                timeLeft = refreshRate;
-            }
-            
-            // แปลงวินาทีเป็นรูปแบบ นาที:วินาที (เช่น 01:30)
-            const minutes = Math.floor(timeLeft / 60);
-            const seconds = timeLeft % 60;
-            document.getElementById('timerDisplay').innerText = 
-                `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-            
-            timeLeft--;
-        }
+function generateQrCode() {
+  const stationQrCode = stationSelect.value;
+  const currentTimestamp = Date.now();
+  const payload = `${stationQrCode}|${currentTimestamp}`;
 
-        function startDynamicQR() {
-            document.getElementById('btnStart').style.display = 'none';
-            document.getElementById('btnStop').style.display = 'block';
-            document.getElementById('stationSelect').disabled = true; 
-            
-            timeLeft = 0; // บังคับให้สร้างทันทีในรอบแรก
-            updateTimer();
-            countdownId = setInterval(updateTimer, 1000);
-        }
+  document.getElementById("qr-text").textContent =
+    `Data: ${stationQrCode} (อัปเดตล่าสุด)`;
 
-        function stopDynamicQR() {
-            document.getElementById('btnStart').style.display = 'block';
-            document.getElementById('btnStop').style.display = 'none';
-            document.getElementById('stationSelect').disabled = false; 
-            
-            clearInterval(countdownId);
-            document.getElementById('timerDisplay').innerText = "--:--";
-            document.getElementById("qrcode").innerHTML = "";
-            document.getElementById('qr-text').innerText = "กรุณากดเริ่มเพื่อสร้าง QR Code";
-        }
+  const qrContainer = document.getElementById("qrcode");
+  qrContainer.replaceChildren();
 
-        function stationChanged() {
-            stopDynamicQR();
-        }
+  new QRCode(qrContainer, {
+    text: payload,
+    width: 220,
+    height: 220,
+    colorDark: "#0f172a",
+    colorLight: "#ffffff",
+    correctLevel: QRCode.CorrectLevel.H,
+  });
+}
+
+function updateTimer() {
+  if (timeLeft <= 0) {
+    generateQrCode();
+    timeLeft = APP_CONFIG.qr.refreshSeconds;
+  }
+
+  const minutes = Math.floor(timeLeft / 60);
+  const seconds = timeLeft % 60;
+  document.getElementById("timerDisplay").textContent =
+    `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+
+  timeLeft -= 1;
+}
+
+function startDynamicQR() {
+  document.getElementById("btnStart").style.display = "none";
+  document.getElementById("btnStop").style.display = "block";
+  stationSelect.disabled = true;
+
+  timeLeft = 0;
+  updateTimer();
+  countdownId = window.setInterval(updateTimer, 1_000);
+}
+
+function stopDynamicQR() {
+  document.getElementById("btnStart").style.display = "block";
+  document.getElementById("btnStop").style.display = "none";
+  stationSelect.disabled = false;
+
+  window.clearInterval(countdownId);
+  countdownId = null;
+  document.getElementById("timerDisplay").textContent = "--:--";
+  document.getElementById("qrcode").replaceChildren();
+  document.getElementById("qr-text").textContent =
+    "กรุณากดเริ่มเพื่อสร้าง QR Code";
+}
+
+function stationChanged() {
+  stopDynamicQR();
+}

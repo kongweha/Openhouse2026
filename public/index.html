@@ -18,14 +18,7 @@
             <span id="btnLangEn" class="active">EN</span> | <span id="btnLangTh">TH</span>
         </div>
         <h2 id="txtLoginTitle">🔐 Login to System</h2>
-        <div class="otp-container" id="otpGroup">
-            <input type="tel" class="otp-box" maxlength="1">
-            <input type="tel" class="otp-box" maxlength="1">
-            <input type="tel" class="otp-box" maxlength="1">
-            <input type="tel" class="otp-box" maxlength="1">
-            <input type="tel" class="otp-box" maxlength="1">
-            <input type="tel" class="otp-box" maxlength="1">
-        </div>
+        <div class="otp-container" id="otpGroup"></div>
         <button id="btnLogin" class="btn-primary" onclick="login()">Login</button>
     </div>
 
@@ -58,7 +51,7 @@
 
         <!-- View 2: หน้าสแกนฐาน -->
         <div id="stampView">
-            <div id="statusText" style="font-weight: bold; margin-bottom: 5px; color: #10b981; font-size: 18px;">Current Stamps: 0 / 7</div>
+            <div id="statusText" style="font-weight: bold; margin-bottom: 5px; color: #10b981; font-size: 18px;">Current stamps</div>
             <div style="font-size: 12px; color: #64748b; margin-bottom: 5px;" id="subStatusText">(Click on unstamped circles to scan QR Code)</div>
             
             <div id="ratingBox" class="rating-box hidden">
@@ -123,6 +116,7 @@
             <button id="btnSubmitFinal" class="btn-primary" style="margin-top: 20px; background-color: #ec4899; box-shadow: 0 4px 6px rgba(236,72,153,0.3);" disabled onclick="submitFinalAssessment()">Confirm & Claim</button>
         </div>
     </div>
+    <script src="assets/js/config/app-config.js"></script>
     <script src="assets/js/config/firebase-config.js"></script>
     <script src="assets/js/pages/stamp.js"></script>
 </body>

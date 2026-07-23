@@ -14,7 +14,7 @@
         <div class="action-bar">
             <h1>⚙️ ระบบจัดการหลังบ้าน (Admin)</h1>
             <div>
-                <button class="btn-primary" onclick="generateAndUploadCodes()">🔄 สร้างรหัส 500 ใบ</button>
+                <button id="btnGenerateCodes" class="btn-primary" onclick="generateAndUploadCodes()">🔄 สร้างรหัสสมาชิก</button>
                 <button class="btn-success" onclick="exportCSV()">⬇️ ดึงข้อมูล CSV</button>
                 <button class="btn-danger" onclick="clearDatabase()">🗑️ ล้างข้อมูล</button>
             </div>
@@ -22,7 +22,7 @@
 
         <div class="stats-cards">
             <div class="card"><h3>รหัสทั้งหมด</h3><div class="value" id="statTotal">0</div></div>
-            <div class="card"><h3>ผ่านครบ 7 ฐานแล้ว</h3><div class="value" id="statCompleted" style="color: #10b981;">0</div></div>
+            <div class="card"><h3>ผ่านครบทุกฐานแล้ว</h3><div class="value" id="statCompleted" style="color: #10b981;">0</div></div>
             <div class="card"><h3>แลกรางวัลแล้ว</h3><div class="value" id="statRedeemed" style="color: #3b82f6;">0</div></div>
         </div>
 
@@ -34,7 +34,7 @@
 
         <div id="tab-dashboard" class="tab-content active">
             <div class="filter-group">
-                <input type="text" id="searchDashboard" class="search-box" onkeyup="renderDashboard()" placeholder="🔍 ค้นหารหัสสมาชิก 6 หลัก...">
+                <input type="text" id="searchDashboard" class="search-box" onkeyup="renderDashboard()" placeholder="🔍 ค้นหารหัสสมาชิก...">
             </div>
             <table>
                 <thead>
@@ -56,13 +56,6 @@
             <div class="filter-group">
                 <select id="filterStartStation" class="filter-select" onchange="renderLeaderboard()">
                     <option value="all">แสดงทั้งหมด (ไม่กรองลำดับการเล่น)</option>
-                    <option value="0">เริ่มเล่นที่: Library Playground</option>
-                    <option value="1">เริ่มเล่นที่: Discovery Lab</option>
-                    <option value="2">เริ่มเล่นที่: Play Zone</option>
-                    <option value="3">เริ่มเล่นที่: Treasure Corner</option>
-                    <option value="4">เริ่มเล่นที่: Media Studio</option>
-                    <option value="5">เริ่มเล่นที่: Tech Station</option>
-                    <option value="6">เริ่มเล่นที่: Safety Checkpoint</option>
                 </select>
                 <input type="text" id="searchLeaderboard" class="search-box" onkeyup="renderLeaderboard()" placeholder="🔍 ค้นหารหัส...">
             </div>
@@ -90,7 +83,7 @@
                     <tr>
                         <th style="width: 5%; text-align: center;">อันดับ</th>
                         <th style="width: 15%;">รหัสสมาชิก</th>
-                        <th style="width: 80%;">รายละเอียดเวลาและคะแนน (เรียงตามลำดับ 1-7)</th>
+                        <th style="width: 80%;">รายละเอียดเวลาและคะแนน (ตามลำดับการสแกน)</th>
                     </tr>
                 </thead>
                 <tbody id="tableDetailed">
@@ -108,6 +101,7 @@
             <ul class="timeline" id="timelineContent"></ul>
         </div>
     </div>
+    <script src="assets/js/config/app-config.js"></script>
     <script src="assets/js/config/firebase-config.js"></script>
     <script src="assets/js/pages/admin.js"></script>
 </body>
