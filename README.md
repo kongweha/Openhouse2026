@@ -17,6 +17,7 @@ npm run serve
 
 - ผู้เข้าร่วม: <http://localhost:4173/Stamp.html>
 - ลงทะเบียน/ลืมรหัส: <http://localhost:4173/registration.html>
+- ลืมรหัสเท่านั้น: <http://localhost:4173/registration.html?mode=recover&lang=th>
 - ผู้ดูแล: <http://localhost:4173/admin.html>
 - เครื่องสร้าง QR: <http://localhost:4173/generate-qr.html>
 
@@ -55,6 +56,8 @@ scripts/                 validation และ local server
 
 `Stamp.html` เป็นหน้าผู้เข้าร่วม canonical เพียงชุดเดียว ส่วน `index.html`
 redirect ไป `Stamp.html` เพื่อรักษา URL รากโดยไม่ทำโค้ดซ้ำ
+ลิงก์ “ลืมรหัส” ใน Stamp เปิด Registration แบบ recovery-only และส่งต่อ
+ภาษาที่เลือก ส่วน Registration ปกติรองรับไทย/อังกฤษและใช้ปุ่ม “เคย/ไม่เคย”
 `GenerateQR.html` ยังคงเป็น compatibility redirect ไป `generate-qr.html`
 
 รูป production ทั้ง 21 ไฟล์เก็บใน repo และอ้างผ่าน `app-config.js`

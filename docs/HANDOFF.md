@@ -7,6 +7,11 @@
 
 ## งานรอบล่าสุด
 
+- หน้า Stamp เหลือเฉพาะลิงก์ “ลืมรหัส” และส่งภาษาปัจจุบันไปหน้า recovery
+- เพิ่ม `registration.html?mode=recover&lang=th|en` แบบซ่อนแท็บและฟอร์มลงทะเบียน
+- หน้า Registration รองรับข้อความไทย/อังกฤษทั้งหน้า
+- เปลี่ยนคำตอบ “เคย/ไม่เคย” จาก select เป็นปุ่ม radio ที่กดเลือกได้
+- เพิ่ม validation ป้องกัน recovery link, language controls และ visit buttons หาย
 - ยกเลิก Firebase Functions เพื่อคง Spark plan แบบไม่มี billing
 - ลบ `functions/`, `firebase.json` และ `.firebaserc`
 - นำ Firebase Web App config เดิมกลับมาใช้
@@ -48,8 +53,8 @@ git push origin main
 - `node scripts/validate-static-site.mjs`: ผ่าน, 0 warnings
 - `node --test scripts/test-firebase-service.mjs`: ผ่าน 3/3 tests
 - Local HTTP smoke test: routes หลักและ compatibility routes ตอบ `200`
-- Headless Chrome: `Stamp.html` และ `registration.html` โหลด service ครบ,
-  ไม่มี page error และไม่ได้ส่ง form
+- Headless Chrome: ตรวจ Stamp language/recovery link, Registration สองภาษา,
+  ปุ่มเคย/ไม่เคย และ recovery-only view ผ่านโดยไม่มี page error
 - `git diff --check`: ผ่าน
 
 ## สิ่งที่ยังไม่ได้ทำ

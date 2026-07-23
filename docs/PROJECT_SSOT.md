@@ -47,14 +47,24 @@ Firebase Web API key เป็น project identifier ไม่ใช่ private 
 
 | Route | หน้าที่ |
 | --- | --- |
-| `public/Stamp.html` | Stamp Card ของผู้เข้าร่วม (canonical) |
+| `public/Stamp.html` | Stamp Card ของผู้เข้าร่วม มีลิงก์เฉพาะ “ลืมรหัส” (canonical) |
 | `public/index.html` | Redirect จาก URL รากไป `Stamp.html` |
 | `public/registration.html` | ลงทะเบียนและค้นหารหัสที่ลืม |
+| `public/registration.html?mode=recover&lang=th\|en` | แสดงเฉพาะฟอร์มลืมรหัสตามภาษาที่เลือกจาก Stamp |
 | `public/admin.html` | Admin dashboard |
 | `public/generate-qr.html` | สร้าง Dynamic QR |
 | `public/GenerateQR.html` | Compatibility redirect ไป `generate-qr.html` |
 
 `Stamp.html` เป็น participant implementation เพียงชุดเดียว
+
+## 3.1 Registration UI contract
+
+- หน้า Stamp ไม่มีลิงก์ลงทะเบียน มีเฉพาะลิงก์ “ลืมรหัส”
+- ลิงก์ลืมรหัสส่ง `mode=recover` และภาษาปัจจุบันผ่าน `lang=th|en`
+- `registration.html` ปกติยังมีแท็บลงทะเบียนและลืมรหัส
+- เมื่อมี `mode=recover` ต้องซ่อนแท็บและฟอร์มลงทะเบียน
+- หน้า Registration และ recovery-only สลับภาษาไทย/อังกฤษได้
+- คำตอบ “เคย/ไม่เคย” เป็น radio buttons แบบกดเลือก ไม่ใช่ select
 
 ## 4. โครงสร้างและ ownership
 
@@ -213,3 +223,6 @@ credentials, rewrite history หรือ force-push ต้องขออนุ
   Firebase Client operations ไว้ใน `firebase-service.js`
 - 2026-07-23: ตัด participant polling และเพิ่ม service tests แบบ in-memory
   เพื่อลดการใช้โควตาและตรวจ flow โดยไม่แตะ production data
+- 2026-07-23: หน้า Stamp แสดงเฉพาะลิงก์ลืมรหัส โดยเปิด Registration
+  แบบ recovery-only, ส่งต่อภาษาไทย/อังกฤษ และเปลี่ยนคำตอบประวัติการเข้าร่วม
+  เป็นปุ่มกด

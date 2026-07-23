@@ -5,6 +5,7 @@ const LANG = {
         loginTitle: "🔐 Login to System",
         loginBtn: "Login",
         checking: "Checking...",
+        forgotCode: "Forgot your code?",
         cardTitle: "🎉 Stamp Card",
         userIdPrefix: "User ID: ",
         stampStatusText: "Completed: {count} / {total}",
@@ -45,6 +46,7 @@ const LANG = {
         loginTitle: "🔐 เข้าสู่ระบบสะสมแต้ม",
         loginBtn: "ตกลงเพื่อเข้าสู่ระบบ",
         checking: "กำลังตรวจสอบ...",
+        forgotCode: "ลืมรหัส",
         cardTitle: "🎉 บัตรสะสมแต้ม",
         userIdPrefix: "รหัสสมาชิก: ",
         stampStatusText: "ผ่านแล้ว: {count} / {total} ฐาน",
@@ -158,6 +160,9 @@ function applyLanguage() {
 
     document.getElementById('txtLoginTitle').innerText = l.loginTitle;
     document.getElementById('btnLogin').innerText = l.loginBtn;
+    const forgotCodeLink = document.getElementById('forgotCodeLink');
+    forgotCodeLink.innerText = l.forgotCode;
+    forgotCodeLink.href = `registration.html?mode=recover&lang=${currentLang}`;
     document.getElementById('txtCardTitle').innerText = l.cardTitle;
     document.getElementById('subStatusText').innerText = l.stampSubStatus;
     document.getElementById('btnCancel').innerText = l.cancelScanBtn;

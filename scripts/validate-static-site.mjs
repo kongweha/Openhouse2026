@@ -147,6 +147,28 @@ if (await exists(publicRoot)) {
         );
       }
     }
+
+    if (
+      path.basename(htmlFile) === "Stamp.html" &&
+      !html.includes("registration.html?mode=recover")
+    ) {
+      errors.push(
+        `${relativeHtml} must link to the recovery-only registration view.`,
+      );
+    }
+
+    if (path.basename(htmlFile) === "registration.html") {
+      if (
+        !html.includes('id="langTh"') ||
+        !html.includes('id="langEn"') ||
+        !html.includes('name="visitedOpenHouse" type="radio" value="yes"') ||
+        !html.includes('name="visitedOpenHouse" type="radio" value="no"')
+      ) {
+        errors.push(
+          `${relativeHtml} must provide bilingual controls and button-style visit choices.`,
+        );
+      }
+    }
   }
 
   for (const jsFile of jsFiles) {
