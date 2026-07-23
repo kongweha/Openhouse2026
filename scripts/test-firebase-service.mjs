@@ -62,6 +62,7 @@ class FakeReference {
   }
 
   async once() {
+    this.database.readPaths.add(this.path);
     return new FakeSnapshot(valueAt(this.database.data, this.path));
   }
 
@@ -98,6 +99,7 @@ class FakeDatabase {
   constructor(data) {
     this.data = clone(data);
     this.pushIndex = 0;
+    this.readPaths = new Set();
   }
 
   ref(path = "") {
@@ -156,6 +158,7 @@ test("registration allocates the lowest unused code and is idempotent", async ()
   });
 
   const created = await api.registration.register("1234567890", "yes");
+  assert.ok(database.readPaths.has("users/100001"));
   assert.deepEqual(
     { ...created },
     { accessCode: "100001", created: true },

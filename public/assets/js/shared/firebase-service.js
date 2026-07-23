@@ -152,10 +152,18 @@
 
     for (const accessCode of availableCodes) {
       const userReference = db.ref(`users/${accessCode}`);
+      // A transaction updater can run before this child path is present in the
+      // local cache, even when its parent collection was just read. Load the
+      // exact candidate first so `null` is not mistaken for a missing code.
+      const candidateSnapshot = await userReference.once("value");
+      const candidateUser = candidateSnapshot.val();
+      if (!isUnusedParticipant(candidateUser)) continue;
+
       const claim = await userReference.transaction((user) => {
-        if (!isUnusedParticipant(user)) return;
+        const currentUser = user ?? candidateUser;
+        if (!isUnusedParticipant(currentUser)) return;
         return {
-          ...user,
+          ...currentUser,
           registration: {
             studentId,
             hasVisitedOpenHouse,

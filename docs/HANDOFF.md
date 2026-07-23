@@ -7,6 +7,11 @@
 
 ## งานรอบล่าสุด
 
+- ตรวจ production แบบ read-only หลัง reset: มี 500 รหัสและเข้ารูปแบบรหัสว่างครบ
+- abort-only browser test ยืนยันว่า Firebase transaction updater รอบแรกยังได้
+  `null` แม้ pre-read child path; ไม่มี transaction ใด commit ระหว่างการทดสอบ
+- แก้ claim updater ให้ใช้ candidate snapshot เป็น fallback รอบแรก แล้วให้
+  Firebase conflict detection/retry ตรวจค่าจริงก่อน commit
 - เจ้าของระบบแจ้งว่าได้ล้างและสร้าง pool รหัสใหม่ผ่าน Admin แล้ว
 - แก้ false `NO_AVAILABLE_CODES`: Firebase มี pool แต่ root transaction เดิม
   หยุดเมื่อ local cache รอบแรกยังว่าง
@@ -65,6 +70,8 @@ git push origin main
   ปุ่มเคย/ไม่เคย และ recovery-only view ผ่านโดยไม่มี page error
 - Local headless timing หลัง cache/version fix: Registration ~0.5s, Stamp ~0.9s,
   Admin พร้อมข้อมูล ~1.0s และ QR Generator ~0.5s
+- Production abort-only cache test: พบ pool 500, พบ candidate, fallback เห็นข้อมูล,
+  `committed: false`
 - `git diff --check`: ผ่าน
 
 ## สิ่งที่ยังไม่ได้ทำ
