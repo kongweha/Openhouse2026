@@ -128,63 +128,94 @@
     const hasVisitedOpenHouse =
       normalizeVisitedFlag(hasVisitedValue);
     const registeredAt = Date.now();
-    let result = null;
-    let allocationError = null;
+    const registrationReference = db.ref(
+      `studentRegistrations/${studentId}`,
+    );
+    const usersReference = db.ref("users");
+    const [existingSnapshot, usersSnapshot] = await Promise.all([
+      registrationReference.once("value"),
+      usersReference.once("value"),
+    ]);
+    const existing = existingSnapshot.val();
+    if (existing?.accessCode) {
+      return {
+        accessCode: normalizeAccessCode(existing.accessCode),
+        created: false,
+      };
+    }
 
-    const transaction = await db.ref().transaction(
-      (rootValue) => {
-        allocationError = null;
-        const root = rootValue ?? {};
-        root.users ??= {};
-        root.studentRegistrations ??= {};
+    const users = usersSnapshot.val() ?? {};
+    const availableCodes = Object.keys(users)
+      .filter((code) => /^\d+$/.test(code))
+      .sort((left, right) => Number(left) - Number(right))
+      .filter((code) => isUnusedParticipant(users[code]));
 
-        const existing = root.studentRegistrations[studentId];
-        if (existing?.accessCode) {
-          result = {
-            accessCode: normalizeAccessCode(existing.accessCode),
-            created: false,
-          };
-          return root;
-        }
-
-        const accessCode = Object.keys(root.users)
-          .filter((code) => /^\d+$/.test(code))
-          .sort((left, right) => Number(left) - Number(right))
-          .find((code) => isUnusedParticipant(root.users[code]));
-        if (!accessCode) {
-          allocationError = new FirebaseServiceError(
-            "NO_AVAILABLE_CODES",
-            "No unused participant code is available.",
-          );
-          return;
-        }
-
-        root.studentRegistrations[studentId] = {
-          studentId,
-          accessCode,
-          hasVisitedOpenHouse,
-          registeredAt,
-        };
-        root.users[accessCode] = {
-          ...root.users[accessCode],
+    for (const accessCode of availableCodes) {
+      const userReference = db.ref(`users/${accessCode}`);
+      const claim = await userReference.transaction((user) => {
+        if (!isUnusedParticipant(user)) return;
+        return {
+          ...user,
           registration: {
             studentId,
             hasVisitedOpenHouse,
             registeredAt,
           },
         };
-        result = { accessCode, created: true };
-        return root;
-      },
-      undefined,
-      false,
-    );
+      });
+      if (!claim.committed) continue;
 
-    if (allocationError) throw allocationError;
-    if (!transaction.committed || !result) {
-      fail("REGISTRATION_CONFLICT", "Registration was not completed.");
+      const releaseClaim = () =>
+        userReference.transaction((user) => {
+          if (user?.registration?.studentId !== studentId) return;
+          const releasedUser = { ...user };
+          delete releasedUser.registration;
+          return releasedUser;
+        });
+
+      let mapping;
+      try {
+        mapping = await registrationReference.transaction(
+          (currentRegistration) => {
+            if (currentRegistration?.accessCode) {
+              return currentRegistration;
+            }
+            return {
+              studentId,
+              accessCode,
+              hasVisitedOpenHouse,
+              registeredAt,
+            };
+          },
+        );
+      } catch (error) {
+        await releaseClaim();
+        throw error;
+      }
+
+      const assignedAccessCode = mapping.snapshot.val()?.accessCode;
+      if (!mapping.committed || !assignedAccessCode) {
+        await releaseClaim();
+        fail("REGISTRATION_CONFLICT", "Registration was not completed.");
+      }
+
+      const normalizedAssignedCode =
+        normalizeAccessCode(assignedAccessCode);
+      if (normalizedAssignedCode !== accessCode) {
+        await releaseClaim();
+        return {
+          accessCode: normalizedAssignedCode,
+          created: false,
+        };
+      }
+
+      return { accessCode, created: true };
     }
-    return result;
+
+    fail(
+      "NO_AVAILABLE_CODES",
+      "No unused participant code is available.",
+    );
   }
 
   async function recover(studentIdValue) {

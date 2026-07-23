@@ -254,3 +254,27 @@ test("registration fails clearly when no unused code remains", async () => {
     (error) => error.code === "NO_AVAILABLE_CODES",
   );
 });
+
+test("concurrent requests for one student keep only one claimed code", async () => {
+  const { api, database } = createService({
+    users: {
+      "100001": emptyParticipant(),
+      "100002": emptyParticipant(),
+    },
+  });
+
+  const results = await Promise.all([
+    api.registration.register("1234567890", "yes"),
+    api.registration.register("1234567890", "yes"),
+  ]);
+  assert.deepEqual(
+    new Set(results.map((result) => result.accessCode)),
+    new Set(["100001"]),
+  );
+  assert.equal(
+    Object.values(database.data.users).filter(
+      (user) => user.registration?.studentId === "1234567890",
+    ).length,
+    1,
+  );
+});

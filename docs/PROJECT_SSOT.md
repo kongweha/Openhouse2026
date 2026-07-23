@@ -38,7 +38,8 @@ Firebase Realtime Database: eventstampcard
 - Browser dependencies:
   - Firebase compat SDK 9.22.2
   - QRCode.js 1.0.0
-  - html5-qrcode จาก unpkg
+  - html5-qrcode 2.3.8 จาก unpkg
+- หน้าเว็บใช้ `preconnect` และ `defer` สำหรับ CDN scripts เพื่อลด render blocking
 
 Firebase Web API key เป็น project identifier ไม่ใช่ private credential
 ห้ามใช้การซ่อน key แทน Security Rules
@@ -134,7 +135,11 @@ studentRegistrations/{studentId}
 
 - `studentId` เป็นเลข 10 หลัก
 - `accessCode` เป็นเลข 6 หลัก
-- Registration ใช้ root Realtime Database transaction เพื่อป้องกันการจองซ้ำ
+- Registration อ่าน mapping เดิมและ pool รหัสพร้อมกัน
+- การจองใช้ transaction เฉพาะ `users/{accessCode}` แล้ว transaction mapping ที่
+  `studentRegistrations/{studentId}` ไม่ส่งข้อมูลทั้ง root กลับ Firebase
+- หากมีคำขอลงทะเบียนรหัสนิสิตเดียวกันพร้อมกัน ระบบคืนรหัสเดิมและปล่อยรหัสที่
+  claim เกินกลับเข้า pool
 - เลือกรหัสที่ยังไม่มี registration/login/scan/redeem เรียงจากค่าน้อยไปมาก
 - ลงทะเบียนรหัสนิสิตเดิมซ้ำคืนรหัสเดิม
 - เวลาและ validation มาจาก browser จึงแก้ไขได้
@@ -169,7 +174,7 @@ QR_STN_0N|<browser_timestamp_ms>
 2. **Critical — QR forge ได้**: validation และ timestamp อยู่ใน browser
 3. **High — Forgot-code ใช้รหัสนิสิตอย่างเดียว**
 4. **High — Rules ที่เปิดกว้างทำให้ข้าม UI ได้**
-5. **Medium — html5-qrcode ไม่ได้ pin version/SRI**
+5. **Medium — CDN scripts ยังไม่มี SRI**
 
 การแก้ Firebase production Rules, Authentication, App Check หรือการล้างข้อมูล
 ต้องขออนุมัติเจ้าของระบบแยกก่อนดำเนินการ
@@ -226,3 +231,6 @@ credentials, rewrite history หรือ force-push ต้องขออนุ
 - 2026-07-23: หน้า Stamp แสดงเฉพาะลิงก์ลืมรหัส โดยเปิด Registration
   แบบ recovery-only, ส่งต่อภาษาไทย/อังกฤษ และเปลี่ยนคำตอบประวัติการเข้าร่วม
   เป็นปุ่มกด
+- 2026-07-23: เปลี่ยน Registration จาก root transaction เป็น transaction
+  รายรหัส/ราย mapping, เพิ่ม `defer`, `preconnect`, pin html5-qrcode และ
+  cache-version ของ assets เพื่อลดเวลารอและแก้ stale browser cache

@@ -4,10 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Event Stamp System</title>
-    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
-    <script src="https://unpkg.com/html5-qrcode"></script>
-    <link rel="stylesheet" href="assets/css/stamp.css">
+    <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://unpkg.com" crossorigin>
+    <script defer src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+    <script defer src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+    <script defer src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+    <link rel="stylesheet" href="assets/css/stamp.css?v=20260723-4">
 </head>
 <body>
 
@@ -116,9 +118,9 @@
             <button id="btnSubmitFinal" class="btn-primary" style="margin-top: 20px; background-color: #ec4899; box-shadow: 0 4px 6px rgba(236,72,153,0.3);" disabled onclick="submitFinalAssessment()">Confirm & Claim</button>
         </div>
     </div>
-    <script src="assets/js/config/app-config.js"></script>
-    <script src="assets/js/config/firebase-config.js"></script>
-    <script src="assets/js/shared/firebase-service.js"></script>
-    <script src="assets/js/pages/stamp.js"></script>
+    <script defer src="assets/js/config/app-config.js"></script>
+    <script defer src="assets/js/config/firebase-config.js"></script>
+    <script defer src="assets/js/shared/firebase-service.js?v=20260723-4"></script>
+    <script defer src="assets/js/pages/stamp.js?v=20260723-4"></script>
 </body>
 </html>

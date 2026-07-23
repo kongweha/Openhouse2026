@@ -22,7 +22,8 @@ npm run serve
 - เครื่องสร้าง QR: <http://localhost:4173/generate-qr.html>
 
 ตัวเว็บจริงเป็น static site และไม่ต้อง build ก่อน deploy ไฟล์ทั้งหมดที่เผยแพร่
-อยู่ใน `public/`
+อยู่ใน `public/` โดย external scripts โหลดแบบ deferred และมี preconnect
+เพื่อลดการบล็อกการแสดงหน้า
 
 ## โครงสร้าง
 
