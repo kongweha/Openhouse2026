@@ -1,25 +1,31 @@
 <!DOCTYPE html>
-<html lang="th">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ระบบสะสมแต้ม Event</title>
+    <title>Event Stamp System</title>
     <!-- โหลด Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
         *, *::before, *::after { box-sizing: border-box; }
-        body { font-family: 'Segoe UI', Tahoma, sans-serif; background-color: #f0f2f5; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; padding: 15px; }
+        body { font-family: 'Segoe UI', Tahoma, sans-serif; background-color: #f3f4f6; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; padding: 15px; }
         
-        .container { background: white; padding: 25px 20px; border-radius: 20px; box-shadow: 0 10px 20px rgba(0,0,0,0.1); text-align: center; max-width: 420px; width: 100%; position: relative; }
+        .container { background: white; padding: 35px 20px 25px 20px; border-radius: 24px; box-shadow: 0 10px 25px rgba(0,0,0,0.08); text-align: center; max-width: 420px; width: 100%; position: relative; }
         
-        /* สไตล์สำหรับกล่องกรอกรหัส 6 ช่อง */
-        .otp-container { display: flex; gap: 8px; justify-content: center; margin: 20px 0; }
-        .otp-box { width: 45px; height: 50px; border: 2px solid #cbd5e1; border-radius: 10px; font-size: 22px; text-align: center; font-weight: bold; color: #334155; -webkit-appearance: none; }
-        .otp-box:focus { border-color: #3b82f6; outline: none; box-shadow: 0 0 5px rgba(59,130,246,0.3); }
+        /* Language Toggle */
+        .lang-toggle { position: absolute; top: 15px; right: 20px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 20px; padding: 4px 10px; font-size: 13px; font-weight: bold; cursor: pointer; color: #94a3b8; display: flex; gap: 5px; z-index: 100; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        .lang-toggle span { transition: color 0.2s; }
+        .lang-toggle span.active { color: #3b82f6; }
+        .lang-toggle span:hover:not(.active) { color: #64748b; }
 
-        /* ตัวครอบแผนที่ ช่วยบังคับให้อยู่กึ่งกลางเสมอแม้มือถือจอเล็ก */
+        /* สไตล์กล่องกรอกรหัส 6 ช่อง */
+        .otp-container { display: flex; gap: 8px; justify-content: center; margin: 20px 0; }
+        .otp-box { width: 45px; height: 50px; border: 2px solid #cbd5e1; border-radius: 12px; font-size: 22px; text-align: center; font-weight: bold; color: #334155; -webkit-appearance: none; background-color: #f8fafc; transition: border-color 0.2s;}
+        .otp-box:focus { border-color: #3b82f6; outline: none; background-color: #fff; box-shadow: 0 0 0 3px rgba(59,130,246,0.15); }
+
+        /* ตัวครอบแผนที่ */
         .map-wrapper { width: 100%; display: flex; justify-content: center; align-items: center; margin: 20px 0; overflow: visible; }
         .map-container { position: relative; width: 330px; height: 330px; flex-shrink: 0; }
         
@@ -28,17 +34,18 @@
             position: absolute; width: 85px; height: 85px; border-radius: 50%; 
             display: flex; flex-direction: column; align-items: center; justify-content: center; 
             text-align: center; font-size: 10px; font-weight: bold; line-height: 1.1;
-            padding: 5px; overflow: hidden; transition: 0.3s ease;
+            padding: 5px; overflow: hidden; transition: transform 0.3s ease; 
+            will-change: transform;
         }
         
         .station-node.unstamped { border: 2px dashed #94a3b8; background-color: #f8fafc; color: #475569; cursor: pointer; }
-        .station-node.stamped { border: 2px dashed #10b981; background-color: #ecfdf5; cursor: pointer; box-shadow: 0 4px 6px rgba(16,185,129,0.15); }
+        .station-node.stamped { border: 2px dashed #10b981; background-color: #ecfdf5; cursor: pointer; box-shadow: 0 4px 10px rgba(16,185,129,0.2); }
         .station-node img { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 70%; height: 70%; object-fit: contain; z-index: 1; opacity: 0.25; }
         .station-node.stamped img { opacity: 1; width: 90%; height: 90%; }
         .station-node span { position: relative; z-index: 2; text-shadow: 0px 0px 4px rgba(255,255,255,0.95), 0px 0px 2px rgba(255,255,255,1); }
         
         /* พิกัดตำแหน่งวงกลม */
-        .st-0 { top: 50%; left: 50%; transform: translate(-50%, -50%); width: 110px; height: 110px; font-size: 12px; z-index: 10; box-shadow: 0 0 10px rgba(0,0,0,0.1); } 
+        .st-0 { top: 50%; left: 50%; transform: translate(-50%, -50%); width: 110px; height: 110px; font-size: 12px; z-index: 10; box-shadow: 0 0 15px rgba(0,0,0,0.08); } 
         .st-4 { top: 0px; left: 50%; transform: translateX(-50%); } 
         .st-1 { top: 45px; right: 0px; } 
         .st-6 { bottom: 45px; right: 0px; } 
@@ -46,35 +53,64 @@
         .st-2 { bottom: 45px; left: 0px; } 
         .st-3 { top: 45px; left: 0px; } 
 
-        button { padding: 12px 20px; border: none; border-radius: 10px; cursor: pointer; font-size: 16px; font-weight: bold; width: 100%; margin-bottom: 10px; transition: 0.2s; }
-        .btn-primary { background-color: #3b82f6; color: white; }
-        .btn-primary:disabled { background-color: #94a3b8; cursor: not-allowed; }
-        .btn-redeem { background-color: #ef4444; color: white; margin-top: 15px;}
-        .btn-redeem:disabled { background-color: #fca5a5; cursor: not-allowed; }
+        button { padding: 14px 20px; border: none; border-radius: 14px; cursor: pointer; font-size: 16px; font-weight: bold; width: 100%; margin-bottom: 10px; transition: transform 0.1s ease, background-color 0.2s ease; will-change: transform; }
+        button:active { transform: scale(0.97); }
+        .btn-primary { background-color: #3b82f6; color: white; box-shadow: 0 4px 6px rgba(59,130,246,0.25); }
+        .btn-primary:disabled { background-color: #94a3b8; cursor: not-allowed; box-shadow: none; transform: scale(1); }
+        .btn-redeem { background-color: #f87171; color: white; margin-top: 15px; box-shadow: 0 4px 6px rgba(248,113,113,0.25); }
+        .btn-redeem:disabled { background-color: #fca5a5; cursor: not-allowed; box-shadow: none; }
         .btn-cancel { background-color: #64748b; color: white; display: none; margin-top: 10px; }
-        .btn-logout { background-color: #94a3b8; color: white; margin-top: 10px; font-size: 14px; padding: 8px;}
+        .btn-logout { background-color: #94a3b8; color: white; margin-top: 10px; font-size: 14px; padding: 10px; }
+        .btn-back-reward { background-color: #f59e0b; color: white; margin-top: 15px; box-shadow: 0 4px 6px rgba(245,158,11,0.25); }
+        .btn-gacha { background-color: #8b5cf6; color: white; box-shadow: 0 4px 6px rgba(139,92,246,0.25); }
         
-        #reader { width: 100%; margin-bottom: 15px; display: none; border-radius: 10px; overflow: hidden; background: #000; }
+        #reader { width: 100%; margin-bottom: 15px; display: none; border-radius: 16px; overflow: hidden; background: #000; }
         .hidden { display: none !important; }
-        .user-info { background-color: #e2e8f0; padding: 8px 15px; border-radius: 20px; font-size: 14px; font-weight: bold; color: #475569; display: inline-block; margin-bottom: 10px; }
-        .success-banner { background-color: #fef3c7; border: 2px solid #f59e0b; color: #d97706; padding: 20px; border-radius: 15px; margin: 20px 0; font-size: 18px; font-weight: bold;}
+        .user-info { background-color: #e0e7ff; padding: 8px 18px; border-radius: 20px; font-size: 14px; font-weight: bold; color: #4338ca; display: inline-block; margin-bottom: 15px; box-shadow: inset 0 2px 4px rgba(0,0,0,0.02); }
+        
+        /* กล่องเนื้อหาและเรตติ้ง */
+        .content-box { background-color: #f0fdf4; border: 2px solid #bbf7d0; color: #166534; padding: 18px; border-radius: 20px; margin-bottom: 15px; text-align: left; font-size: 14px; animation: fadeIn 0.2s ease; box-shadow: 0 4px 6px rgba(187,247,208,0.3);}
+        .content-box h3 { margin-top: 0; color: #15803d; margin-bottom: 8px; font-size: 16px;}
+        
+        .rating-box { background-color: #fffbeb; border: 2px solid #fde68a; padding: 22px 12px; border-radius: 20px; margin: 15px 0; text-align: center; animation: fadeIn 0.2s ease; box-shadow: 0 6px 12px rgba(253,230,138,0.3);}
+        
+        /* ระบบ Emoji ประเมินฐาน */
+        .stars { display: flex; justify-content: center; gap: 6px; margin: 15px 0; cursor: pointer; padding: 0 4px; }
+        .stars span { will-change: transform, filter, opacity, background-color; transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), filter 0.2s ease, opacity 0.2s ease, background-color 0.2s ease; opacity: 0.6; filter: grayscale(100%); padding: 8px 2px; border-radius: 12px; flex: 1; border: 2px solid transparent; color: #78716c; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; line-height: 1.1; }
+        .stars span.active { opacity: 1; filter: grayscale(0%); transform: scale(1.06); font-weight: bold; color: #b45309; background-color: #fef08a; border-color: #fde047; box-shadow: 0 4px 8px rgba(253, 224, 71, 0.3); }
+        .stars span .emoji { font-size: 26px; margin-bottom: 2px; } 
+        .stars span .rating-label { font-size: 11px; }
+        .display-stars { font-size: 14px; color: #d97706; margin-top: 15px; padding-top: 12px; border-top: 1px dashed #fcd34d; font-weight: bold; text-align: center;}
+        
+        /* Success Banner */
+        .success-banner { background-color: #fffbeb; border: 2px solid #f59e0b; color: #d97706; padding: 25px 15px; border-radius: 16px; margin: 15px 0; font-weight: bold; box-shadow: 0 4px 10px rgba(245,158,11,0.15); animation: fadeIn 0.3s ease;}
 
-        /* สไตล์สำหรับกล่องเนื้อหาที่ซ่อนไว้ */
-        .content-box { background-color: #f0f9ff; border: 2px solid #bae6fd; color: #0369a1; padding: 15px; border-radius: 15px; margin-bottom: 15px; text-align: left; font-size: 14px; animation: fadeIn 0.3s ease; }
-        .content-box h3 { margin-top: 0; color: #0284c7; margin-bottom: 8px; font-size: 16px;}
+        /* สไตล์สำหรับกล่องประเมินรับรางวัล */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 999; display: flex; justify-content: center; align-items: center; padding: 20px; backdrop-filter: blur(3px); }
+        .modal-content { background: #fff5f8; border: 3px solid #fbcfe8; padding: 30px 25px; border-radius: 24px; text-align: center; max-width: 400px; width: 100%; box-shadow: 0 15px 30px rgba(244,114,182,0.2); }
+        .final-stars { display: flex; justify-content: center; gap: 10px; font-size: 42px; margin: 20px 0; cursor: pointer; color: #e2e8f0; text-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        .final-stars span { transition: color 0.15s, transform 0.15s; will-change: transform, color; }
+        .final-stars span.active { color: #f472b6; transform: scale(1.15); text-shadow: 0px 4px 12px rgba(244, 114, 182, 0.4); }
+
+        /* สไตล์สำหรับกล่องแสดงรูปการ์ดชะตา */
+        .card-result { background: transparent; padding: 10px 0; text-align: center; animation: popIn 0.5s cubic-bezier(0.2, 0.8, 0.2, 1); }
+        .destiny-card-img { width: 100%; max-width: 280px; height: auto; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.15); display: block; margin: 0 auto; }
+        
+        @keyframes shuffle { 0% { transform: scale(1) rotate(0deg); } 25% { transform: scale(1.08) rotate(5deg); } 75% { transform: scale(1.08) rotate(-5deg); } 100% { transform: scale(1) rotate(0deg); } }
+        .shuffle-anim { animation: shuffle 0.25s infinite; }
+
+        /* แอนิเมชันตอนสลับหน้า */
         @keyframes fadeIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
-
-        /* สไตล์สำหรับกล่อง Rating */
-        .rating-box { background-color: #fffbeb; border: 2px solid #fcd34d; padding: 20px; border-radius: 15px; margin: 15px 0; text-align: center; animation: fadeIn 0.3s ease; }
-        .stars { display: flex; justify-content: center; gap: 10px; font-size: 35px; margin: 15px 0; cursor: pointer; color: #e2e8f0; }
-        .stars span { transition: color 0.2s; }
-        .stars span.active { color: #f59e0b; }
-        .display-stars { font-size: 14px; color: #d97706; margin-top: 12px; padding-top: 10px; border-top: 1px dashed #bae6fd; font-weight: bold; }
+        @keyframes popIn { from { opacity: 0; transform: scale(0.96); } to { opacity: 1; transform: scale(1); } }
+        .view-animate { animation: popIn 0.3s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; }
 
         @media (max-width: 360px) {
             .otp-box { width: 38px; height: 45px; font-size: 18px; }
             .otp-container { gap: 5px; }
             .map-container { transform: scale(0.9); }
+            .stars span .emoji { font-size: 22px; }
+            .stars span .rating-label { font-size: 9px; }
+            .final-stars { font-size: 36px; }
         }
     </style>
 </head>
@@ -82,7 +118,10 @@
 
     <!-- หน้าต่าง Login -->
     <div class="container" id="loginScreen">
-        <h2>🔐 เข้าสู่ระบบสะสมแต้ม</h2>
+        <div class="lang-toggle" onclick="toggleLanguage()">
+            <span id="btnLangEn" class="active">EN</span> | <span id="btnLangTh">TH</span>
+        </div>
+        <h2 id="txtLoginTitle">🔐 Login to System</h2>
         <div class="otp-container" id="otpGroup">
             <input type="tel" class="otp-box" maxlength="1">
             <input type="tel" class="otp-box" maxlength="1">
@@ -91,53 +130,209 @@
             <input type="tel" class="otp-box" maxlength="1">
             <input type="tel" class="otp-box" maxlength="1">
         </div>
-        <button id="btnLogin" class="btn-primary" onclick="login()">ตกลงเพื่อเข้าสู่ระบบ</button>
+        <button id="btnLogin" class="btn-primary" onclick="login()">Login</button>
     </div>
 
-    <!-- หน้าต่างสแกนสะสมแต้ม -->
+    <!-- หน้าต่างหลักของระบบ -->
     <div class="container hidden" id="stampScreen">
-        <h2>🎉 บัตรสะสมแต้ม</h2>
-        <div class="user-info" id="displayUserCode">รหัสสมาชิก: XXXXXX</div>
+        <div class="lang-toggle" onclick="toggleLanguage()">
+            <span id="btnLangEn2" class="active">EN</span> | <span id="btnLangTh2">TH</span>
+        </div>
         
-        <div id="successBanner" class="success-banner hidden">
-            🎁 รับของรางวัลเรียบร้อยแล้ว!<br><span style="font-size: 14px; color:#92400e;">(ไม่สามารถเล่นซ้ำได้)</span>
+        <h2 id="txtCardTitle">🎉 Stamp Card</h2>
+        <div class="user-info" id="displayUserCode">User ID: XXXXXX</div>
+        
+        <!-- View 1: หน้าของรางวัล (Reward Page) -->
+        <div id="rewardView" class="hidden">
+            <div class="success-banner">
+                <div id="txtSuccessTitle" style="font-size: 18px; margin-bottom: 8px;">🎁 รับของรางวัลเรียบร้อยแล้ว!</div>
+                <div id="txtSuccessSub" style="font-size: 15px; font-weight: normal;">(ไม่สามารถเล่นซ้ำได้)</div>
+            </div>
+            
+            <div id="rewardMapPlaceholder" style="margin: 20px 0; padding: 25px 15px; border: 2px dashed #cbd5e1; border-radius: 16px; color: #94a3b8; font-size: 14px; background-color: #f8fafc;">
+                <div id="txtMapPlaceholder">[ พื้นที่สำหรับใส่แผนที่จุดรับของรางวัล ]</div>
+            </div>
+
+            <!-- ปุ่มหมุนล้อชะตา -->
+            <button id="btnDrawCard" class="btn-gacha" onclick="openCardDraw()">🔮 หมุนล้อชะตา</button>
+            
+            <button id="btnViewStamps" class="btn-primary" onclick="switchView('stamp')">ดูบัตรสะสมแต้ม</button>
+            <button id="btnLogoutReward" class="btn-logout" onclick="logout()">ออกจากระบบ</button>
         </div>
 
-        <div id="stampArea">
-            <div id="statusText" style="font-weight: bold; margin-bottom: 5px; color: #10b981;">แต้มปัจจุบัน: 0 / 7</div>
-            <div style="font-size: 12px; color: #64748b; margin-bottom: 5px;" id="subStatusText">(คลิกที่วงกลมฐานที่ยังไม่ผ่านเพื่อสแกน QR Code)</div>
+        <!-- View 2: หน้าสแกนฐาน -->
+        <div id="stampView">
+            <div id="statusText" style="font-weight: bold; margin-bottom: 5px; color: #10b981; font-size: 18px;">Current Stamps: 0 / 7</div>
+            <div style="font-size: 12px; color: #64748b; margin-bottom: 5px;" id="subStatusText">(Click on unstamped circles to scan QR Code)</div>
             
-            <!-- กล่องให้คะแนน (ซ่อนไว้ตอนแรก) -->
             <div id="ratingBox" class="rating-box hidden">
-                <h3 style="margin-top:0; color: #b45309;">⭐ ประเมินความพึงพอใจฐานนี้</h3>
-                <div id="ratingTitle" style="font-weight: bold; color: #92400e;"></div>
+                <h3 id="txtRatingHeader" style="margin-top:0; color: #b45309;">⭐ How was this station?</h3>
+                <div id="ratingTitle" style="font-weight: bold; color: #92400e; margin-bottom: 10px; font-size: 16px;"></div>
                 <div class="stars" id="starContainer">
-                    <span data-value="1">★</span>
-                    <span data-value="2">★</span>
-                    <span data-value="3">★</span>
-                    <span data-value="4">★</span>
-                    <span data-value="5">★</span>
+                    <span data-value="1"><div class="emoji">😵‍💫</div><div class="rating-label" id="emj1">Confused</div></span>
+                    <span data-value="2"><div class="emoji">🤔</div><div class="rating-label" id="emj2">Complex</div></span>
+                    <span data-value="3"><div class="emoji">😐</div><div class="rating-label" id="emj3">Okay</div></span>
+                    <span data-value="4"><div class="emoji">🙂</div><div class="rating-label" id="emj4">Clear</div></span>
+                    <span data-value="5"><div class="emoji">🤩</div><div class="rating-label" id="emj5">Super Clear</div></span>
                 </div>
-                <button id="btnSubmitRating" class="btn-primary" disabled onclick="submitRating()">ยืนยันให้คะแนน</button>
+                <button id="btnSubmitRating" class="btn-primary" disabled onclick="submitRating()">Submit Rating</button>
             </div>
 
             <div class="map-wrapper" id="mapWrapper">
                 <div class="map-container" id="mapContainer"></div>
             </div>
             
-            <!-- กล่องแสดงเนื้อหาเมื่อกดที่ฐานสีเขียว -->
             <div id="contentBox" class="content-box hidden"></div>
 
             <div id="reader"></div>
-            <button id="btnCancel" class="btn-cancel" onclick="stopScan()">❌ ยกเลิกสแกนกล้อง</button>
-            <button id="btnRedeem" class="btn-redeem" onclick="redeemReward()" disabled>🎁 แลกของรางวัล (ต้องครบ 7 ฐาน)</button>
+            <button id="btnCancel" class="btn-cancel" onclick="stopScan()">❌ Cancel Camera</button>
+            
+            <button id="btnRedeem" class="btn-redeem" onclick="redeemReward()" disabled>🎁 Redeem Reward</button>
+            <button id="btnBackToReward" class="btn-back-reward" style="display:none;" onclick="switchView('reward')">⬅ กลับไปหน้าของรางวัล</button>
+            <button id="btnLogoutStamp" class="btn-logout" onclick="logout()">Logout</button>
         </div>
-        
-        <button class="btn-logout" onclick="logout()">ออกจากระบบ</button>
+
+        <!-- View 3: หน้าสุ่มการ์ดชะตา (แสดงรูปภาพการ์ด) -->
+        <div id="cardDrawView" class="hidden">
+            <h2 id="txtDrawTitle" style="color: #8b5cf6; margin-top: 5px;">🔮 หมุนล้อชะตา</h2>
+            
+            <div id="drawIntroArea">
+                <div id="shufflingIcon" style="font-size: 80px; margin: 25px 0; filter: drop-shadow(0 4px 8px rgba(0,0,0,0.1));">🎴</div>
+                <button id="btnStartDraw" class="btn-gacha" onclick="startCardDraw()" style="font-size: 18px; padding: 16px;">เริ่มสุ่มการ์ด</button>
+            </div>
+
+            <div id="drawResultArea" class="card-result hidden">
+                <!-- พื้นที่แสดงภาพการ์ด (สามารถนำไฟล์รูปมาวางแทนที่ src ได้ตามเลขการ์ด 01.webp ถึง 16.webp) -->
+                <img id="drawnCardImage" src="" alt="Destiny Card" class="destiny-card-img">
+            </div>
+
+            <button id="btnBackFromDraw" class="btn-back-reward" onclick="switchView('reward')" style="margin-top: 25px;">⬅ กลับไปหน้าของรางวัล</button>
+        </div>
+    </div>
+
+    <!-- Popup ประเมินก่อนรับรางวัล -->
+    <div id="finalAssessmentOverlay" class="modal-overlay hidden">
+        <div class="modal-content">
+            <h3 id="txtFinalHeader" style="margin-top: 0; color: #be185d; font-size: 20px;">📝 Final Assessment</h3>
+            <p id="txtFinalDesc" style="font-size: 15px; color: #831843; margin-bottom: 20px; line-height: 1.6; text-align: left; font-weight: 500;">
+                Based on today's activities, how likely are you to use the physical library space (e.g., Chula AIX) this semester?
+            </p>
+            <div class="final-stars" id="finalStarContainer">
+                <span data-value="1">★</span>
+                <span data-value="2">★</span>
+                <span data-value="3">★</span>
+                <span data-value="4">★</span>
+                <span data-value="5">★</span>
+            </div>
+            <button id="btnSubmitFinal" class="btn-primary" style="margin-top: 20px; background-color: #ec4899; box-shadow: 0 4px 6px rgba(236,72,153,0.3);" disabled onclick="submitFinalAssessment()">Confirm & Claim</button>
+        </div>
     </div>
 
     <script>
-        // ตั้งค่า Firebase
+        let currentLang = 'en';
+        const LANG = {
+            en: {
+                loginTitle: "🔐 Login to System",
+                loginBtn: "Login",
+                checking: "Checking...",
+                cardTitle: "🎉 Stamp Card",
+                userIdPrefix: "User ID: ",
+                stampStatusText: "Completed: {count} / 7",
+                completedText: "🎉 All 7 stations completed!",
+                stampSubStatus: "(Click on unstamped circles to scan QR Code)",
+                redeemBtn: "🎁 Redeem Reward (Needs 7 stamps)",
+                redeemReadyBtn: "🎁 Redeem Reward",
+                cancelScanBtn: "❌ Cancel Camera",
+                logoutBtn: "Logout",
+                ratingHeader: "⭐ How was this station?",
+                ratingSubmitBtn: "Submit Rating",
+                saving: "Saving...",
+                finalHeader: "📝 Final Assessment",
+                finalDesc: "Based on today's activities, how likely are you to use the physical library space (e.g., Chula AIX) this semester?",
+                finalSubmit: "Confirm & Claim",
+                successTitle: "🎁 Reward claimed successfully!",
+                successSub: "(Cannot be played again)",
+                mapPlaceholder: "[ Map for reward pickup goes here ]",
+                btnViewStamps: "View My Stamp Card",
+                btnBackToReward: "⬅ Back to Reward Page",
+                btnDrawCard: "🔮 Wheel of Fate",
+                txtDrawTitle: "🔮 Wheel of Fate",
+                btnStartDraw: "Draw a Card",
+                emoji: ["Confused", "Complex", "Okay", "Clear", "Super Clear"],
+                ratingResultTitle: "⭐ Your Rating",
+                ratingLabels: { 1: "😵‍💫 Confused", 2: "🤔 Complex", 3: "😐 Okay", 4: "🙂 Clear", 5: "🤩 Super Clear" },
+                alerts: {
+                    errLength: "Please enter all 6 digits.",
+                    errNotFound: "❌ Code not found in the system.",
+                    errConn: "Database connection error.",
+                    errQrExpire: "❌ QR Code expired. Please scan the latest QR.",
+                    errQrFormat: "❌ Invalid QR code format.",
+                    errQrWrong: "❌ Wrong QR code for this station.",
+                    errSave: "Error saving data. Please try again."
+                }
+            },
+            th: {
+                loginTitle: "🔐 เข้าสู่ระบบสะสมแต้ม",
+                loginBtn: "ตกลงเพื่อเข้าสู่ระบบ",
+                checking: "กำลังตรวจสอบ...",
+                cardTitle: "🎉 บัตรสะสมแต้ม",
+                userIdPrefix: "รหัสสมาชิก: ",
+                stampStatusText: "ผ่านแล้ว: {count} / 7 ฐาน",
+                completedText: "🎉 เล่นครบ 7 ฐานแล้ว!",
+                stampSubStatus: "(คลิกที่วงกลมฐานที่ยังไม่ผ่านเพื่อสแกน QR Code)",
+                redeemBtn: "🎁 แลกของรางวัล (ต้องครบ 7 ฐาน)",
+                redeemReadyBtn: "🎁 แลกของรางวัล",
+                cancelScanBtn: "❌ ยกเลิกสแกนกล้อง",
+                logoutBtn: "ออกจากระบบ",
+                ratingHeader: "⭐ บอกเราหน่อยว่าฐานนี้เป็นยังไง",
+                ratingSubmitBtn: "ยืนยันให้คะแนน",
+                saving: "กำลังบันทึก...",
+                finalHeader: "📝 แบบประเมินก่อนรับรางวัล",
+                finalDesc: "จากกิจกรรมในวันนี้ คุณมีความตั้งใจที่จะเข้าไปใช้บริการพื้นที่จริงของสำนักวิทยทรัพยากร (เช่น พื้นที่ Chula AIX) ภายในภาคการศึกษานี้ มากน้อยเพียงใด?",
+                finalSubmit: "ยืนยันและรับรางวัล",
+                successTitle: "🎁 รับของรางวัลเรียบร้อยแล้ว!",
+                successSub: "(ไม่สามารถเล่นซ้ำได้)",
+                mapPlaceholder: "[ พื้นที่สำหรับใส่แผนที่จุดรับของรางวัล ]",
+                btnViewStamps: "ดูบัตรสะสมแต้ม",
+                btnBackToReward: "⬅ กลับไปหน้าของรางวัล",
+                btnDrawCard: "🔮 หมุนล้อชะตา",
+                txtDrawTitle: "🔮 หมุนล้อชะตา",
+                btnStartDraw: "เริ่มสุ่มการ์ด",
+                emoji: ["งงมาก", "แอบซับซ้อน", "พอได้อยู่", "เข้าใจดี", "เคลียร์สุดๆ"],
+                ratingResultTitle: "⭐ ผลการประเมินของคุณ",
+                ratingLabels: { 1: "😵‍💫 งงมาก", 2: "🤔 แอบซับซ้อน", 3: "😐 พอได้อยู่", 4: "🙂 เข้าใจดี", 5: "🤩 เคลียร์สุดๆ" },
+                alerts: {
+                    errLength: "กรุณากรอกรหัสให้ครบ 6 หลัก",
+                    errNotFound: "❌ ไม่พบรหัสนี้ในระบบ",
+                    errConn: "เกิดข้อผิดพลาดในการเชื่อมต่อฐานข้อมูล",
+                    errQrExpire: "❌ QR Code นี้หมดอายุแล้ว\nกรุณาสแกน QR Code ล่าสุด",
+                    errQrFormat: "❌ รูปแบบ QR Code ไม่ถูกต้อง",
+                    errQrWrong: "❌ QR Code ไม่ถูกต้องสำหรับฐานนี้",
+                    errSave: "เกิดข้อผิดพลาดในการบันทึก กรุณาลองใหม่"
+                }
+            }
+        };
+
+        // รายการการ์ดทั้ง 16 ใบ (สามารถระบุพาธไฟล์รูปภาพการ์ดได้ที่ฟิลد img)
+        const DESTINY_CARDS = [
+            { id: 1, img: "picture/Card_1.webp" },
+            { id: 2, img: "picture/Card_2.webp" },
+            { id: 3, img: "picture/Card_3.webp" },
+            { id: 4, img: "picture/Card_4.webp" },
+            { id: 5, img: "picture/Card_5.webp" },
+            { id: 6, img: "picture/Card_6.webp" },
+            { id: 7, img: "picture/Card_7.webp" },
+            { id: 8, img: "picture/Card_1.webp" },
+            { id: 9, img: "picture/Card_1.webp" },
+            { id: 10, img: "picture/Card_1.webp" },
+            { id: 11, img: "picture/Card_1.webp" },
+            { id: 12, img: "picture/Card_1.webp" },
+            { id: 13, img: "picture/Card_1.webp" },
+            { id: 14, img: "picture/Card_1.webp" },
+            { id: 15, img: "picture/Card_1.webp" },
+            { id: 16, img: "picture/Card_1.webp" }
+        ];
+
         const firebaseConfig = {
           apiKey: "AIzaSyAJlt9qKkkUqPrQL7RLoRAPO-ToYwY7Q2o",
           authDomain: "eventstampcard.firebaseapp.com",
@@ -150,44 +345,57 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
         
-        // ข้อมูลฐาน
         const STATIONS = [
             { id: 0, name: "Library Playground", qr: "QR_STN_01", 
               imgUnstamped: "https://cdn.jsdelivr.net/gh/kongweha/Gametest@e1caf09903b8480a94b9baf8497f1d3302eed795/picture/LIBRARY%20PLAYGROUND1.webp", 
               imgStamped: "https://cdn.jsdelivr.net/gh/kongweha/Gametest@e1caf09903b8480a94b9baf8497f1d3302eed795/picture/LIBRARY%20PLAYGROUND2.webp",
-              content: "ยินดีต้อนรับสู่พื้นที่สำหรับทำกิจกรรมและพักผ่อน! พื้นที่นี้ออกแบบมาเพื่อให้คุณได้สนุกกับการเรียนรู้ในรูปแบบใหม่"
+              contentEn: "Welcome to the activity and relaxation space! Designed for you to enjoy learning in new ways.",
+              contentTh: "ยินดีต้อนรับสู่พื้นที่สำหรับทำกิจกรรมและพักผ่อน! พื้นที่นี้ออกแบบมาเพื่อให้คุณได้สนุกกับการเรียนรู้ในรูปแบบใหม่"
             },
             { id: 1, name: "Discovery Lab", qr: "QR_STN_02", 
               imgUnstamped: "https://cdn.jsdelivr.net/gh/kongweha/Gametest@e1caf09903b8480a94b9baf8497f1d3302eed795/picture/Discovery%20LAB1.webp", 
               imgStamped: "https://cdn.jsdelivr.net/gh/kongweha/Gametest@e1caf09903b8480a94b9baf8497f1d3302eed795/picture/Discovery%20LAB2.webp",
-              content: "ค้นพบไอเดียใหม่ๆ ที่ Discovery Lab เรามีเครื่องมือและทรัพยากรที่พร้อมช่วยให้คุณต่อยอดความคิดสร้างสรรค์ได้ไม่รู้จบ"
+              contentEn: "Discover new ideas at Discovery Lab. We have tools and resources to help you infinitely expand your creativity.",
+              contentTh: "ค้นพบไอเดียใหม่ๆ ที่ Discovery Lab เรามีเครื่องมือและทรัพยากรที่พร้อมช่วยให้คุณต่อยอดความคิดสร้างสรรค์ได้ไม่รู้จบ"
             },
             { id: 2, name: "Play Zone", qr: "QR_STN_03", 
               imgUnstamped: "https://cdn.jsdelivr.net/gh/kongweha/Gametest@e1caf09903b8480a94b9baf8497f1d3302eed795/picture/Play%20ZONE1.webp", 
               imgStamped: "https://cdn.jsdelivr.net/gh/kongweha/Gametest@e1caf09903b8480a94b9baf8497f1d3302eed795/picture/Play%20ZONE2.webp",
-              content: "ถึงเวลาคลายเครียด! โซนนี้เปิดโอกาสให้คุณผ่อนคลายจากการอ่านหนังสือหนักๆ ด้วยเกมและกิจกรรมที่น่าสนใจมากมาย"
+              contentEn: "Time to relax! This zone lets you unwind from heavy reading with games and interesting activities.",
+              contentTh: "ถึงเวลาคลายเครียด! โซนนี้เปิดโอกาสให้คุณผ่อนคลายจากการอ่านหนังสือหนักๆ ด้วยเกมและกิจกรรมที่น่าสนใจมากมาย"
             },
-            { id: 3, name: "Treasure Corner", qr: "QR_STN_04", 
+            { id: 3, name: "Perfect Match: TAIC Collections", qr: "QR_STN_04", 
               imgUnstamped: "https://cdn.jsdelivr.net/gh/kongweha/Gametest@e1caf09903b8480a94b9baf8497f1d3302eed795/picture/Treasure%20corner1.webp", 
               imgStamped: "https://cdn.jsdelivr.net/gh/kongweha/Gametest@e1caf09903b8480a94b9baf8497f1d3302eed795/picture/Treasure%20corner2.webp",
-              content: "ขุมทรัพย์ความรู้! มุมนี้รวบรวมหนังสือและสื่อหายากที่คุณอาจไม่เคยรู้มาก่อนว่ามีอยู่ในห้องสมุดของเรา"
+              contentEn: "A treasure trove of knowledge! This corner gathers rare books and media you might not know we have.",
+              contentTh: "ขุมทรัพย์ความรู้! มุมนี้รวบรวมหนังสือและสื่อหายากที่คุณอาจไม่เคยรู้มาก่อนว่ามีอยู่ในห้องสมุดของเรา"
             },
-            { id: 4, name: "Media Studio", qr: "QR_STN_05", 
+            { id: 4, name: "Camera Go!", qr: "QR_STN_05", 
               imgUnstamped: "https://cdn.jsdelivr.net/gh/kongweha/Gametest@e1caf09903b8480a94b9baf8497f1d3302eed795/picture/Media%20studio1.webp", 
               imgStamped: "https://cdn.jsdelivr.net/gh/kongweha/Gametest@e1caf09903b8480a94b9baf8497f1d3302eed795/picture/Media%20studio2.webp",
-              content: "จุดประกายความเป็นนักสร้างสรรค์กับสตูดิโอสื่อครบวงจร ไม่ว่าจะอัดเสียง ถ่ายวิดีโอ หรือตัดต่อ ก็ทำได้ที่นี่!"
+              contentEn: "Spark your creativity with our full-service media studio. Record audio, shoot video, or edit—all here!",
+              contentTh: "จุดประกายความเป็นนักสร้างสรรค์กับสตูดิโอสื่อครบวงจร ไม่ว่าจะอัดเสียง ถ่ายวิดีโอ หรือตัดต่อ ก็ทำได้ที่นี่!"
             },
-            { id: 5, name: "Tech Station", qr: "QR_STN_06", 
+            { id: 5, name: "Joy Tech Station", qr: "QR_STN_06", 
               imgUnstamped: "https://cdn.jsdelivr.net/gh/kongweha/Gametest@e1caf09903b8480a94b9baf8497f1d3302eed795/picture/8.webp", 
               imgStamped: "https://cdn.jsdelivr.net/gh/kongweha/Gametest@e1caf09903b8480a94b9baf8497f1d3302eed795/picture/1145405557.webp",
-              content: "อัปเดตเทรนด์เทคโนโลยีใหม่ๆ แวะมาทดลองใช้งานอุปกรณ์สุดล้ำที่เราจัดเตรียมไว้ให้คุณสัมผัสด้วยตัวเอง"
+              contentEn: "Update on new tech trends. Drop by to try out the cutting-edge gadgets we've prepared for you.",
+              contentTh: "อัปเดตเทรนด์เทคโนโลยีใหม่ๆ แวะมาทดลองใช้งานอุปกรณ์สุดล้ำที่เราจัดเตรียมไว้ให้คุณสัมผัสด้วยตัวเอง"
             },
-            { id: 6, name: "Safety Checkpoint", qr: "QR_STN_07", 
+            { id: 6, name: "Green Mission", qr: "QR_STN_07", 
               imgUnstamped: "https://cdn.jsdelivr.net/gh/kongweha/Gametest@e1caf09903b8480a94b9baf8497f1d3302eed795/picture/Safety%20Checkpoint1.webp", 
               imgStamped: "https://cdn.jsdelivr.net/gh/kongweha/Gametest@e1caf09903b8480a94b9baf8497f1d3302eed795/picture/Safety%20Checkpoint2.webp",
-              content: "ความปลอดภัยคือสิ่งสำคัญ เรียนรู้วิธีการดูแลรักษาพื้นที่ส่วนรวมและการปฏิบัติตามกฎเพื่อความเรียบร้อย"
+              contentEn: "Safety is key. Learn how to maintain public spaces and follow rules for orderliness.",
+              contentTh: "ความปลอดภัยคือสิ่งสำคัญ เรียนรู้วิธีการดูแลรักษาพื้นที่ส่วนรวมและการปฏิบัติตามกฎเพื่อความเรียบร้อย"
             }
         ];
+
+        window.addEventListener('load', () => {
+            STATIONS.forEach(st => {
+                const img1 = new Image(); img1.src = st.imgUnstamped;
+                const img2 = new Image(); img2.src = st.imgStamped;
+            });
+        });
 
         let currentUserCode = "";
         let html5QrCode;
@@ -197,94 +405,142 @@
         let cancelRequested = false;
         let isProcessingScan = false;
         let isLoggingIn = false;
-        let globalUserData = null; // เก็บ UserData ล่าสุดสำหรับใช้โชว์ดาว
-        
-        // ตัวแปรสำหรับ Rating
+        let globalUserData = null;
         let pendingRatingStationId = null;
         let pendingRatingStationName = null;
         let selectedRating = 0;
+        let finalSelectedRating = 0;
+        let currentScreenView = null; 
 
-        // -----------------------------------------------------------
-        // 1. ระบบจัดการกล่องกรอกรหัส
-        // -----------------------------------------------------------
+        function switchView(viewName) {
+            currentScreenView = viewName;
+            const rewardView = document.getElementById('rewardView');
+            const stampView = document.getElementById('stampView');
+            const cardDrawView = document.getElementById('cardDrawView');
+            
+            rewardView.classList.add('hidden');
+            stampView.classList.add('hidden');
+            cardDrawView.classList.add('hidden');
+            
+            let targetView;
+            if (viewName === 'reward') targetView = rewardView;
+            else if (viewName === 'stamp') targetView = stampView;
+            else if (viewName === 'cardDraw') targetView = cardDrawView;
+
+            if(targetView) {
+                targetView.classList.remove('hidden');
+                targetView.classList.remove('view-animate');
+                void targetView.offsetWidth; 
+                targetView.classList.add('view-animate');
+            }
+        }
+
+        function toggleLanguage() {
+            currentLang = currentLang === 'en' ? 'th' : 'en';
+            applyLanguage();
+        }
+
+        function applyLanguage() {
+            const l = LANG[currentLang];
+            
+            document.getElementById('btnLangEn').className = currentLang === 'en' ? 'active' : '';
+            document.getElementById('btnLangTh').className = currentLang === 'th' ? 'active' : '';
+            document.getElementById('btnLangEn2').className = currentLang === 'en' ? 'active' : '';
+            document.getElementById('btnLangTh2').className = currentLang === 'th' ? 'active' : '';
+
+            document.getElementById('txtLoginTitle').innerText = l.loginTitle;
+            document.getElementById('btnLogin').innerText = l.loginBtn;
+            document.getElementById('txtCardTitle').innerText = l.cardTitle;
+            document.getElementById('subStatusText').innerText = l.stampSubStatus;
+            document.getElementById('btnCancel').innerText = l.cancelScanBtn;
+            document.getElementById('btnLogoutStamp').innerText = l.logoutBtn;
+            document.getElementById('btnLogoutReward').innerText = l.logoutBtn;
+            
+            document.getElementById('txtRatingHeader').innerText = l.ratingHeader;
+            document.getElementById('btnSubmitRating').innerText = l.ratingSubmitBtn;
+            document.getElementById('emj1').innerText = l.emoji[0];
+            document.getElementById('emj2').innerText = l.emoji[1];
+            document.getElementById('emj3').innerText = l.emoji[2];
+            document.getElementById('emj4').innerText = l.emoji[3];
+            document.getElementById('emj5').innerText = l.emoji[4];
+
+            document.getElementById('txtFinalHeader').innerText = l.finalHeader;
+            document.getElementById('txtFinalDesc').innerText = l.finalDesc;
+            document.getElementById('btnSubmitFinal').innerText = l.finalSubmit;
+
+            document.getElementById('txtSuccessTitle').innerText = l.successTitle;
+            document.getElementById('txtSuccessSub').innerText = l.successSub;
+            document.getElementById('txtMapPlaceholder').innerText = l.mapPlaceholder;
+            document.getElementById('btnViewStamps').innerText = l.btnViewStamps;
+            document.getElementById('btnBackToReward').innerText = l.btnBackToReward;
+            document.getElementById('btnBackFromDraw').innerText = l.btnBackToReward;
+            
+            document.getElementById('btnDrawCard').innerText = l.btnDrawCard;
+            document.getElementById('txtDrawTitle').innerText = l.txtDrawTitle;
+            document.getElementById('btnStartDraw').innerText = l.btnStartDraw;
+
+            if (currentUserCode) document.getElementById('displayUserCode').innerText = l.userIdPrefix + currentUserCode;
+            
+            if (globalUserData) {
+                renderUI(globalUserData);
+                const activeId = document.getElementById('contentBox').dataset.activeId;
+                if(activeId !== undefined && !document.getElementById('contentBox').classList.contains('hidden')) {
+                    toggleStationContent(activeId, true);
+                }
+                if (currentScreenView === 'cardDraw' && globalUserData.drawnCardId) {
+                    showDrawnCard(globalUserData.drawnCardId);
+                }
+            }
+        }
+
         const otpInputs = document.querySelectorAll('.otp-box');
-
         otpInputs.forEach((input, index) => {
             input.addEventListener('input', function() {
                 this.value = this.value.replace(/[^0-9]/g, ''); 
                 if (this.value !== '') {
-                    if (index < otpInputs.length - 1) {
-                        otpInputs[index + 1].focus();
-                    } else {
-                        this.blur();
-                        login(); 
-                    }
+                    if (index < otpInputs.length - 1) otpInputs[index + 1].focus();
+                    else { this.blur(); login(); }
                 }
             });
-
             input.addEventListener('keydown', function(e) {
                 if (e.key === 'Backspace' || e.keyCode === 8) {
                     if (this.value === '') {
-                        if (index > 0) {
-                            otpInputs[index - 1].focus();
-                            otpInputs[index - 1].value = '';
-                        }
-                    } else {
-                        this.value = '';
-                    }
+                        if (index > 0) { otpInputs[index - 1].focus(); otpInputs[index - 1].value = ''; }
+                    } else this.value = '';
                     e.preventDefault();
                 }
             });
-
             input.addEventListener('paste', function(e) {
                 e.preventDefault();
-                let pasteData = (e.clipboardData || window.clipboardData).getData('text');
-                pasteData = pasteData.replace(/[^0-9]/g, '').substring(0, 6);
-                
-                for (let i = 0; i < pasteData.length; i++) {
-                    if (otpInputs[i]) {
-                        otpInputs[i].value = pasteData[i];
-                    }
-                }
-                
-                if (pasteData.length === 6) {
-                    otpInputs[5].blur();
-                    login();
-                }
+                let pasteData = (e.clipboardData || window.clipboardData).getData('text').replace(/[^0-9]/g, '').substring(0, 6);
+                for (let i = 0; i < pasteData.length; i++) if (otpInputs[i]) otpInputs[i].value = pasteData[i];
+                if (pasteData.length === 6) { otpInputs[5].blur(); login(); }
             });
         });
 
-        // -----------------------------------------------------------
-        // 2. ฟังก์ชัน Login เข้าสู่ระบบ 
-        // -----------------------------------------------------------
         async function login() {
             if (isLoggingIn) return; 
-            
+            const l = LANG[currentLang];
             let input = Array.from(otpInputs).map(box => box.value).join('');
-            if (input.length !== 6) { 
-                alert("กรุณากรอกรหัสให้ครบ 6 หลัก"); 
-                return; 
-            }
+            if (input.length !== 6) { alert(l.alerts.errLength); return; }
             
             isLoggingIn = true;
             let btn = document.getElementById('btnLogin');
-            btn.disabled = true;
-            btn.innerText = "กำลังตรวจสอบ...";
+            btn.disabled = true; btn.innerText = l.checking;
 
             try {
                 const snapshot = await db.ref(`users/${input}`).once('value');
-                
                 if (snapshot.exists()) {
                     currentUserCode = input;
-                    document.getElementById('displayUserCode').innerText = `รหัสสมาชิก: ${currentUserCode}`;
+                    const userData = snapshot.val();
+                    currentScreenView = null; 
                     
-                    if (!snapshot.val().loginTime) {
-                        await db.ref(`users/${currentUserCode}/loginTime`).set(Date.now());
-                    }
-
                     document.getElementById('loginScreen').classList.add('hidden');
                     document.getElementById('stampScreen').classList.remove('hidden');
+                    document.getElementById('displayUserCode').innerText = l.userIdPrefix + currentUserCode;
                     
+                    if (!userData.loginTime) db.ref(`users/${currentUserCode}/loginTime`).set(Date.now());
+
                     dbRef = db.ref(`users/${currentUserCode}`);
                     dbRef.on('value', (snap) => {
                         if(snap.exists()) {
@@ -292,36 +548,27 @@
                             renderUI(globalUserData);
                         }
                     });
-                } else {
-                    alert("❌ ไม่พบรหัสนี้ในระบบ\n(ตรวจสอบให้แน่ใจว่ามีการเพิ่มรหัส 6 หลักนี้ไว้ในฐานข้อมูล Firebase แล้ว)");
-                }
-            } catch (error) {
-                console.error(error);
-                alert("เกิดข้อผิดพลาดในการเชื่อมต่อฐานข้อมูล กรุณาลองอีกครั้ง");
-            } finally {
+                } else alert(l.alerts.errNotFound);
+            } catch (error) { alert(l.alerts.errConn); } 
+            finally {
                 isLoggingIn = false;
                 btn.disabled = false;
-                btn.innerText = "ตกลงเพื่อเข้าสู่ระบบ";
+                btn.innerText = l.loginBtn;
             }
         }
 
-        // -----------------------------------------------------------
-        // 3. ฟังก์ชันอัปเดตหน้าจอและการจัดการ UI (รวมระบบสลับตำแหน่งฐาน)
-        // -----------------------------------------------------------
         function renderUI(userData) {
             if (!userData) return;
-            
-            if (userData.isRedeemed) {
-                document.getElementById('stampArea').classList.add('hidden');
-                document.getElementById('successBanner').classList.remove('hidden');
-                return;
-            }
-
+            const l = LANG[currentLang];
             const mapContainer = document.getElementById('mapContainer');
-            mapContainer.innerHTML = ''; 
+            const btnRedeem = document.getElementById('btnRedeem');
+            const btnBackToReward = document.getElementById('btnBackToReward');
+            const btnLogoutStamp = document.getElementById('btnLogoutStamp');
+            
             let count = 0;
             const userStations = userData.stations || {}; 
             
+            mapContainer.innerHTML = ''; 
             let posMap = {0:0, 1:1, 2:2, 3:3, 4:4, 5:5, 6:6}; 
             
             if (userData.scanHistory) {
@@ -330,7 +577,6 @@
                     const targetId = parseInt(record.id);
                     const currentCenterId = Object.keys(posMap).find(key => posMap[key] === 0);
                     const targetCurrentPos = posMap[targetId];
-                    
                     posMap[currentCenterId] = targetCurrentPos;
                     posMap[targetId] = 0; 
                 });
@@ -345,116 +591,179 @@
                     count++;
                     node.className = `station-node st-${currentPosClass} stamped`;
                     node.innerHTML = `<img src="${st.imgStamped}" alt="${st.name}">`;
-                    // ส่ง true เข้าไปเผื่อบังคับเปิดกล่องเนื้อหา
                     node.onclick = () => toggleStationContent(index); 
                 } else {
                     node.className = `station-node st-${currentPosClass} unstamped`;
-                    node.innerHTML = `
-                        <img src="${st.imgUnstamped}" alt="${st.name}">
-                        <span>${st.name}</span>
-                    `;
-                    node.onclick = () => openScannerFor(index);
+                    node.innerHTML = `<img src="${st.imgUnstamped}" alt="${st.name}"><span>${st.name}</span>`;
+                    node.onclick = () => {
+                        if(!userData.isRedeemed) openScannerFor(index);
+                    };
                 }
                 mapContainer.appendChild(node);
             });
 
-            document.getElementById('statusText').innerText = count === 7 ? "🎉 เล่นครบ 7 ฐานแล้ว!" : `ผ่านแล้ว: ${count} / 7 ฐาน`;
-            document.getElementById('btnRedeem').disabled = (count < 7);
+            document.getElementById('statusText').innerText = count === 7 ? l.completedText : l.stampStatusText.replace('{count}', count);
+            
+            if (userData.isRedeemed) {
+                btnRedeem.classList.add('hidden');
+                btnBackToReward.style.display = 'block';
+                btnLogoutStamp.style.display = 'none'; 
+                
+                if (!currentScreenView) switchView('reward');
+                else switchView(currentScreenView); 
+            } else {
+                btnRedeem.classList.remove('hidden');
+                btnBackToReward.style.display = 'none';
+                btnLogoutStamp.style.display = 'block';
+                
+                btnRedeem.disabled = (count < 7);
+                btnRedeem.innerText = (count < 7) ? l.redeemBtn : l.redeemReadyBtn;
+                btnRedeem.style.backgroundColor = (count < 7) ? "#fca5a5" : "#f87171";
+                
+                switchView('stamp');
+            }
         }
 
-        // เพิ่มการดึงดาวมาโชว์ที่กล่องเนื้อหา
         function toggleStationContent(stationId, forceOpen = false) {
             const box = document.getElementById('contentBox');
+            const l = LANG[currentLang];
+            const contentText = currentLang === 'en' ? STATIONS[stationId].contentEn : STATIONS[stationId].contentTh;
+
             if (!forceOpen && box.dataset.activeId == stationId && !box.classList.contains('hidden')) {
                 box.classList.add('hidden'); 
             } else {
                 box.dataset.activeId = stationId;
-                
-                // เช็คว่ามีข้อมูล Rating ไหม
                 let ratingHtml = "";
                 if (globalUserData && globalUserData.ratings && globalUserData.ratings[stationId]) {
                     const starCount = globalUserData.ratings[stationId];
-                    const stars = "★".repeat(starCount) + "☆".repeat(5 - starCount);
-                    ratingHtml = `<div class="display-stars">⭐ คะแนนความพึงพอใจ: <span style="font-size:18px;">${stars}</span></div>`;
+                    const ratingResult = l.ratingLabels[starCount] || "";
+                    ratingHtml = `
+                    <div class="display-stars">
+                        ${l.ratingResultTitle}
+                        <div style="font-size:20px; color:#b45309; margin-top:5px; font-weight:normal;">${ratingResult}</div>
+                    </div>`;
                 }
-
-                box.innerHTML = `<h3>📖 ${STATIONS[stationId].name}</h3><p>${STATIONS[stationId].content}</p>${ratingHtml}`;
+                box.innerHTML = `<h3>📖 ${STATIONS[stationId].name}</h3><p>${contentText}</p>${ratingHtml}`;
                 box.classList.remove('hidden'); 
             }
         }
 
-        // -----------------------------------------------------------
-        // 4. ระบบ Rating ก่อนบันทึกผ่านฐาน
-        // -----------------------------------------------------------
         function showRatingBox(id, name) {
+            const l = LANG[currentLang];
             pendingRatingStationId = id;
             pendingRatingStationName = name;
             selectedRating = 0;
             
             document.getElementById('ratingTitle').innerText = name;
             document.getElementById('ratingBox').classList.remove('hidden');
-            document.getElementById('mapWrapper').style.display = 'none'; // ซ่อนแผนที่ชั่วคราว
+            document.getElementById('mapWrapper').style.display = 'none'; 
             document.getElementById('btnSubmitRating').disabled = true;
+            document.getElementById('btnSubmitRating').innerText = l.ratingSubmitBtn;
 
-            const stars = document.querySelectorAll('#starContainer span');
-            stars.forEach(star => {
-                star.classList.remove('active');
-                star.onclick = function() {
+            const emojis = document.querySelectorAll('#starContainer span');
+            emojis.forEach(emoji => {
+                emoji.classList.remove('active');
+                emoji.onclick = function() {
+                    emojis.forEach(s => s.classList.remove('active'));
+                    this.classList.add('active');
                     selectedRating = parseInt(this.getAttribute('data-value'));
-                    stars.forEach(s => s.classList.remove('active'));
-                    for(let i=0; i<selectedRating; i++) {
-                        stars[i].classList.add('active');
-                    }
                     document.getElementById('btnSubmitRating').disabled = false;
                 };
             });
         }
 
-        async function submitRating() {
+        function submitRating() {
             if (selectedRating === 0 || pendingRatingStationId === null) return;
-            
+            const l = LANG[currentLang];
             const btn = document.getElementById('btnSubmitRating');
             btn.disabled = true;
-            btn.innerText = "กำลังบันทึก...";
+
+            const targetId = pendingRatingStationId;
+            const targetName = pendingRatingStationName;
+            const currentRating = selectedRating;
+
+            document.getElementById('ratingBox').classList.add('hidden');
+            document.getElementById('mapWrapper').style.display = 'flex';
+            toggleStationContent(targetId, true);
+            pendingRatingStationId = null;
 
             try {
-                // 1. บันทึกว่าผ่านฐาน
-                await db.ref(`users/${currentUserCode}/stations/${pendingRatingStationId}`).set(true);
-                // 2. บันทึกคะแนน
-                await db.ref(`users/${currentUserCode}/ratings/${pendingRatingStationId}`).set(selectedRating);
-                
-                // 3. บันทึกประวัติเพื่อทำสลับตำแหน่งตรงกลาง
+                db.ref(`users/${currentUserCode}/stations/${targetId}`).set(true);
+                db.ref(`users/${currentUserCode}/ratings/${targetId}`).set(currentRating);
                 try {
-                    const scanData = { id: pendingRatingStationId, name: pendingRatingStationName, time: Date.now() };
-                    await db.ref(`users/${currentUserCode}/scanHistory`).push(scanData);
-                } catch (historyErr) {
-                    console.warn("ไม่สามารถบันทึกประวัติได้:", historyErr);
-                }
-
-                // ซ่อนกล่อง Rating และแสดงแผนที่กลับมา
-                document.getElementById('ratingBox').classList.add('hidden');
-                document.getElementById('mapWrapper').style.display = 'flex';
-                
-                // แสดง Content ของฐานนั้นทันที
-                toggleStationContent(pendingRatingStationId, true);
-                
+                    db.ref(`users/${currentUserCode}/scanHistory`).push({ id: targetId, name: targetName, time: Date.now() });
+                } catch (historyErr) {}
             } catch(e) {
-                console.error(e);
-                alert("เกิดข้อผิดพลาดในการบันทึก กรุณาลองใหม่");
+                console.error("Save Error", e);
             } finally {
-                btn.innerText = "ยืนยันให้คะแนน";
-                pendingRatingStationId = null;
+                btn.innerText = l.ratingSubmitBtn;
             }
         }
 
-        // -----------------------------------------------------------
-        // 5. ระบบสแกน QR Code
-        // -----------------------------------------------------------
+        function openCardDraw() {
+            switchView('cardDraw');
+            const l = LANG[currentLang];
+            
+            if (globalUserData && globalUserData.drawnCardId) {
+                showDrawnCard(globalUserData.drawnCardId);
+            } else {
+                document.getElementById('drawIntroArea').classList.remove('hidden');
+                document.getElementById('drawResultArea').classList.add('hidden');
+                document.getElementById('shufflingIcon').classList.remove('shuffle-anim');
+                document.getElementById('shufflingIcon').innerText = "🎴";
+                
+                const btn = document.getElementById('btnStartDraw');
+                btn.disabled = false;
+                btn.innerText = l.btnStartDraw;
+            }
+        }
+
+        function startCardDraw() {
+            const btn = document.getElementById('btnStartDraw');
+            btn.disabled = true;
+            
+            const icon = document.getElementById('shufflingIcon');
+            icon.classList.add('shuffle-anim');
+            
+            // สลับไอคอนไพ่จำลองช่วงสับ
+            const shuffleInterval = setInterval(() => {
+                const randomCard = DESTINY_CARDS[Math.floor(Math.random() * DESTINY_CARDS.length)];
+                icon.innerText = "🃏";
+            }, 100);
+
+            setTimeout(async () => {
+                clearInterval(shuffleInterval);
+                icon.classList.remove('shuffle-anim');
+                
+                const randomId = Math.floor(Math.random() * DESTINY_CARDS.length) + 1;
+                
+                try {
+                    await db.ref(`users/${currentUserCode}/drawnCardId`).set(randomId);
+                    showDrawnCard(randomId);
+                } catch(e) {
+                    console.error("Save Draw Error", e);
+                    btn.disabled = false;
+                }
+            }, 2000);
+        }
+
+        function showDrawnCard(cardId) {
+            document.getElementById('drawIntroArea').classList.add('hidden');
+            const card = DESTINY_CARDS.find(c => c.id === cardId);
+            
+            if(card) {
+                // กำหนดที่อยู่ไฟล์รูปภาพ (เช่น "cards/01.webp")
+                document.getElementById('drawnCardImage').src = card.img;
+                document.getElementById('drawResultArea').classList.remove('hidden');
+            }
+        }
+
         function openScannerFor(stationIndex) {
-            if (isScannerInitializing || (html5QrCode && html5QrCode.isScanning)) return;
+            if (isScannerInitializing || (html5QrCode && html5QrCode.isScanning) || (globalUserData && globalUserData.isRedeemed)) return;
+            const l = LANG[currentLang];
             
             document.getElementById('contentBox').classList.add('hidden');
-            document.getElementById('ratingBox').classList.add('hidden'); // เผื่อเปิดค้าง
+            document.getElementById('ratingBox').classList.add('hidden'); 
             
             activeTargetStation = STATIONS[stationIndex];
             cancelRequested = false;
@@ -464,24 +773,19 @@
             document.getElementById('mapWrapper').style.display = 'none';
             document.getElementById('reader').style.display = 'block';
             document.getElementById('btnCancel').style.display = 'block';
-            document.getElementById('btnCancel').innerText = "❌ ยกเลิกสแกนกล้อง";
 
-            if (!html5QrCode) {
-                html5QrCode = new Html5Qrcode("reader");
-            }
+            if (!html5QrCode) html5QrCode = new Html5Qrcode("reader");
             
             html5QrCode.start(
-                { facingMode: "environment" },
-                { fps: 10, qrbox: 230 },
+                { facingMode: "environment" }, 
+                { fps: 10, qrbox: 250 }, 
                 async (decodedText) => {
                     if (isProcessingScan) return;
-
                     const parts = decodedText.split('|');
                     
                     if (parts.length === 2 && parts[0] === activeTargetStation.qr) {
                         const qrTimestamp = parseInt(parts[1]);
-                        const currentTimestamp = Date.now();
-                        const timeDifference = currentTimestamp - qrTimestamp;
+                        const timeDifference = Date.now() - qrTimestamp;
                         
                         if (timeDifference <= 90000 && timeDifference >= -5000) {
                             isProcessingScan = true; 
@@ -492,27 +796,20 @@
 
                             try {
                                 const snap = await db.ref(`users/${currentUserCode}/stations/${targetId}`).once('value');
-                                if (!snap.val()) {
-                                    // หากยังไม่เคยสแกน ให้เปิดกล่องให้คะแนน (หน่วงเวลาเล็กน้อยให้กล้องปิดสนิท)
-                                    setTimeout(() => {
-                                        showRatingBox(targetId, targetName);
-                                    }, 200);
-                                }
-                            } catch (error) {
-                                console.error("Database Connection Error:", error);
-                            }
+                                if (!snap.val()) setTimeout(() => showRatingBox(targetId, targetName), 200);
+                            } catch (error) {}
                         } else {
                             isProcessingScan = true; 
-                            alert(`❌ QR Code นี้หมดอายุแล้ว (อายุเกิน 1.30 นาที)\nกรุณาสแกน QR Code ล่าสุด`);
+                            alert(l.alerts.errQrExpire);
                             stopScan(); 
                         }
                     } else if (decodedText.includes(activeTargetStation.qr) && !decodedText.includes('|')) {
                         isProcessingScan = true; 
-                        alert(`❌ รูปแบบ QR Code ไม่ถูกต้อง (ไม่อนุญาตให้ใช้ QR แบบเก่า)`);
+                        alert(l.alerts.errQrFormat);
                         stopScan(); 
                     } else {
                         isProcessingScan = true; 
-                        alert(`❌ QR Code ไม่ถูกต้องสำหรับฐาน ${activeTargetStation.name}`);
+                        alert(l.alerts.errQrWrong);
                         stopScan(); 
                     }
                 },
@@ -522,33 +819,20 @@
                 if (cancelRequested) stopScan();
             }).catch(err => {
                 isScannerInitializing = false;
-                alert("เปิดกล้องไม่ได้ กรุณาตรวจสอบสิทธิ์การใช้งานกล้อง");
+                alert("Cannot access camera.");
                 resetScannerUI();
             });
         }
 
         function stopScan() {
-            if (isScannerInitializing) {
-                cancelRequested = true;
-                resetScannerUI();
-                return;
-            }
-            
-            if (html5QrCode && html5QrCode.isScanning) {
-                html5QrCode.stop().then(() => {
-                    resetScannerUI();
-                }).catch(e => {
-                    resetScannerUI();
-                });
-            } else {
-                resetScannerUI();
-            }
+            if (isScannerInitializing) { cancelRequested = true; resetScannerUI(); return; }
+            if (html5QrCode && html5QrCode.isScanning) html5QrCode.stop().then(() => resetScannerUI()).catch(e => resetScannerUI());
+            else resetScannerUI();
         }
 
         function resetScannerUI() {
             document.getElementById('reader').style.display = 'none';
             document.getElementById('btnCancel').style.display = 'none';
-            // โชว์แผนที่กลับมาเฉพาะในกรณีที่ไม่ได้กำลังให้เรทติ้ง
             if (document.getElementById('ratingBox').classList.contains('hidden')) {
                 document.getElementById('mapWrapper').style.display = 'flex';
             }
@@ -558,37 +842,74 @@
             isProcessingScan = false;
         }
 
-        async function redeemReward() {
-            if (confirm("ต้องการกดแลกของรางวัลใช่หรือไม่? (ไม่สามารถย้อนกลับได้)")) {
-                await db.ref(`users/${currentUserCode}/redeemTime`).set(Date.now());
-                await db.ref(`users/${currentUserCode}/isRedeemed`).set(true);
+        function redeemReward() {
+            finalSelectedRating = 0;
+            document.getElementById('finalAssessmentOverlay').classList.remove('hidden');
+            document.getElementById('btnSubmitFinal').disabled = true;
+
+            const finalStars = document.querySelectorAll('#finalStarContainer span');
+            finalStars.forEach(star => {
+                star.classList.remove('active');
+                star.onclick = function() {
+                    finalSelectedRating = parseInt(this.getAttribute('data-value'));
+                    finalStars.forEach(s => s.classList.remove('active'));
+                    for(let i=0; i<finalSelectedRating; i++) finalStars[i].classList.add('active');
+                    document.getElementById('btnSubmitFinal').disabled = false;
+                };
+            });
+        }
+
+        function closeFinalAssessment() {
+            document.getElementById('finalAssessmentOverlay').classList.add('hidden');
+        }
+
+        function submitFinalAssessment() {
+            if (finalSelectedRating === 0) return;
+            const btn = document.getElementById('btnSubmitFinal');
+            btn.disabled = true;
+        
+            // บันทึกคะแนนและสถานะลง Firebase
+            try {
+                db.ref(`users/${currentUserCode}/finalIntentionRating`).set(finalSelectedRating);
+                db.ref(`users/${currentUserCode}/redeemTime`).set(Date.now());
+                db.ref(`users/${currentUserCode}/isRedeemed`).set(true).then(() => {
+                    // ปิด Modal และบังคับเปลี่ยนไปหน้า Reward ทันทีหลังบันทึกเสร็จสิ้น
+                    closeFinalAssessment();
+                    switchView('reward');
+                });
+            } catch(e) {
+                console.error("Save Error", e);
+                closeFinalAssessment();
+            } finally {
+                btn.disabled = false;
             }
         }
 
         function logout() {
             try {
                 stopScan();
-                if(dbRef) {
-                    dbRef.off();
-                    dbRef = null;
-                }
-                currentUserCode = "";
-                globalUserData = null;
-                
+                if(dbRef) { dbRef.off(); dbRef = null; }
+                currentUserCode = ""; globalUserData = null;
+                currentScreenView = null;
+                pendingRatingStationId = null;
+                selectedRating = 0;
                 otpInputs.forEach(box => box.value = '');
+                
+                const l = LANG[currentLang];
                 document.getElementById('btnLogin').disabled = false;
-                document.getElementById('btnLogin').innerText = "ตกลงเพื่อเข้าสู่ระบบ";
+                document.getElementById('btnLogin').innerText = l.loginBtn;
                 
                 document.getElementById('stampScreen').classList.add('hidden');
                 document.getElementById('loginScreen').classList.remove('hidden');
-                document.getElementById('successBanner').classList.add('hidden');
-                document.getElementById('stampArea').classList.remove('hidden');
                 document.getElementById('contentBox').classList.add('hidden');
                 document.getElementById('ratingBox').classList.add('hidden');
-            } catch (error) {
-                location.reload(); 
-            }
+                document.getElementById('mapWrapper').style.display = 'flex'; 
+                
+                closeFinalAssessment(); 
+            } catch (error) { location.reload(); }
         }
+
+        applyLanguage();
     </script>
 </body>
 </html>
