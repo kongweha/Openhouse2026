@@ -7,28 +7,28 @@
   const stations = [
     {
       id: 0,
-      name: "Library Playground",
+      name: "Library journey",
       qrCode: "QR_STN_01",
       images: {
         unstamped: `${stationImageRoot}/library-playground-uncollected.webp`,
         stamped: `${stationImageRoot}/library-playground-collected.webp`,
       },
       content: {
-        en: "Welcome to the activity and relaxation space! Designed for you to enjoy learning in new ways.",
-        th: "ยินดีต้อนรับสู่พื้นที่สำหรับทำกิจกรรมและพักผ่อน! พื้นที่นี้ออกแบบมาเพื่อให้คุณได้สนุกกับการเรียนรู้ในรูปแบบใหม่",
+        en: "Follow the Library journey and discover how each part of the library supports learning, creating, and exploring.",
+        th: "ออกเดินทางไปกับ Library journey เพื่อค้นพบว่าพื้นที่ต่าง ๆ ของห้องสมุดช่วยสนับสนุนการเรียนรู้ การสร้างสรรค์ และการค้นคว้าอย่างไร",
       },
     },
     {
       id: 1,
-      name: "Discovery Lab",
+      name: "Query Quarry",
       qrCode: "QR_STN_02",
       images: {
         unstamped: `${stationImageRoot}/discovery-lab-uncollected.webp`,
         stamped: `${stationImageRoot}/discovery-lab-collected.webp`,
       },
       content: {
-        en: "Discover new ideas at Discovery Lab. We have tools and resources to help you infinitely expand your creativity.",
-        th: "ค้นพบไอเดียใหม่ๆ ที่ Discovery Lab เรามีเครื่องมือและทรัพยากรที่พร้อมช่วยให้คุณต่อยอดความคิดสร้างสรรค์ได้ไม่รู้จบ",
+        en: "Dig through Query Quarry, turn questions into search strategies, and uncover reliable information.",
+        th: "ขุดค้นคำตอบใน Query Quarry ฝึกเปลี่ยนคำถามให้เป็นกลยุทธ์การค้นหา และค้นพบข้อมูลที่น่าเชื่อถือ",
       },
     },
     {
@@ -127,6 +127,11 @@
   }
 
   window.OpenHouseConfig = deepFreeze({
+    api: {
+      baseUrl: "https://asia-southeast1-eventstampcard.cloudfunctions.net/api",
+      pollIntervalMs: 3_000,
+      requestTimeoutMs: 15_000,
+    },
     participants: {
       codeLength: 6,
       generationCount: 500,

@@ -87,7 +87,7 @@ const LANG = {
 const APP_CONFIG = window.OpenHouseConfig;
 const STATIONS = APP_CONFIG.stations;
 const DESTINY_CARDS = APP_CONFIG.destinyCards;
-const db = window.openHouseDb;
+const API = window.OpenHouseApi;
 
 function formatMessage(message, values) {
     return Object.entries(values).reduce(
@@ -106,7 +106,7 @@ window.addEventListener('load', () => {
 // Participant session state
 let currentUserCode = "";
 let html5QrCode;
-let dbRef = null;
+let pollTimer = null;
 let activeTargetStation = null;
 let isScannerInitializing = false;
 let cancelRequested = false;
@@ -115,6 +115,7 @@ let isLoggingIn = false;
 let globalUserData = null;
 let pendingRatingStationId = null;
 let pendingRatingStationName = null;
+let pendingQrPayload = null;
 let selectedRating = 0;
 let finalSelectedRating = 0;
 let currentScreenView = null;
@@ -261,32 +262,42 @@ async function login() {
     btn.disabled = true; btn.innerText = l.checking;
 
     try {
-        const snapshot = await db.ref(`users/${input}`).once('value');
-        if (snapshot.exists()) {
-            currentUserCode = input;
-            const userData = snapshot.val();
-            currentScreenView = null;
+        const { participant } = await API.participant.login(input);
+        currentUserCode = input;
+        currentScreenView = null;
+        globalUserData = participant;
 
-            document.getElementById('loginScreen').classList.add('hidden');
-            document.getElementById('stampScreen').classList.remove('hidden');
-            document.getElementById('displayUserCode').innerText = l.userIdPrefix + currentUserCode;
-
-            if (!userData.loginTime) db.ref(`users/${currentUserCode}/loginTime`).set(Date.now());
-
-            dbRef = db.ref(`users/${currentUserCode}`);
-            dbRef.on('value', (snap) => {
-                if(snap.exists()) {
-                    globalUserData = snap.val();
-                    renderUI(globalUserData);
-                }
-            });
-        } else alert(l.alerts.errNotFound);
-    } catch (error) { alert(l.alerts.errConn); }
+        document.getElementById('loginScreen').classList.add('hidden');
+        document.getElementById('stampScreen').classList.remove('hidden');
+        document.getElementById('displayUserCode').innerText = l.userIdPrefix + currentUserCode;
+        renderUI(globalUserData);
+        startParticipantPolling();
+    } catch (error) {
+        alert(
+            error.code === 'CODE_NOT_REGISTERED'
+                ? l.alerts.errNotFound
+                : l.alerts.errConn
+        );
+    }
     finally {
         isLoggingIn = false;
         btn.disabled = false;
         btn.innerText = l.loginBtn;
     }
+}
+
+function startParticipantPolling() {
+    if (pollTimer) window.clearInterval(pollTimer);
+    pollTimer = window.setInterval(async () => {
+        if (!currentUserCode) return;
+        try {
+            const { participant } = await API.participant.get(currentUserCode);
+            globalUserData = participant;
+            renderUI(globalUserData);
+        } catch (error) {
+            console.warn("Participant refresh failed", error);
+        }
+    }, APP_CONFIG.api.pollIntervalMs);
 }
 
 // Stamp-card rendering
@@ -389,10 +400,11 @@ function toggleStationContent(stationId, forceOpen = false) {
 }
 
 // Station rating
-function showRatingBox(id, name) {
+function showRatingBox(id, name, qrPayload) {
     const l = LANG[currentLang];
     pendingRatingStationId = id;
     pendingRatingStationName = name;
+    pendingQrPayload = qrPayload;
     selectedRating = 0;
 
     document.getElementById('ratingTitle').innerText = name;
@@ -413,7 +425,7 @@ function showRatingBox(id, name) {
     });
 }
 
-function submitRating() {
+async function submitRating() {
     if (selectedRating === 0 || pendingRatingStationId === null) return;
     const l = LANG[currentLang];
     const btn = document.getElementById('btnSubmitRating');
@@ -422,22 +434,31 @@ function submitRating() {
     const targetId = pendingRatingStationId;
     const targetName = pendingRatingStationName;
     const currentRating = selectedRating;
+    const qrPayload = pendingQrPayload;
 
     document.getElementById('ratingBox').classList.add('hidden');
     document.getElementById('mapWrapper').style.display = 'flex';
     toggleStationContent(targetId, true);
-    pendingRatingStationId = null;
-
     try {
-        db.ref(`users/${currentUserCode}/stations/${targetId}`).set(true);
-        db.ref(`users/${currentUserCode}/ratings/${targetId}`).set(currentRating);
-        try {
-            db.ref(`users/${currentUserCode}/scanHistory`).push({ id: targetId, name: targetName, time: Date.now() });
-        } catch (historyErr) {}
+        const { participant } = await API.participant.completeStation(
+            currentUserCode,
+            targetId,
+            currentRating,
+            qrPayload,
+        );
+        globalUserData = participant;
+        pendingRatingStationId = null;
+        pendingRatingStationName = null;
+        pendingQrPayload = null;
+        renderUI(globalUserData);
     } catch(e) {
         console.error("Save Error", e);
+        alert(e.code === 'EXPIRED_QR' ? l.alerts.errQrExpire : l.alerts.errSave);
+        document.getElementById('ratingBox').classList.remove('hidden');
+        document.getElementById('mapWrapper').style.display = 'none';
     } finally {
         btn.innerText = l.ratingSubmitBtn;
+        btn.disabled = selectedRating === 0;
     }
 }
 
@@ -477,11 +498,10 @@ function startCardDraw() {
         clearInterval(shuffleInterval);
         icon.classList.remove('shuffle-anim');
 
-        const randomId = Math.floor(Math.random() * DESTINY_CARDS.length) + 1;
-
         try {
-            await db.ref(`users/${currentUserCode}/drawnCardId`).set(randomId);
-            showDrawnCard(randomId);
+            const { participant } = await API.participant.draw(currentUserCode);
+            globalUserData = participant;
+            showDrawnCard(participant.drawnCardId);
         } catch(e) {
             console.error("Save Draw Error", e);
             btn.disabled = false;
@@ -540,10 +560,14 @@ function openScannerFor(stationIndex) {
                     const targetId = activeTargetStation.id;
                     const targetName = activeTargetStation.name;
 
-                    try {
-                        const snap = await db.ref(`users/${currentUserCode}/stations/${targetId}`).once('value');
-                        if (!snap.val()) setTimeout(() => showRatingBox(targetId, targetName), 200);
-                    } catch (error) {}
+                    const alreadyCompleted =
+                        globalUserData?.stations?.[targetId] === true;
+                    if (!alreadyCompleted) {
+                        setTimeout(
+                            () => showRatingBox(targetId, targetName, decodedText),
+                            200,
+                        );
+                    }
                 } else {
                     isProcessingScan = true;
                     alert(l.alerts.errQrExpire);
@@ -610,23 +634,23 @@ function closeFinalAssessment() {
     document.getElementById('finalAssessmentOverlay').classList.add('hidden');
 }
 
-function submitFinalAssessment() {
+async function submitFinalAssessment() {
     if (finalSelectedRating === 0) return;
     const btn = document.getElementById('btnSubmitFinal');
     btn.disabled = true;
 
-    // บันทึกคะแนนและสถานะลง Firebase
     try {
-        db.ref(`users/${currentUserCode}/finalIntentionRating`).set(finalSelectedRating);
-        db.ref(`users/${currentUserCode}/redeemTime`).set(Date.now());
-        db.ref(`users/${currentUserCode}/isRedeemed`).set(true).then(() => {
-            // ปิด Modal และบังคับเปลี่ยนไปหน้า Reward ทันทีหลังบันทึกเสร็จสิ้น
-            closeFinalAssessment();
-            switchView('reward');
-        });
+        const { participant } = await API.participant.redeem(
+            currentUserCode,
+            finalSelectedRating,
+        );
+        globalUserData = participant;
+        renderUI(globalUserData);
+        closeFinalAssessment();
+        switchView('reward');
     } catch(e) {
         console.error("Save Error", e);
-        closeFinalAssessment();
+        alert(LANG[currentLang].alerts.errSave);
     } finally {
         btn.disabled = false;
     }
@@ -636,10 +660,12 @@ function submitFinalAssessment() {
 function logout() {
     try {
         stopScan();
-        if(dbRef) { dbRef.off(); dbRef = null; }
+        if(pollTimer) { window.clearInterval(pollTimer); pollTimer = null; }
         currentUserCode = ""; globalUserData = null;
         currentScreenView = null;
         pendingRatingStationId = null;
+        pendingRatingStationName = null;
+        pendingQrPayload = null;
         selectedRating = 0;
         otpInputs.forEach(box => box.value = '');
 

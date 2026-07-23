@@ -3,106 +3,108 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ระบบหลังบ้าน (Admin Dashboard)</title>
-    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+    <title>ระบบจัดการหลังบ้าน | Open House 2026</title>
     <link rel="stylesheet" href="assets/css/admin.css">
 </head>
 <body>
+    <section class="admin-auth" id="adminAuth">
+        <h1>เข้าสู่ระบบ Admin</h1>
+        <p>กรอก Admin API key เพื่อดูข้อมูล รหัสจะถูกเก็บเฉพาะในแท็บนี้</p>
+        <form id="adminLoginForm">
+            <label for="adminKey">Admin API key</label>
+            <input id="adminKey" type="password" autocomplete="current-password" required>
+            <button class="btn-primary" type="submit">เข้าสู่ระบบ</button>
+        </form>
+        <p class="auth-error" id="adminAuthError" role="alert"></p>
+    </section>
 
-    <div class="admin-container">
+    <main class="admin-container hidden" id="adminApp">
         <div class="action-bar">
-            <h1>⚙️ ระบบจัดการหลังบ้าน (Admin)</h1>
             <div>
-                <button id="btnGenerateCodes" class="btn-primary" onclick="generateAndUploadCodes()">🔄 สร้างรหัสสมาชิก</button>
-                <button class="btn-success" onclick="exportCSV()">⬇️ ดึงข้อมูล CSV</button>
-                <button class="btn-danger" onclick="clearDatabase()">🗑️ ล้างข้อมูล</button>
+                <h1>ระบบจัดการ Open House 2026</h1>
+                <p class="muted">ข้อมูลรหัสนิสิตและรหัส Stamp Card แสดงจาก backend เท่านั้น</p>
+            </div>
+            <div class="action-buttons">
+                <button class="btn-primary" type="button" onclick="loadUsers()">รีเฟรชข้อมูล</button>
+                <button id="btnGenerateCodes" class="btn-primary" type="button" onclick="generateAndUploadCodes()">สร้างรหัสใหม่</button>
+                <button class="btn-success" type="button" onclick="exportCSV()">ดาวน์โหลด CSV</button>
+                <button class="btn-danger" type="button" onclick="clearDatabase()">ล้างข้อมูล</button>
+                <button type="button" onclick="logoutAdmin()">ออกจากระบบ</button>
             </div>
         </div>
 
         <div class="stats-cards">
             <div class="card"><h3>รหัสทั้งหมด</h3><div class="value" id="statTotal">0</div></div>
-            <div class="card"><h3>ผ่านครบทุกฐานแล้ว</h3><div class="value" id="statCompleted" style="color: #10b981;">0</div></div>
-            <div class="card"><h3>แลกรางวัลแล้ว</h3><div class="value" id="statRedeemed" style="color: #3b82f6;">0</div></div>
+            <div class="card"><h3>ลงทะเบียนแล้ว</h3><div class="value" id="statRegistered">0</div></div>
+            <div class="card"><h3>ผ่านครบทุกฐาน</h3><div class="value" id="statCompleted">0</div></div>
+            <div class="card"><h3>แลกรางวัลแล้ว</h3><div class="value" id="statRedeemed">0</div></div>
         </div>
 
         <div class="tab-menu">
-            <button class="tab-btn active" onclick="switchTab('dashboard', this)">📊 ตารางข้อมูลรวม</button>
-            <button class="tab-btn" onclick="switchTab('leaderboard', this)">🏆 จัดอันดับ & พฤติกรรมเส้นทาง</button>
-            <button class="tab-btn" onclick="switchTab('detailed', this)">⭐ รายละเอียดเวลา & คะแนนดาว</button>
+            <button class="tab-btn active" type="button" onclick="switchTab('dashboard', this)">ข้อมูลทั้งหมด</button>
+            <button class="tab-btn" type="button" onclick="switchTab('leaderboard', this)">อันดับและเส้นทาง</button>
+            <button class="tab-btn" type="button" onclick="switchTab('detailed', this)">เวลาและคะแนน</button>
         </div>
 
-        <div id="tab-dashboard" class="tab-content active">
+        <section id="tab-dashboard" class="tab-content active">
             <div class="filter-group">
-                <input type="text" id="searchDashboard" class="search-box" onkeyup="renderDashboard()" placeholder="🔍 ค้นหารหัสสมาชิก...">
+                <input type="search" id="searchDashboard" class="search-box" oninput="renderDashboard()" placeholder="ค้นหารหัส Stamp Card หรือรหัสนิสิต">
             </div>
-            <table>
-                <thead>
-                    <tr>
-                        <th style="width: 10%; text-align: center;">ลำดับ</th>
-                        <th style="width: 25%;">รหัสสมาชิก</th>
-                        <th style="width: 20%; text-align: center;">ฐานที่ผ่าน</th>
-                        <th style="width: 25%; text-align: center;">สถานะ (กดดูไทม์ไลน์)</th>
-                        <th style="width: 20%; text-align: center;">รางวัล</th>
-                    </tr>
-                </thead>
-                <tbody id="tableDashboard">
-                    <tr><td colspan="5" style="text-align: center;">⏳ กำลังโหลด...</td></tr>
-                </tbody>
-            </table>
-        </div>
+            <div class="table-scroll">
+                <table>
+                    <thead><tr>
+                        <th>ลำดับ</th>
+                        <th>รหัส Stamp Card</th>
+                        <th>รหัสนิสิต</th>
+                        <th>เคยมา Open House</th>
+                        <th>ฐานที่ผ่าน</th>
+                        <th>สถานะ</th>
+                        <th>รางวัล</th>
+                    </tr></thead>
+                    <tbody id="tableDashboard"><tr><td colspan="7">กำลังโหลด...</td></tr></tbody>
+                </table>
+            </div>
+        </section>
 
-        <div id="tab-leaderboard" class="tab-content">
+        <section id="tab-leaderboard" class="tab-content">
             <div class="filter-group">
                 <select id="filterStartStation" class="filter-select" onchange="renderLeaderboard()">
-                    <option value="all">แสดงทั้งหมด (ไม่กรองลำดับการเล่น)</option>
+                    <option value="all">ทุกฐานเริ่มต้น</option>
                 </select>
-                <input type="text" id="searchLeaderboard" class="search-box" onkeyup="renderLeaderboard()" placeholder="🔍 ค้นหารหัส...">
+                <input type="search" id="searchLeaderboard" class="search-box" oninput="renderLeaderboard()" placeholder="ค้นหารหัส">
             </div>
-            <table>
-                <thead>
-                    <tr>
-                        <th style="width: 10%; text-align: center;">อันดับ</th>
-                        <th style="width: 20%;">รหัสสมาชิก</th>
-                        <th style="width: 20%;">เวลาที่ใช้รวม</th>
-                        <th style="width: 50%;">เส้นทางการเล่น (เรียงตามลำดับสแกน)</th>
-                    </tr>
-                </thead>
-                <tbody id="tableLeaderboard">
-                    <tr><td colspan="4" style="text-align: center;">⏳ กำลังจัดอันดับ...</td></tr>
-                </tbody>
-            </table>
-        </div>
+            <div class="table-scroll">
+                <table>
+                    <thead><tr><th>อันดับ</th><th>รหัส</th><th>เวลารวม</th><th>เส้นทาง</th></tr></thead>
+                    <tbody id="tableLeaderboard"><tr><td colspan="4">กำลังโหลด...</td></tr></tbody>
+                </table>
+            </div>
+        </section>
 
-        <div id="tab-detailed" class="tab-content">
+        <section id="tab-detailed" class="tab-content">
             <div class="filter-group">
-                <input type="text" id="searchDetailed" class="search-box" onkeyup="renderDetailed()" placeholder="🔍 ค้นหารหัส...">
+                <input type="search" id="searchDetailed" class="search-box" oninput="renderDetailed()" placeholder="ค้นหารหัส">
             </div>
-            <table>
-                <thead>
-                    <tr>
-                        <th style="width: 5%; text-align: center;">อันดับ</th>
-                        <th style="width: 15%;">รหัสสมาชิก</th>
-                        <th style="width: 80%;">รายละเอียดเวลาและคะแนน (ตามลำดับการสแกน)</th>
-                    </tr>
-                </thead>
-                <tbody id="tableDetailed">
-                    <tr><td colspan="3" style="text-align: center;">⏳ กำลังโหลดข้อมูล...</td></tr>
-                </tbody>
-            </table>
-        </div>
-    </div>
+            <div class="table-scroll">
+                <table>
+                    <thead><tr><th>อันดับ</th><th>รหัส</th><th>เวลาและคะแนนตามลำดับการสแกน</th></tr></thead>
+                    <tbody id="tableDetailed"><tr><td colspan="3">กำลังโหลด...</td></tr></tbody>
+                </table>
+            </div>
+        </section>
+    </main>
 
     <div id="historyModal" class="modal">
         <div class="modal-content">
-            <button class="close-btn" onclick="closeModal()">×</button>
-            <h2 style="margin-top: 0; margin-bottom: 5px;">📜 ไทม์ไลน์การเล่น</h2>
-            <div id="modalUserCode" style="color: #64748b; font-weight: bold; margin-bottom: 20px;">รหัส: -</div>
+            <button class="close-btn" type="button" onclick="closeModal()" aria-label="ปิด">×</button>
+            <h2>ไทม์ไลน์การเล่น</h2>
+            <div id="modalUserCode" class="muted">รหัส: -</div>
             <ul class="timeline" id="timelineContent"></ul>
         </div>
     </div>
+
     <script src="assets/js/config/app-config.js"></script>
-    <script src="assets/js/config/firebase-config.js"></script>
+    <script src="assets/js/shared/api-client.js"></script>
     <script src="assets/js/pages/admin.js"></script>
 </body>
 </html>

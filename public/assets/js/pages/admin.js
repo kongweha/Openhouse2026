@@ -1,346 +1,288 @@
+"use strict";
 
-// Shared configuration and page setup
 const APP_CONFIG = window.OpenHouseConfig;
+const API = window.OpenHouseApi;
 const STATIONS = APP_CONFIG.stations;
 const STATION_COUNT = STATIONS.length;
-const db = window.openHouseDb;
+const ADMIN_KEY_STORAGE = "openHouseAdminKey";
+let globalUsersData = {};
+let adminKey = sessionStorage.getItem(ADMIN_KEY_STORAGE) ?? "";
 
-document.documentElement.style.setProperty('--station-count', STATION_COUNT);
-
-const startStationFilter = document.getElementById('filterStartStation');
+document.documentElement.style.setProperty("--station-count", STATION_COUNT);
 STATIONS.forEach((station) => {
-    const option = document.createElement('option');
+    const option = document.createElement("option");
     option.value = station.id;
     option.textContent = `เริ่มเล่นที่: ${station.name}`;
-    startStationFilter.appendChild(option);
+    document.getElementById("filterStartStation").appendChild(option);
 });
+document.getElementById("btnGenerateCodes").textContent =
+    `สร้างรหัสใหม่ ${APP_CONFIG.participants.generationCount} ใบ`;
 
-document.getElementById('btnGenerateCodes').textContent =
-    `🔄 สร้างรหัส ${APP_CONFIG.participants.generationCount} ใบ`;
+function escapeHtml(value) {
+    return String(value ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+}
 
-// Firebase-backed dashboard state
-let globalUsersData = {};
+function stationValues(user) {
+    return Array.isArray(user.stations)
+        ? user.stations
+        : Object.values(user.stations ?? {});
+}
+
+function passedCount(user) {
+    return stationValues(user).filter((value) => value === true).length;
+}
+
+function scansFor(user) {
+    return Object.values(user.scanHistory ?? {}).sort((a, b) => a.time - b.time);
+}
 
 function switchTab(tabId, button) {
-    document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
-    document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
-    document.getElementById(`tab-${tabId}`).classList.add('active');
-    button.classList.add('active');
+    document.querySelectorAll(".tab-content").forEach((element) => element.classList.remove("active"));
+    document.querySelectorAll(".tab-btn").forEach((element) => element.classList.remove("active"));
+    document.getElementById(`tab-${tabId}`).classList.add("active");
+    button.classList.add("active");
+}
+
+function showAdmin() {
+    document.getElementById("adminAuth").classList.add("hidden");
+    document.getElementById("adminApp").classList.remove("hidden");
+}
+
+function showLogin(message = "") {
+    document.getElementById("adminAuth").classList.remove("hidden");
+    document.getElementById("adminApp").classList.add("hidden");
+    document.getElementById("adminAuthError").textContent = message;
+}
+
+async function loadUsers() {
+    try {
+        const { users } = await API.admin.getUsers(adminKey);
+        globalUsersData = users ?? {};
+        showAdmin();
+        updateViews();
+    } catch (error) {
+        if (error.code === "ADMIN_UNAUTHORIZED") {
+            sessionStorage.removeItem(ADMIN_KEY_STORAGE);
+            adminKey = "";
+            showLogin("Admin API key ไม่ถูกต้อง");
+            return;
+        }
+        alert("โหลดข้อมูลไม่สำเร็จ กรุณาลองใหม่");
+    }
+}
+
+document.getElementById("adminLoginForm").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const button = event.currentTarget.querySelector("button");
+    button.disabled = true;
+    adminKey = document.getElementById("adminKey").value;
+    sessionStorage.setItem(ADMIN_KEY_STORAGE, adminKey);
+    await loadUsers();
+    button.disabled = false;
+});
+
+function logoutAdmin() {
+    sessionStorage.removeItem(ADMIN_KEY_STORAGE);
+    adminKey = "";
+    globalUsersData = {};
+    document.getElementById("adminKey").value = "";
+    showLogin();
 }
 
 async function generateAndUploadCodes() {
-    if(confirm("การสร้างใหม่จะลบข้อมูลเดิมทั้งหมด ยืนยันหรือไม่?")) {
-        let codesSet = new Set();
-        const firstCode = 10 ** (APP_CONFIG.participants.codeLength - 1);
-        const codeRange = firstCode * 9;
-        while(codesSet.size < APP_CONFIG.participants.generationCount) {
-            codesSet.add(Math.floor(firstCode + Math.random() * codeRange).toString());
-        }
-        let updates = {};
-        codesSet.forEach(code => {
-            updates[code] = { stations: Array(STATION_COUNT).fill(false), isRedeemed: false };
-        });
-        await db.ref('users').set(updates);
-        alert(`สร้างรหัส ${APP_CONFIG.participants.codeLength} หลักสำเร็จ!`);
+    if (!confirm("การสร้างรหัสใหม่จะลบข้อมูลผู้ใช้และการลงทะเบียนเดิมทั้งหมด ยืนยันหรือไม่?")) return;
+    try {
+        const { total } = await API.admin.resetCodes(adminKey);
+        alert(`สร้างรหัสใหม่ ${total} ใบแล้ว`);
+        await loadUsers();
+    } catch (error) {
+        alert("สร้างรหัสไม่สำเร็จ");
     }
 }
 
 async function clearDatabase() {
-    if(confirm("ลบข้อมูลทั้งหมดออกจากระบบ แน่ใจหรือไม่?")) {
-        await db.ref('users').remove();
+    if (!confirm("ลบข้อมูลผู้ใช้และการลงทะเบียนทั้งหมดออกจากระบบ ยืนยันหรือไม่?")) return;
+    try {
+        await API.admin.clearUsers(adminKey);
+        await loadUsers();
+    } catch (error) {
+        alert("ล้างข้อมูลไม่สำเร็จ");
     }
 }
 
-// Data export
-function exportCSV() {
-    let csvContent = "\uFEFF";
-    csvContent += "รหัสสมาชิก,สถานะ,จำนวนฐานที่ผ่าน,เวลาที่ใช้รวม(วินาที),";
-
-    for(let i=1; i<=STATION_COUNT; i++) {
-        csvContent += `ฐานลำดับที่ ${i},เวลาที่ใช้(วินาที),คะแนนดาว,`;
-    }
-    csvContent += "\n";
-
-    let completed = [];
-    let others = [];
-
-    Object.keys(globalUsersData).forEach(code => {
-        let user = globalUsersData[code];
-        let passed = user.stations ? user.stations.filter(s => s === true).length : 0;
-
-        if (passed === STATION_COUNT && user.scanHistory) {
-            let scans = Object.values(user.scanHistory).sort((a,b) => a.time - b.time);
-            if(scans.length > 0) {
-                completed.push({ code: code, user: user, scans: scans });
-            } else {
-                others.push({ code: code, user: user, scans: [] });
-            }
-        } else {
-            let scans = user.scanHistory ? Object.values(user.scanHistory).sort((a,b) => a.time - b.time) : [];
-            others.push({ code: code, user: user, scans: scans });
-        }
-    });
-
-    completed.sort((a, b) => {
-        let timeA = a.user.redeemTime || a.scans[a.scans.length-1].time;
-        let timeB = b.user.redeemTime || b.scans[b.scans.length-1].time;
-        return timeA - timeB;
-    });
-    others.sort((a, b) => a.code.localeCompare(b.code));
-
-    let allUsers = [...completed, ...others];
-
-    allUsers.forEach(item => {
-        let passed = item.user.stations ? item.user.stations.filter(s => s === true).length : 0;
-        let status = passed === 0 ? "ยังไม่เริ่ม" : (passed < STATION_COUNT ? "กำลังเล่น" : (item.user.isRedeemed ? "รับรางวัลแล้ว" : "ผ่านครบแล้ว"));
-
-        let totalSec = "";
-        if(item.user.loginTime && item.scans.length > 0) {
-            let endTime = item.user.redeemTime || item.scans[item.scans.length-1].time;
-            totalSec = Math.floor((endTime - item.user.loginTime) / 1000);
-        }
-
-        let row = `"${item.code}","${status}","${passed}/${STATION_COUNT}","${totalSec}",`;
-
-        let lastTime = item.user.loginTime;
-        for(let i=0; i<STATION_COUNT; i++) {
-            if(item.scans[i]) {
-                let scan = item.scans[i];
-                let durationSec = lastTime ? Math.floor((scan.time - lastTime) / 1000) : "";
-                let rating = (item.user.ratings && item.user.ratings[scan.id]) ? item.user.ratings[scan.id] : "";
-                row += `"${scan.name}","${durationSec}","${rating}",`;
-                lastTime = scan.time;
-            } else {
-                row += `"","","",`;
-            }
-        }
-        csvContent += row + "\n";
-    });
-
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement("a");
-    const url = URL.createObjectURL(blob);
-    link.setAttribute("href", url);
-    link.setAttribute("download", `DataExport_${new Date().getTime()}.csv`);
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-}
-
-db.ref('users').on('value', (snapshot) => {
-    globalUsersData = snapshot.val() || {};
-
-    let total = 0, completedCount = 0, redeemedCount = 0;
-    Object.keys(globalUsersData).forEach(code => {
-        total++;
-        let user = globalUsersData[code];
-        let passed = user.stations ? user.stations.filter(s => s === true).length : 0;
-        if(passed === STATION_COUNT) completedCount++;
-        if(user.isRedeemed) redeemedCount++;
-    });
-
-    document.getElementById('statTotal').innerText = total;
-    document.getElementById('statCompleted').innerText = completedCount;
-    document.getElementById('statRedeemed').innerText = redeemedCount;
-
+function updateViews() {
+    const users = Object.values(globalUsersData);
+    document.getElementById("statTotal").textContent = users.length;
+    document.getElementById("statRegistered").textContent =
+        users.filter((user) => user.registration?.studentId).length;
+    document.getElementById("statCompleted").textContent =
+        users.filter((user) => passedCount(user) === STATION_COUNT).length;
+    document.getElementById("statRedeemed").textContent =
+        users.filter((user) => user.isRedeemed).length;
     renderDashboard();
     renderLeaderboard();
     renderDetailed();
-});
+}
 
-// Dashboard views
 function renderDashboard() {
-    const tbody = document.getElementById('tableDashboard');
-    const searchVal = document.getElementById("searchDashboard").value.trim().toLowerCase();
-
-    let htmlContent = '';
-    let index = 1;
-    const sortedCodes = Object.keys(globalUsersData).sort();
-
-    sortedCodes.forEach((code) => {
-        if (searchVal && !code.includes(searchVal)) return;
-
+    const query = document.getElementById("searchDashboard").value.trim().toLowerCase();
+    let index = 0;
+    const rows = Object.keys(globalUsersData).sort().flatMap((code) => {
         const user = globalUsersData[code];
-        const passedStations = user.stations ? user.stations.filter(s => s === true).length : 0;
-
-        let statusClass = passedStations === 0 ? 'none' : (passedStations < STATION_COUNT ? 'playing' : 'completed');
-        let statusText = passedStations === 0 ? 'ยังไม่เริ่ม' : (passedStations < STATION_COUNT ? 'กำลังเล่น' : 'ผ่านครบแล้ว');
-        let statusBadge = `<span class="badge ${statusClass} clickable-status" onclick="openModal('${code}')">${statusText} 🔍</span>`;
-        let redeemedBadge = user.isRedeemed ? '<span class="badge redeemed">รับแล้ว 🎁</span>' : '<span class="badge none">-</span>';
-
-        htmlContent += `
-            <tr>
-                <td style="text-align: center;">${index++}</td>
-                <td style="font-family: monospace; font-size: 18px; font-weight: bold; letter-spacing: 1px;">${code}</td>
-                <td style="text-align: center;"><b>${passedStations}</b> / ${STATION_COUNT}</td>
-                <td style="text-align: center;">${statusBadge}</td>
-                <td style="text-align: center;">${redeemedBadge}</td>
-            </tr>
-        `;
+        const studentId = user.registration?.studentId ?? "";
+        if (query && !code.includes(query) && !studentId.toLowerCase().includes(query)) return [];
+        index += 1;
+        const passed = passedCount(user);
+        const statusClass = passed === 0 ? "none" : passed < STATION_COUNT ? "playing" : "completed";
+        const statusText = passed === 0 ? "ยังไม่เริ่ม" : passed < STATION_COUNT ? "กำลังเล่น" : "ผ่านครบแล้ว";
+        const visit = user.registration
+            ? user.registration.hasVisitedOpenHouse ? "เคย" : "ไม่เคย"
+            : "-";
+        return [`<tr>
+            <td>${index}</td>
+            <td class="code">${escapeHtml(code)}</td>
+            <td class="code">${escapeHtml(studentId || "-")}</td>
+            <td>${visit}</td>
+            <td><b>${passed}</b> / ${STATION_COUNT}</td>
+            <td><button class="badge ${statusClass} clickable-status" data-code="${escapeHtml(code)}">${statusText}</button></td>
+            <td>${user.isRedeemed ? '<span class="badge redeemed">รับแล้ว</span>' : '<span class="badge none">-</span>'}</td>
+        </tr>`];
     });
+    document.getElementById("tableDashboard").innerHTML =
+        rows.join("") || '<tr><td colspan="7">ไม่มีข้อมูล</td></tr>';
+    document.querySelectorAll("#tableDashboard [data-code]").forEach((button) => {
+        button.addEventListener("click", () => openModal(button.dataset.code));
+    });
+}
 
-    tbody.innerHTML = htmlContent || '<tr><td colspan="5" style="text-align: center;">ไม่มีข้อมูล</td></tr>';
+function rankedUsers() {
+    return Object.entries(globalUsersData)
+        .map(([code, user]) => ({ code, user, scans: scansFor(user) }))
+        .filter(({ user, scans }) => passedCount(user) === STATION_COUNT && scans.length)
+        .sort((a, b) =>
+            (a.user.redeemTime ?? a.scans.at(-1).time) -
+            (b.user.redeemTime ?? b.scans.at(-1).time));
 }
 
 function renderLeaderboard() {
-    const tbody = document.getElementById('tableLeaderboard');
-    const searchVal = document.getElementById("searchLeaderboard").value.trim().toLowerCase();
-    const filterStart = document.getElementById("filterStartStation").value;
-
-    let rankedUsers = [];
-
-    Object.keys(globalUsersData).forEach(code => {
-        let user = globalUsersData[code];
-        const passedStations = user.stations ? user.stations.filter(s => s === true).length : 0;
-        if (passedStations === STATION_COUNT && user.scanHistory) {
-            let scans = Object.values(user.scanHistory).sort((a,b) => a.time - b.time);
-            if(scans.length > 0) rankedUsers.push({ code: code, user: user, scans: scans });
-        }
+    const query = document.getElementById("searchLeaderboard").value.trim();
+    const start = document.getElementById("filterStartStation").value;
+    let rank = 0;
+    const rows = rankedUsers().flatMap((item) => {
+        if (query && !item.code.includes(query)) return [];
+        if (start !== "all" && String(item.scans[0].id) !== start) return [];
+        rank += 1;
+        const end = item.user.redeemTime ?? item.scans.at(-1).time;
+        const path = item.scans.map((scan) => `<span>${escapeHtml(scan.name)}</span>`).join('<span class="path-arrow">→</span>');
+        return [`<tr><td>#${rank}</td><td class="code">${escapeHtml(item.code)}</td><td>${getDuration(item.user.loginTime, end)}</td><td><div class="path-flow">${path}</div></td></tr>`];
     });
-
-    rankedUsers.sort((a, b) => {
-        let timeA = a.user.redeemTime || a.scans[a.scans.length-1].time;
-        let timeB = b.user.redeemTime || b.scans[b.scans.length-1].time;
-        return timeA - timeB;
-    });
-
-    let htmlContent = '';
-    let rank = 1;
-
-    rankedUsers.forEach((item) => {
-        if (searchVal && !item.code.includes(searchVal)) return;
-        let firstStationId = item.scans[0].id.toString();
-        if (filterStart !== "all" && firstStationId !== filterStart) return;
-
-        let totalTimeText = "-";
-        if(item.user.loginTime) {
-            let endTime = item.user.redeemTime || item.scans[item.scans.length-1].time;
-            totalTimeText = getDuration(item.user.loginTime, endTime);
-        }
-
-        let pathHtml = `<div class="path-flow">`;
-        item.scans.forEach((scan, i) => {
-            pathHtml += `<span>${scan.name}</span>`;
-            if(i < item.scans.length - 1) pathHtml += `<span class="path-arrow">➔</span>`;
-        });
-        pathHtml += `</div>`;
-
-        htmlContent += `
-            <tr>
-                <td style="text-align: center; font-size: 18px; font-weight: bold; color: #d97706;">#${rank++}</td>
-                <td style="font-family: monospace; font-size: 18px; font-weight: bold;">${item.code}</td>
-                <td style="color: #64748b;">${totalTimeText}</td>
-                <td>${pathHtml}</td>
-            </tr>
-        `;
-    });
-
-    tbody.innerHTML = htmlContent || '<tr><td colspan="4" style="text-align: center; padding:20px;">ไม่พบประวัติผู้ที่ผ่านเกณฑ์</td></tr>';
+    document.getElementById("tableLeaderboard").innerHTML =
+        rows.join("") || '<tr><td colspan="4">ไม่พบข้อมูล</td></tr>';
 }
 
 function renderDetailed() {
-    const tbody = document.getElementById('tableDetailed');
-    const searchVal = document.getElementById("searchDetailed").value.trim().toLowerCase();
-
-    let rankedUsers = [];
-
-    Object.keys(globalUsersData).forEach(code => {
-        let user = globalUsersData[code];
-        const passedStations = user.stations ? user.stations.filter(s => s === true).length : 0;
-        if (passedStations === STATION_COUNT && user.scanHistory) {
-            let scans = Object.values(user.scanHistory).sort((a,b) => a.time - b.time);
-            if(scans.length > 0) rankedUsers.push({ code: code, user: user, scans: scans });
-        }
-    });
-
-    rankedUsers.sort((a, b) => {
-        let timeA = a.user.redeemTime || a.scans[a.scans.length-1].time;
-        let timeB = b.user.redeemTime || b.scans[b.scans.length-1].time;
-        return timeA - timeB;
-    });
-
-    let htmlContent = '';
-    let rank = 1;
-
-    rankedUsers.forEach((item) => {
-        if (searchVal && !item.code.includes(searchVal)) return;
-
-        let pathHtml = `<div class="path-flow-detailed">`;
+    const query = document.getElementById("searchDetailed").value.trim();
+    let rank = 0;
+    const rows = rankedUsers().flatMap((item) => {
+        if (query && !item.code.includes(query)) return [];
+        rank += 1;
         let lastTime = item.user.loginTime;
-
-        item.scans.forEach((scan, i) => {
-            let durationText = lastTime ? getDuration(lastTime, scan.time) : '-';
+        const steps = item.scans.map((scan, index) => {
+            const duration = getDuration(lastTime, scan.time);
             lastTime = scan.time;
-
-            let ratingVal = (item.user.ratings && item.user.ratings[scan.id]) ? parseInt(item.user.ratings[scan.id]) : 0;
-            let starsHtml = ratingVal > 0
-                ? '⭐'.repeat(ratingVal)
-                : '<span style="color:#94a3b8; font-size:11px;">ไม่มีคะแนน</span>';
-
-            pathHtml += `
-                <div class="path-step">
-                    <div class="step-header">ลำดับที่ ${i + 1}</div>
-                    <div class="step-name">${scan.name}</div>
-                    <div class="step-time">⏱️ ${durationText}</div>
-                    <div class="step-rating">${starsHtml}</div>
-                </div>
-            `;
-        });
-        pathHtml += `</div>`;
-
-        htmlContent += `
-            <tr>
-                <td style="text-align: center; font-size: 18px; font-weight: bold; color: #d97706;">#${rank++}</td>
-                <td style="font-family: monospace; font-size: 18px; font-weight: bold;">${item.code}</td>
-                <td>${pathHtml}</td>
-            </tr>
-        `;
+            const rating = Number(item.user.ratings?.[scan.id] ?? 0);
+            return `<div class="path-step">
+                <div class="step-header">ลำดับ ${index + 1}</div>
+                <div class="step-name">${escapeHtml(scan.name)}</div>
+                <div class="step-time">⏱ ${duration || "-"}</div>
+                <div class="step-rating">${rating ? "⭐".repeat(rating) : "ไม่มีคะแนน"}</div>
+            </div>`;
+        }).join("");
+        return [`<tr><td>#${rank}</td><td class="code">${escapeHtml(item.code)}</td><td><div class="path-flow-detailed">${steps}</div></td></tr>`];
     });
-
-    tbody.innerHTML = htmlContent || '<tr><td colspan="3" style="text-align: center; padding:20px;">ไม่พบประวัติผู้ที่ผ่านเกณฑ์</td></tr>';
+    document.getElementById("tableDetailed").innerHTML =
+        rows.join("") || '<tr><td colspan="3">ไม่พบข้อมูล</td></tr>';
 }
 
-// Timeline helpers
-function formatTime(ms) { return ms ? new Date(ms).toLocaleTimeString('th-TH') : '-'; }
+function csvValue(value) {
+    return `"${String(value ?? "").replaceAll('"', '""')}"`;
+}
+
+function exportCSV() {
+    const headers = ["รหัส Stamp Card", "รหัสนิสิต", "เคยมา Open House", "สถานะ", "ฐานที่ผ่าน"];
+    STATIONS.forEach((station) => headers.push(station.name, "เวลา", "คะแนน"));
+    const rows = [headers.map(csvValue).join(",")];
+    Object.keys(globalUsersData).sort().forEach((code) => {
+        const user = globalUsersData[code];
+        const scans = scansFor(user);
+        const passed = passedCount(user);
+        const status = user.isRedeemed ? "รับรางวัลแล้ว" : passed === STATION_COUNT ? "ผ่านครบแล้ว" : passed ? "กำลังเล่น" : "ยังไม่เริ่ม";
+        const row = [
+            code,
+            user.registration?.studentId ?? "",
+            user.registration ? user.registration.hasVisitedOpenHouse ? "เคย" : "ไม่เคย" : "",
+            status,
+            `${passed}/${STATION_COUNT}`,
+        ];
+        let lastTime = user.loginTime;
+        STATIONS.forEach((station) => {
+            const scan = scans.find((item) => Number(item.id) === station.id);
+            row.push(
+                scan ? scan.name : "",
+                scan ? getDuration(lastTime, scan.time) : "",
+                user.ratings?.[station.id] ?? "",
+            );
+            if (scan) lastTime = scan.time;
+        });
+        rows.push(row.map(csvValue).join(","));
+    });
+    const url = URL.createObjectURL(new Blob(["\uFEFF", rows.join("\n")], { type: "text/csv;charset=utf-8" }));
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `OpenHouse_${Date.now()}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+}
+
+function formatTime(ms) {
+    return ms ? new Date(ms).toLocaleTimeString("th-TH") : "-";
+}
 
 function getDuration(startMs, endMs) {
-    if(!startMs || !endMs || startMs > endMs) return '';
-    let diff = Math.floor((endMs - startMs) / 1000);
-    let m = Math.floor(diff / 60);
-    let s = diff % 60;
-    return m === 0 ? `${s} วินาที` : `${m} นาที ${s} วิ`;
+    if (!startMs || !endMs || startMs > endMs) return "";
+    const seconds = Math.floor((endMs - startMs) / 1000);
+    const minutes = Math.floor(seconds / 60);
+    return minutes ? `${minutes} นาที ${seconds % 60} วิ` : `${seconds} วินาที`;
 }
 
 function openModal(code) {
-    document.getElementById('historyModal').style.display = 'flex';
-    document.getElementById('modalUserCode').innerText = `รหัสสมาชิก: ${code}`;
-    const timeline = document.getElementById('timelineContent');
-    timeline.innerHTML = '';
-
     const user = globalUsersData[code];
-    if(!user || (!user.loginTime && !user.scanHistory)) {
-        timeline.innerHTML = '<li>ไม่มีประวัติการเล่น (ไม่ได้สแกน QR ใดๆ)</li>'; return;
-    }
-
+    document.getElementById("historyModal").style.display = "flex";
+    document.getElementById("modalUserCode").textContent =
+        `รหัส Stamp Card: ${code} · รหัสนิสิต: ${user.registration?.studentId ?? "-"}`;
+    const items = [];
     let lastTime = user.loginTime;
-    if(user.loginTime) {
-        timeline.innerHTML += `<li><b>🔐 เข้าสู่ระบบ</b> <span class="timeline-time">${formatTime(user.loginTime)}</span></li>`;
-    }
-
-    if(user.scanHistory) {
-        const scans = Object.values(user.scanHistory).sort((a, b) => a.time - b.time);
-        scans.forEach((scan) => {
-            let durationHtml = lastTime ? `<br><span class="duration-box">⏱️ ใช้เวลา ${getDuration(lastTime, scan.time)}</span>` : '';
-            timeline.innerHTML += `<li><b>📍 ฐาน: ${scan.name}</b> <span class="timeline-time">${formatTime(scan.time)}</span> ${durationHtml}</li>`;
-            lastTime = scan.time;
-        });
-    }
-
-    if(user.isRedeemed && user.redeemTime) {
-        let durationHtml = lastTime ? `<br><span class="duration-box">⏱️ ใช้เวลา ${getDuration(lastTime, user.redeemTime)}</span>` : '';
-        timeline.innerHTML += `<li><b>🎁 แลกรับรางวัล</b> <span class="timeline-time">${formatTime(user.redeemTime)}</span> ${durationHtml}</li>`;
-    }
+    if (lastTime) items.push(`<li><b>เข้าสู่ระบบ</b> <span class="timeline-time">${formatTime(lastTime)}</span></li>`);
+    scansFor(user).forEach((scan) => {
+        items.push(`<li><b>ฐาน: ${escapeHtml(scan.name)}</b> <span class="timeline-time">${formatTime(scan.time)}</span><br><span class="duration-box">ใช้เวลา ${getDuration(lastTime, scan.time) || "-"}</span></li>`);
+        lastTime = scan.time;
+    });
+    if (user.isRedeemed) items.push(`<li><b>แลกรางวัล</b> <span class="timeline-time">${formatTime(user.redeemTime)}</span></li>`);
+    document.getElementById("timelineContent").innerHTML =
+        items.join("") || "<li>ยังไม่มีประวัติการเล่น</li>";
 }
 
-function closeModal() { document.getElementById('historyModal').style.display = 'none'; }
+function closeModal() {
+    document.getElementById("historyModal").style.display = "none";
+}
+
+if (adminKey) {
+    loadUsers();
+} else {
+    showLogin();
+}

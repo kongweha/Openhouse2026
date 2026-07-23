@@ -52,6 +52,7 @@ button:active { transform: scale(0.97); }
 .btn-logout { background-color: #94a3b8; color: white; margin-top: 10px; font-size: 14px; padding: 10px; }
 .btn-back-reward { background-color: #f59e0b; color: white; margin-top: 15px; box-shadow: 0 4px 6px rgba(245,158,11,0.25); }
 .btn-gacha { background-color: #8b5cf6; color: white; box-shadow: 0 4px 6px rgba(139,92,246,0.25); }
+.registration-link { display: inline-block; margin-top: 8px; color: #2563eb; font-weight: 700; text-underline-offset: 3px; }
 
 #reader { width: 100%; margin-bottom: 15px; display: none; border-radius: 16px; overflow: hidden; background: #000; }
 .hidden { display: none !important; }

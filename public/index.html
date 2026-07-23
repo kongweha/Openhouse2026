@@ -4,9 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Event Stamp System</title>
-    <!-- โหลด Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <link rel="stylesheet" href="assets/css/stamp.css">
 </head>
@@ -20,6 +17,7 @@
         <h2 id="txtLoginTitle">🔐 Login to System</h2>
         <div class="otp-container" id="otpGroup"></div>
         <button id="btnLogin" class="btn-primary" onclick="login()">Login</button>
+        <a class="registration-link" href="registration.html">ลงทะเบียน / ลืมรหัส</a>
     </div>
 
     <!-- หน้าต่างหลักของระบบ -->
@@ -117,7 +115,7 @@
         </div>
     </div>
     <script src="assets/js/config/app-config.js"></script>
-    <script src="assets/js/config/firebase-config.js"></script>
+    <script src="assets/js/shared/api-client.js"></script>
     <script src="assets/js/pages/stamp.js"></script>
 </body>
 </html>

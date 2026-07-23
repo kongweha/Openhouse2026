@@ -2,72 +2,91 @@
 
 อัปเดตล่าสุด: 2026-07-23  
 ผู้ส่งมอบ: Codex  
-สถานะ: Local image assets พร้อมใช้งาน รอ security hardening
+Branch: `feature/registration-backend`
+สถานะ: Implementation และ local tests พร้อม; ยังไม่ deploy Firebase Functions
 
 ## งานรอบล่าสุด
 
-- นำไฟล์ทั้งหมด 21 ไฟล์จาก `kongweha/Gametest/picture` ที่ commit
-  `251da3aac066dd9b0c0b2c126ace4f7e513a5a74` เข้า repo
-- ตรวจ Git blob SHA ตรงต้นทางทุกไฟล์แบบ byte-for-byte
-- แยกไฟล์เป็น:
-  - `public/assets/images/stations/` — 14 รูปสำหรับ 7 ฐาน
-  - `public/assets/images/cards/` — รูปการ์ด 7 ใบ
-- เปลี่ยนชื่อเป็น lowercase kebab-case โดยไม่แปลงคุณภาพ
-- คง `card-02.png` เป็น PNG ตามต้นฉบับ ไฟล์อื่นเป็น WebP
-- เปลี่ยน `app-config.js` ให้ใช้ local assets แทน jsDelivr CDN
-- เพิ่ม `public/assets/images/README.md` บันทึก provenance และ mapping
-- ขยาย validator ให้ตรวจ:
-  - ทุกภาพที่ config อ้างต้องมีจริง
-  - file signature ต้องตรงกับ `.png`/`.webp`
-  - ห้ามมีภาพ production ที่ไม่ได้อ้างใช้งาน
+- เปลี่ยนชื่อฐาน ID 0/1 เป็น `Library journey` และ `Query Quarry`
+- เพิ่มหน้า `registration.html` มีแท็บ:
+  - ลงทะเบียน: รหัสนิสิต 10 หลัก + เคย/ไม่เคยมางาน
+  - ลืมรหัส: ค้นหารหัส Stamp Card เดิมด้วยรหัสนิสิต
+- เพิ่ม Firebase HTTPS Function API และ pure domain layer
+- จองรหัสว่างเลขน้อยที่สุดด้วย atomic root transaction
+- ผูกข้อมูลสองทาง `studentRegistrations/{studentId}` และ
+  `users/{accessCode}/registration`
+- ย้าย Stamp login, scan/rating, redeem และ draw จาก Firebase client ไป API
+- ย้าย Admin อ่าน/reset/clear ไป API และให้ใส่ Admin key ต่อ session
+- ลบ Firebase SDK/config ออกจาก `public/`
+- เพิ่ม validator ป้องกัน Firebase client exposure และ frontend/backend config drift
+- เพิ่ม unit tests สำหรับ validation, allocation, idempotency และ QR
 
-## Source of truth
+## ไฟล์สำคัญ
 
 | งาน | ไฟล์ |
 | --- | --- |
-| Mapping รูปฐานและการ์ด | `public/assets/js/config/app-config.js` |
-| รูปฐาน | `public/assets/images/stations/` |
-| รูปการ์ด | `public/assets/images/cards/` |
-| แหล่งที่มาและ source filename | `public/assets/images/README.md` |
-| Architecture และ risks | `docs/PROJECT_SSOT.md` |
+| Architecture/data/API/deploy plan | `docs/PROJECT_SSOT.md` |
+| Registration UI | `public/registration.html`, `assets/js/pages/registration.js` |
+| Frontend API client | `public/assets/js/shared/api-client.js` |
+| Stamp API integration | `public/assets/js/pages/stamp.js` |
+| Admin API integration | `public/assets/js/pages/admin.js` |
+| Backend routes | `functions/src/index.js` |
+| Allocation/validation | `functions/src/domain.js` |
+| Trusted event config | `functions/src/event-config.js` |
+| Unit tests | `functions/test/domain.test.js` |
 
-อย่าใส่ path ภาพซ้ำใน page scripts ให้แก้ `app-config.js` เท่านั้น
+## ผลตรวจ
 
-## ผลตรวจรอบนี้
+- Static validator: ผ่าน, 0 warnings
+- Domain tests: 7/7 ผ่าน
+- Backend `node --check`: ผ่าน
+- Functions package import กับ dependency versions ที่ pin ไว้: ผ่าน
+- Firebase client exposure scan ใน `public/`: ไม่พบ
+- ชื่อฐานเก่าคงเหลือเฉพาะ source filename provenance ของภาพ
+- Local HTTP smoke test: 8 canonical/legacy/asset routes ตอบ `200`
+- Browser mobile smoke test หน้า registration: tabs สลับถูกต้อง, ไม่มี page error
 
-- Source folder inventory: 21 ไฟล์ / 15,418,658 bytes
-- Git blob SHA verification: ผ่านทั้ง 21 ไฟล์
-- Static validation: ผ่านโดยไม่มี warning
-- Image existence/signature checks: ผ่าน
-- Unreferenced production image check: ผ่าน
-- External runtime station image URL check: ไม่เหลือ
-- `git diff --check`: ผ่าน
-- Local route smoke test: canonical และ legacy routes ตอบ `200`
-- Local image HTTP test: 21/21 ไฟล์ตอบ `200`, ขนาดรวมตรง
-  15,418,658 bytes
-- MIME spot check: `card-02.png` เป็น `image/png` และรูปฐานเป็น `image/webp`
+## สิ่งที่ยังไม่ได้ทำ
 
-## Known blockers
+- ไม่ได้ set `OPENHOUSE_ADMIN_API_KEY`
+- ไม่ได้ deploy Firebase Functions
+- ไม่ได้แก้ Firebase Realtime Database Rules
+- ไม่ได้อ่านหรือล้าง production data
+- ไม่ได้ทดสอบ end-to-end กับ Firebase จริง
+- ไม่ได้ merge เข้า `main`; production GitHub Pages จึงยังไม่เปลี่ยน
 
-- Card IDs 8–16 ยังใช้ `card-01.webp` เป็น placeholder
-- Admin ยังไม่มี authentication/authorization
-- QR ยัง forge ได้
-- ยังไม่ได้ review Firebase Database Rules
+เหตุผล: การตั้ง secret/deploy Functions/แก้ rules เป็น production action
+ที่ต้องขออนุมัติรายครั้ง และ environment นี้ยังไม่มี Firebase CLI/auth
+
+## ขั้นตอนเปิดใช้
+
+1. ขออนุมัติ owner สำหรับการ set secret และ deploy Functions
+2. ติดตั้ง/authenticate Firebase CLI
+3. รัน:
+
+   ```bash
+   firebase functions:secrets:set OPENHOUSE_ADMIN_API_KEY
+   firebase deploy --only functions
+   ```
+
+4. ทดสอบ health, register, recover, Stamp และ Admin กับข้อมูลทดสอบ
+5. Review/ปิด direct client access ใน Database Rules
+6. Merge feature branch เข้า `main` เพื่อ deploy frontend
+
+ห้าม merge frontend ก่อน Functions พร้อม เพราะ frontend ใหม่ไม่มี Firebase
+client fallback
+
+## Known risks
+
+- QR payload ยัง forge ได้เพราะไม่มี signature/nonce
+- Forgot-code ใช้รหัสนิสิตอย่างเดียว ควรเพิ่ม OTP/rate limit/App Check
+- Admin เป็น shared secret ไม่ใช่ user identity/role
+- CORS ยังเปิดทุก origin
+- Card IDs 8–16 ยังเป็น placeholder
 - html5-qrcode ยังไม่ pin version
-- ยังไม่มี Firebase test environment สำหรับ end-to-end test
 
-## งานถัดไป
+## Git policy
 
-1. ยืนยันว่าต้องการการ์ดเฉพาะ 7 แบบ หรือส่งภาพ Card 8–16 เพิ่ม
-2. เพิ่ม Firebase Authentication และ admin role
-3. ออกแบบ signed QR ที่ตรวจโดย trusted backend
-4. เพิ่ม Database Rules/emulator tests และ browser smoke tests
-
-## Git / deployment
-
-ก่อนส่งมอบต้อง validation ผ่าน, commit และ push ไป `origin/main`
-ตาม standing instruction ของเจ้าของระบบ Routine push ไป `main`
-อนุญาตให้ GitHub Pages deploy ได้
-
-ยังต้องขออนุมัติเป็นรายครั้งก่อนแก้ Firebase production rules, ล้างข้อมูล,
-rotate credentials, rewrite history หรือ force-push
+งานรอบนี้ต้อง commit และ push ไป
+`origin/feature/registration-backend` ตาม standing instruction
+ห้าม force-push และห้าม deploy production โดยไม่มีอนุมัติเพิ่ม
