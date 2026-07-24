@@ -1,7 +1,9 @@
 # Image assets
 
-The 21 production images in `stations/` and `cards/` were copied byte-for-byte
-from:
+The project contains 30 production images: 14 station states and 16 prediction
+cards.
+
+The station images and prediction cards 1–7 were copied byte-for-byte from:
 
 - Repository: `kongweha/Gametest`
 - Source directory: `picture/`
@@ -10,7 +12,7 @@ from:
 Source:
 <https://github.com/kongweha/Gametest/tree/251da3aac066dd9b0c0b2c126ace4f7e513a5a74/picture>
 
-Files are renamed locally to lowercase kebab-case so their purpose is clear.
+Prediction cards 8–16 were provided by the project owner on 2026-07-24.
 The source-to-local mapping is documented below.
 
 ## Station images
@@ -27,9 +29,9 @@ The source-to-local mapping is documented below.
 
 ## Card images
 
-`Card_1.webp` through `Card_7.webp` map to `card-01.webp` through
-`card-07.webp`, except the source `Card_2.png`, which remains PNG as
-`card-02.png`.
+All cards use the runtime naming pattern `Card_XX`, from `Card_01` through
+`Card_16`. Card 2 remains PNG; every other card is WebP. See `cards/README.md`
+for the complete source mapping.
 
 Runtime paths are owned by `public/assets/js/config/app-config.js`. Do not
 duplicate image paths in page scripts.

@@ -1,12 +1,17 @@
 # Handoff — OpenHouse2026
 
-- อัปเดตล่าสุด: 2026-07-23
+- อัปเดตล่าสุด: 2026-07-24
 - ผู้ส่งมอบ: Codex
 - Branch: `main`
 - สถานะ: Firebase Spark frontend-only implementation
 
 ## งานรอบล่าสุด
 
+- เพิ่มภาพ prediction cards หมายเลข 8–16 จากไฟล์ที่เจ้าของระบบส่งมา
+- ปรับชื่อภาพทั้งชุดเป็น `Card_01` ถึง `Card_16` และคง `Card_02.png`
+- เปลี่ยน `app-config.js` เป็น mapping 16 ใบแบบหนึ่งต่อหนึ่ง ไม่มี placeholder
+- เพิ่ม validator บังคับ ID 1–16, ลำดับไฟล์ และตรวจ signature ของรูป
+- เพิ่ม cache version ของ `app-config.js` ในทุกหน้าที่โหลด config
 - ตรวจ production หลังผู้ใช้ลงทะเบียน: registered users 1, student mappings 1,
   ทั้งสองฝั่งตรงกัน แต่ยังไม่มี `loginTime`
 - สาเหตุ Login แจ้ง code not found คือ transaction updater ได้ `null` รอบแรก
@@ -56,6 +61,7 @@
 | Registration | `public/registration.html`, `assets/js/pages/registration.js` |
 | Stamp | `public/Stamp.html`, `assets/js/pages/stamp.js` |
 | Admin | `public/admin.html`, `assets/js/pages/admin.js` |
+| Prediction cards | `public/assets/images/cards/`, `app-config.js` |
 | Service tests | `scripts/test-firebase-service.mjs` |
 
 ## การ deploy
@@ -80,6 +86,8 @@ git push origin main
   Admin พร้อมข้อมูล ~1.0s และ QR Generator ~0.5s
 - Production abort-only cache test: พบ pool 500, พบ candidate, fallback เห็นข้อมูล,
   `committed: false`
+- Card validation: รูปครบ 16 ใบ, signature ตรง extension, hash ไม่ซ้ำ,
+  mapping เรียง `Card_01` ถึง `Card_16`
 - `git diff --check`: ผ่าน
 
 ## สิ่งที่ยังไม่ได้ทำ
@@ -96,7 +104,6 @@ git push origin main
 - QR และเวลาถูกตรวจจาก browser
 - Forgot-code ใช้เพียงรหัสนิสิต
 - Registration transactions ต้องได้รับสิทธิ์จาก Database Rules
-- Card IDs 8–16 ยังเป็น placeholder
 
 ## Git policy
 

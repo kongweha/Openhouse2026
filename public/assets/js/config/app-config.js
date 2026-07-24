@@ -99,23 +99,28 @@
   ];
 
   const cardImageFiles = [
-    "card-01.webp",
-    "card-02.png",
-    "card-03.webp",
-    "card-04.webp",
-    "card-05.webp",
-    "card-06.webp",
-    "card-07.webp",
+    "Card_01.webp",
+    "Card_02.png",
+    "Card_03.webp",
+    "Card_04.webp",
+    "Card_05.webp",
+    "Card_06.webp",
+    "Card_07.webp",
+    "Card_08.webp",
+    "Card_09.webp",
+    "Card_10.webp",
+    "Card_11.webp",
+    "Card_12.webp",
+    "Card_13.webp",
+    "Card_14.webp",
+    "Card_15.webp",
+    "Card_16.webp",
   ];
 
-  const destinyCards = Array.from({ length: 16 }, (_, index) => {
-    const id = index + 1;
-    const imageFile = cardImageFiles[index] ?? cardImageFiles[0];
-    return {
-      id,
-      imagePath: `${cardImageRoot}/${imageFile}`,
-    };
-  });
+  const destinyCards = cardImageFiles.map((imageFile, index) => ({
+    id: index + 1,
+    imagePath: `${cardImageRoot}/${imageFile}`,
+  }));
 
   function deepFreeze(value) {
     if (!value || typeof value !== "object" || Object.isFrozen(value)) {

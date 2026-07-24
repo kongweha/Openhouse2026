@@ -1,7 +1,7 @@
 # Project SSOT — OpenHouse2026
 
-อัปเดตล่าสุด: 2026-07-23  
-สถานะ: Static Firebase application บน Spark plan
+- อัปเดตล่าสุด: 2026-07-24
+- สถานะ: Static Firebase application บน Spark plan
 
 เอกสารนี้คือแหล่งข้อเท็จจริงหลักของโปรเจ็กต์ หากโค้ดและเอกสารไม่ตรงกัน
 ให้ตรวจพฤติกรรมจากโค้ดและแก้เอกสารใน change เดียวกัน
@@ -105,6 +105,7 @@ scripts/
 | Registration UI | `public/registration.html` และ `pages/registration.js` |
 | Stamp UI | `public/Stamp.html` และ `pages/stamp.js` |
 | Admin UI | `public/admin.html` และ `pages/admin.js` |
+| Prediction card order | `app-config.js` และ `public/assets/images/cards/` |
 
 Page scripts ห้ามเรียก `firebase.database()` หรือ `.ref()` โดยตรง
 ต้องเรียกผ่าน `window.OpenHouseApi` จาก `firebase-service.js`
@@ -150,6 +151,8 @@ studentRegistrations/{studentId}
 - เวลาและ validation มาจาก browser จึงแก้ไขได้
 - Stamp อ่านข้อมูลเมื่อ login และเมื่อทำ action เท่านั้น ไม่มี polling ทุก 3 วินาที
   เพื่อประหยัด Realtime Database reads บน Spark plan
+- Prediction card IDs 1–16 map แบบหนึ่งต่อหนึ่งไป `Card_01` ถึง `Card_16`
+  ตามลำดับ โดย Card 2 เป็น PNG และใบอื่นเป็น WebP
 
 ## 6. QR contract
 
@@ -186,7 +189,6 @@ QR_STN_0N|<browser_timestamp_ms>
 
 ## 8. Known gaps
 
-- Card IDs 8–16 ยังใช้ `card-01.webp` เป็น placeholder
 - ไม่มี Firebase Emulator/Rules tests หรือ browser E2E
 - Registration ต้องมี pool รหัสใน `users` ก่อน
 - ความถูกต้องและความปลอดภัยจำกัดตาม architecture แบบ frontend-only
@@ -239,3 +241,5 @@ credentials, rewrite history หรือ force-push ต้องขออนุ
 - 2026-07-23: เปลี่ยน Registration จาก root transaction เป็น transaction
   รายรหัส/ราย mapping, เพิ่ม `defer`, `preconnect`, pin html5-qrcode และ
   cache-version ของ assets เพื่อลดเวลารอและแก้ stale browser cache
+- 2026-07-24: เพิ่ม prediction cards 8–16 จากไฟล์ที่เจ้าของระบบส่งมา
+  และปรับชื่อครบทั้งชุดเป็น `Card_01` ถึง `Card_16` พร้อม mapping ตามลำดับ

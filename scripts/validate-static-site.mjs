@@ -228,6 +228,31 @@ if (await exists(publicRoot)) {
 
     }
 
+    const destinyCards = appConfig?.destinyCards ?? [];
+    const expectedCardIds = Array.from(
+      { length: 16 },
+      (_, index) => index + 1,
+    );
+    const expectedCardFiles = expectedCardIds.map(
+      (id) => `assets/images/cards/Card_${String(id).padStart(2, "0")}.webp`,
+    );
+    expectedCardFiles[1] = "assets/images/cards/Card_02.png";
+    if (
+      destinyCards.length !== 16 ||
+      destinyCards.map((card) => card.id).join(",") !==
+        expectedCardIds.join(",")
+    ) {
+      errors.push("Destiny card IDs must be contiguous from 1 through 16.");
+    }
+    if (
+      destinyCards.map((card) => card.imagePath).join(",") !==
+      expectedCardFiles.join(",")
+    ) {
+      errors.push(
+        "Destiny card images must map in order to Card_01 through Card_16.",
+      );
+    }
+
     const configuredImageReferences = new Set(
       [
         ...(appConfig?.stations?.flatMap((station) =>
