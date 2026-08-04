@@ -48,6 +48,15 @@ button:active { transform: scale(0.97); }
 .btn-primary:disabled { background-color: #94a3b8; cursor: not-allowed; box-shadow: none; transform: scale(1); }
 .btn-redeem { background-color: #f87171; color: white; margin-top: 15px; box-shadow: 0 4px 6px rgba(248,113,113,0.25); }
 .btn-redeem:disabled { background-color: #fca5a5; cursor: not-allowed; box-shadow: none; }
+.staff-confirmation { margin: 18px 0; padding: 16px; border: 2px solid #f59e0b; border-radius: 14px; background: #fffbeb; color: #92400e; }
+.staff-confirmation p { margin: 8px 0 12px; line-height: 1.5; }
+.activity-evaluation { margin-top: 22px; padding-top: 18px; border-top: 2px solid #fde68a; text-align: left; }
+.activity-evaluation h3 { margin: 0 0 16px; color: #be185d; text-align: center; }
+.activity-evaluation label, .evaluation-label { display: block; margin: 12px 0 6px; color: #334155; font-weight: 700; }
+.evaluation-control { width: 100%; padding: 11px; border: 2px solid #cbd5e1; border-radius: 10px; background: white; color: #0f172a; font: inherit; }
+.station-preference-row { display: grid; grid-template-columns: minmax(0, 1fr) 82px; gap: 10px; align-items: center; margin-bottom: 8px; }
+.station-preference-row label { margin: 0; font-size: 13px; }
+.station-preference-row select { padding: 8px; }
 .btn-cancel { background-color: #64748b; color: white; display: none; margin-top: 10px; }
 .btn-logout { background-color: #94a3b8; color: white; margin-top: 10px; font-size: 14px; padding: 10px; }
 .btn-back-reward { background-color: #f59e0b; color: white; margin-top: 15px; box-shadow: 0 4px 6px rgba(245,158,11,0.25); }

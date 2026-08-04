@@ -110,7 +110,7 @@
       redeemTime: user.redeemTime ?? null,
       ratings: user.ratings ?? {},
       scanHistory: user.scanHistory ?? {},
-      finalIntentionRating: user.finalIntentionRating ?? null,
+      activityEvaluation: user.activityEvaluation ?? null,
       drawnCardId: user.drawnCardId ?? null,
     };
   }
@@ -121,6 +121,39 @@
       fail(code, "Rating must be an integer from 1 to 5.");
     }
     return rating;
+  }
+
+  function normalizeActivityEvaluation(value) {
+    if (!value || typeof value !== "object") {
+      fail("ACTIVITY_EVALUATION_REQUIRED", "Activity evaluation is required.");
+    }
+    const overallSatisfaction = assertRating(
+      value.overallSatisfaction,
+      "INVALID_OVERALL_SATISFACTION",
+    );
+    const favoriteStationId = Number(value.favoriteStationId);
+    if (!Number.isInteger(favoriteStationId) || !stations[favoriteStationId]) {
+      fail("INVALID_FAVORITE_STATION", "Favorite station is invalid.");
+    }
+    const stationPreferences = Object.fromEntries(
+      stations.map((station) => [
+        station.id,
+        assertRating(
+          value.stationPreferences?.[station.id],
+          "INVALID_STATION_PREFERENCE",
+        ),
+      ]),
+    );
+    const suggestion = String(value.suggestion ?? "").trim();
+    if (suggestion.length > 1000) {
+      fail("SUGGESTION_TOO_LONG", "Suggestion must not exceed 1000 characters.");
+    }
+    return {
+      overallSatisfaction,
+      stationPreferences,
+      favoriteStationId,
+      suggestion,
+    };
   }
 
   function validateQrPayload(payload, stationId) {
@@ -324,10 +357,14 @@
     stationId,
     ratingValue,
     qrPayload,
+    activityEvaluationValue = null,
   ) {
     const accessCode = normalizeAccessCode(accessCodeValue);
     const rating = assertRating(ratingValue);
     const station = validateQrPayload(qrPayload, stationId);
+    const activityEvaluation = activityEvaluationValue
+      ? normalizeActivityEvaluation(activityEvaluationValue)
+      : null;
     const historyKey = db
       .ref(`users/${accessCode}/scanHistory`)
       .push().key;
@@ -349,6 +386,18 @@
           name: station.name,
           time: scannedAt,
         };
+        if (stationValues(user).filter(Boolean).length === stations.length) {
+          if (!activityEvaluation) {
+            fail(
+              "ACTIVITY_EVALUATION_REQUIRED",
+              "The final station requires an activity evaluation.",
+            );
+          }
+          user.activityEvaluation = {
+            ...activityEvaluation,
+            submittedAt: scannedAt,
+          };
+        }
         return user;
       },
     );
@@ -363,15 +412,14 @@
     };
   }
 
-  async function redeem(
+  async function submitEvaluation(
     accessCodeValue,
     sessionToken,
-    finalRatingValue,
+    activityEvaluationValue,
   ) {
     const accessCode = normalizeAccessCode(accessCodeValue);
-    const finalIntentionRating = assertRating(
-      finalRatingValue,
-      "INVALID_FINAL_RATING",
+    const activityEvaluation = normalizeActivityEvaluation(
+      activityEvaluationValue,
     );
     const userReference = db.ref(`users/${accessCode}`);
     const transaction = await transactionFromServerSnapshot(
@@ -382,8 +430,43 @@
         if (stationValues(user).filter(Boolean).length !== stations.length) {
           return;
         }
+        if (user.isRedeemed) return user;
+        user.activityEvaluation = {
+          ...activityEvaluation,
+          submittedAt: Date.now(),
+        };
+        return user;
+      },
+    );
+    if (!transaction.committed) {
+      fail(
+        "EVALUATION_NOT_READY",
+        "All stations must be complete before evaluation.",
+      );
+    }
+    return {
+      participant: sanitizeParticipant(
+        accessCode,
+        transaction.snapshot.val(),
+      ),
+    };
+  }
+
+  async function confirmReward(accessCodeValue, sessionToken) {
+    const accessCode = normalizeAccessCode(accessCodeValue);
+    const userReference = db.ref(`users/${accessCode}`);
+    const transaction = await transactionFromServerSnapshot(
+      userReference,
+      (user) => {
+        if (!user?.registration?.studentId) return;
+        assertActiveSession(user, sessionToken);
+        if (
+          stationValues(user).filter(Boolean).length !== stations.length ||
+          !user.activityEvaluation
+        ) {
+          return;
+        }
         if (!user.isRedeemed) {
-          user.finalIntentionRating = finalIntentionRating;
           user.redeemTime = Date.now();
           user.isRedeemed = true;
         }
@@ -392,8 +475,8 @@
     );
     if (!transaction.committed) {
       fail(
-        "REDEEM_NOT_READY",
-        "All stations must be complete before redemption.",
+        "REWARD_NOT_READY",
+        "Evaluation must be complete before reward confirmation.",
       );
     }
     return {
@@ -502,7 +585,8 @@
       login,
       get: getParticipant,
       completeStation,
-      redeem,
+      submitEvaluation,
+      confirmReward,
       draw,
       logout,
       watchSession,

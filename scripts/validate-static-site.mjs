@@ -159,6 +159,25 @@ if (await exists(publicRoot)) {
       );
     }
 
+    if (path.basename(htmlFile) === "Stamp.html") {
+      const requiredStampControls = [
+        'id="activityEvaluationFields"',
+        'id="overallSatisfaction"',
+        'id="stationPreferenceFields"',
+        'id="favoriteStation"',
+        'id="activitySuggestion"',
+        'id="btnConfirmReward"',
+      ];
+      if (
+        requiredStampControls.some((control) => !html.includes(control)) ||
+        html.includes('id="finalAssessmentOverlay"')
+      ) {
+        errors.push(
+          `${relativeHtml} must combine final-station evaluation and staff reward confirmation.`,
+        );
+      }
+    }
+
     if (path.basename(htmlFile) === "registration.html") {
       if (
         !html.includes('id="langTh"') ||

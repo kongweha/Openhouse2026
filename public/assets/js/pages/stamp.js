@@ -11,8 +11,8 @@ const LANG = {
         stampStatusText: "Completed: {count} / {total}",
         completedText: "🎉 All {total} stations completed!",
         stampSubStatus: "(Click on unstamped circles to scan QR Code)",
-        redeemBtn: "🎁 Redeem Reward (Needs {total} stamps)",
-        redeemReadyBtn: "🎁 Redeem Reward",
+        redeemBtn: "Evaluate today's activities (complete {total} stations first)",
+        redeemReadyBtn: "Evaluate today's activities",
         cancelScanBtn: "❌ Cancel Camera",
         logoutBtn: "Logout",
         ratingHeader: "⭐ How was this station?",
@@ -23,6 +23,21 @@ const LANG = {
         finalSubmit: "Confirm & Claim",
         successTitle: "🎁 Reward claimed successfully!",
         successSub: "(Cannot be played again)",
+        evaluationCompleteTitle: "Activity evaluation completed",
+        evaluationCompleteSub: "Please show this screen to a staff member to receive your reward.",
+        staffOnly: "Staff only",
+        staffNote: "Press this button only after the reward has been handed to the participant.",
+        confirmRewardButton: "Confirm reward handed over",
+        activityEvaluationHeader: "Evaluate today's activities",
+        overallSatisfaction: "Overall satisfaction",
+        stationPreference: "How much did you like each station?",
+        favoriteStation: "Your favorite station",
+        suggestion: "Suggestions",
+        suggestionPlaceholder: "Enter suggestions (optional)",
+        selectScore: "Select 1–5",
+        selectStation: "Select a station",
+        finalRatingSubmit: "Submit station and activity evaluation",
+        evaluationSubmit: "Submit activity evaluation",
         mapPlaceholder: "[ Map for reward pickup goes here ]",
         btnViewStamps: "View My Stamp Card",
         btnBackToReward: "⬅ Back to Reward Page",
@@ -40,7 +55,10 @@ const LANG = {
             errQrFormat: "❌ Invalid QR code format.",
             errQrWrong: "❌ Wrong QR code for this station.",
             errSave: "Error saving data. Please try again.",
-            sessionReplaced: "This code was opened on another device. This session has been signed out."
+            sessionReplaced: "This code was opened on another device. This session has been signed out.",
+            evaluationRequired: "Please complete every activity-evaluation field.",
+            confirmReward: "Staff only: confirm that the participant has received the reward?",
+            rewardReceived: "Reward receipt has been confirmed."
         }
     },
     th: {
@@ -53,8 +71,8 @@ const LANG = {
         stampStatusText: "ผ่านแล้ว: {count} / {total} ฐาน",
         completedText: "🎉 เล่นครบ {total} ฐานแล้ว!",
         stampSubStatus: "(คลิกที่วงกลมฐานที่ยังไม่ผ่านเพื่อสแกน QR Code)",
-        redeemBtn: "🎁 แลกของรางวัล (ต้องครบ {total} ฐาน)",
-        redeemReadyBtn: "🎁 แลกของรางวัล",
+        redeemBtn: "ประเมินกิจกรรมวันนี้ (ต้องครบ {total} ฐาน)",
+        redeemReadyBtn: "ประเมินกิจกรรมวันนี้",
         cancelScanBtn: "❌ ยกเลิกสแกนกล้อง",
         logoutBtn: "ออกจากระบบ",
         ratingHeader: "⭐ บอกเราหน่อยว่าฐานนี้เป็นยังไง",
@@ -65,6 +83,21 @@ const LANG = {
         finalSubmit: "ยืนยันและรับรางวัล",
         successTitle: "🎁 รับของรางวัลเรียบร้อยแล้ว!",
         successSub: "(ไม่สามารถเล่นซ้ำได้)",
+        evaluationCompleteTitle: "ประเมินกิจกรรมเรียบร้อยแล้ว",
+        evaluationCompleteSub: "กรุณาแสดงหน้านี้แก่เจ้าหน้าที่เพื่อรับของรางวัล",
+        staffOnly: "สำหรับเจ้าหน้าที่เท่านั้น",
+        staffNote: "กรุณากดปุ่มนี้หลังจากมอบของรางวัลให้ผู้เล่นแล้วเท่านั้น",
+        confirmRewardButton: "ยืนยันว่ามอบของรางวัลแล้ว",
+        activityEvaluationHeader: "ประเมินกิจกรรมวันนี้",
+        overallSatisfaction: "ความพึงพอใจโดยรวม",
+        stationPreference: "ประเมินความชอบในแต่ละฐาน",
+        favoriteStation: "ฐานที่ชอบที่สุด",
+        suggestion: "ข้อเสนอแนะ",
+        suggestionPlaceholder: "พิมพ์ข้อเสนอแนะ (ไม่บังคับ)",
+        selectScore: "เลือกคะแนน 1–5",
+        selectStation: "เลือกฐาน",
+        finalRatingSubmit: "ส่งแบบประเมินฐานและกิจกรรม",
+        evaluationSubmit: "ส่งแบบประเมินกิจกรรม",
         mapPlaceholder: "[ พื้นที่สำหรับใส่แผนที่จุดรับของรางวัล ]",
         btnViewStamps: "ดูบัตรสะสมแต้ม",
         btnBackToReward: "⬅ กลับไปหน้าของรางวัล",
@@ -82,7 +115,10 @@ const LANG = {
             errQrFormat: "❌ รูปแบบ QR Code ไม่ถูกต้อง",
             errQrWrong: "❌ QR Code ไม่ถูกต้องสำหรับฐานนี้",
             errSave: "เกิดข้อผิดพลาดในการบันทึก กรุณาลองใหม่",
-            sessionReplaced: "รหัสนี้ถูกเปิดจากอุปกรณ์อื่น ระบบจึงออกจากระบบของอุปกรณ์นี้แล้ว"
+            sessionReplaced: "รหัสนี้ถูกเปิดจากอุปกรณ์อื่น ระบบจึงออกจากระบบของอุปกรณ์นี้แล้ว",
+            evaluationRequired: "กรุณาตอบแบบประเมินกิจกรรมให้ครบทุกข้อ",
+            confirmReward: "สำหรับเจ้าหน้าที่: ยืนยันว่าผู้เล่นได้รับของรางวัลแล้วใช่หรือไม่?",
+            rewardReceived: "ยืนยันว่าผู้เล่นได้รับของรางวัลแล้ว"
         }
     }
 };
@@ -123,8 +159,9 @@ let pendingRatingStationId = null;
 let pendingRatingStationName = null;
 let pendingQrPayload = null;
 let selectedRating = 0;
-let finalSelectedRating = 0;
 let currentScreenView = null;
+let isFinalStationEvaluation = false;
+let isEvaluationOnly = false;
 
 // View and language controls
 function switchView(viewName) {
@@ -182,12 +219,22 @@ function applyLanguage() {
     document.getElementById('emj4').innerText = l.emoji[3];
     document.getElementById('emj5').innerText = l.emoji[4];
 
-    document.getElementById('txtFinalHeader').innerText = l.finalHeader;
-    document.getElementById('txtFinalDesc').innerText = l.finalDesc;
-    document.getElementById('btnSubmitFinal').innerText = l.finalSubmit;
-
     document.getElementById('txtSuccessTitle').innerText = l.successTitle;
     document.getElementById('txtSuccessSub').innerText = l.successSub;
+    document.getElementById('txtStaffOnly').innerText = l.staffOnly;
+    document.getElementById('txtStaffNote').innerText = l.staffNote;
+    document.getElementById('btnConfirmReward').innerText = l.confirmRewardButton;
+    document.getElementById('txtActivityEvaluationHeader').innerText = l.activityEvaluationHeader;
+    document.getElementById('txtOverallSatisfaction').innerText = l.overallSatisfaction;
+    document.getElementById('txtStationPreference').innerText = l.stationPreference;
+    document.getElementById('txtFavoriteStation').innerText = l.favoriteStation;
+    document.getElementById('txtSuggestion').innerText = l.suggestion;
+    document.getElementById('activitySuggestion').placeholder = l.suggestionPlaceholder;
+    renderEvaluationOptions();
+    document.getElementById('btnSubmitRating').innerText = isFinalStationEvaluation
+        ? l.finalRatingSubmit
+        : isEvaluationOnly ? l.evaluationSubmit : l.ratingSubmitBtn;
+    updateRatingSubmitState();
     document.getElementById('txtMapPlaceholder').innerText = l.mapPlaceholder;
     document.getElementById('btnViewStamps').innerText = l.btnViewStamps;
     document.getElementById('btnBackToReward').innerText = l.btnBackToReward;
@@ -349,10 +396,21 @@ function renderUI(userData) {
         { count, total: STATIONS.length },
     );
 
-    if (userData.isRedeemed) {
+    if (userData.activityEvaluation || userData.isRedeemed) {
         btnRedeem.classList.add('hidden');
         btnBackToReward.style.display = 'block';
         btnLogoutStamp.style.display = 'none';
+
+        const confirmationPanel = document.getElementById('rewardConfirmationPanel');
+        const drawButton = document.getElementById('btnDrawCard');
+        confirmationPanel.classList.toggle('hidden', userData.isRedeemed);
+        drawButton.classList.toggle('hidden', !userData.isRedeemed);
+        document.getElementById('txtSuccessTitle').innerText = userData.isRedeemed
+            ? l.successTitle
+            : l.evaluationCompleteTitle;
+        document.getElementById('txtSuccessSub').innerText = userData.isRedeemed
+            ? l.successSub
+            : l.evaluationCompleteSub;
 
         if (!currentScreenView) switchView('reward');
         else switchView(currentScreenView);
@@ -395,6 +453,75 @@ function toggleStationContent(stationId, forceOpen = false) {
     }
 }
 
+function renderEvaluationOptions() {
+    const l = LANG[currentLang];
+    const favorite = document.getElementById('favoriteStation');
+    const previousFavorite = favorite.value;
+    favorite.innerHTML = `<option value="">${l.selectStation}</option>` +
+        STATIONS.map((station) => `<option value="${station.id}">${station.name}</option>`).join('');
+    favorite.value = previousFavorite;
+
+    const container = document.getElementById('stationPreferenceFields');
+    const previous = Object.fromEntries(
+        [...container.querySelectorAll('select')].map((select) => [select.dataset.stationId, select.value]),
+    );
+    container.innerHTML = STATIONS.map((station) => `
+        <div class="station-preference-row">
+            <label for="stationPreference${station.id}">${station.name}</label>
+            <select id="stationPreference${station.id}" class="evaluation-control station-preference" data-station-id="${station.id}">
+                <option value="">${l.selectScore}</option>
+                <option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option>
+            </select>
+        </div>`).join('');
+    container.querySelectorAll('select').forEach((select) => {
+        select.value = previous[select.dataset.stationId] ?? '';
+        select.addEventListener('change', updateRatingSubmitState);
+    });
+}
+
+function resetActivityEvaluationFields() {
+    document.getElementById('overallSatisfaction').value = '';
+    document.getElementById('favoriteStation').value = '';
+    document.getElementById('activitySuggestion').value = '';
+    document.querySelectorAll('.station-preference').forEach((select) => { select.value = ''; });
+}
+
+function readActivityEvaluation() {
+    return {
+        overallSatisfaction: Number(document.getElementById('overallSatisfaction').value),
+        stationPreferences: Object.fromEntries(
+            [...document.querySelectorAll('.station-preference')].map((select) => [
+                select.dataset.stationId,
+                Number(select.value),
+            ]),
+        ),
+        favoriteStationId: Number(document.getElementById('favoriteStation').value),
+        suggestion: document.getElementById('activitySuggestion').value.trim(),
+    };
+}
+
+function isActivityEvaluationComplete() {
+    const evaluation = readActivityEvaluation();
+    return evaluation.overallSatisfaction >= 1 &&
+        evaluation.overallSatisfaction <= 5 &&
+        document.getElementById('favoriteStation').value !== '' &&
+        STATIONS.some((station) => station.id === evaluation.favoriteStationId) &&
+        STATIONS.every((station) => {
+            const rating = evaluation.stationPreferences[station.id];
+            return Number.isInteger(rating) && rating >= 1 && rating <= 5;
+        });
+}
+
+function updateRatingSubmitState() {
+    const needsEvaluation = isFinalStationEvaluation || isEvaluationOnly;
+    const stationReady = isEvaluationOnly || selectedRating > 0;
+    document.getElementById('btnSubmitRating').disabled =
+        !stationReady || (needsEvaluation && !isActivityEvaluationComplete());
+}
+
+document.getElementById('overallSatisfaction').addEventListener('change', updateRatingSubmitState);
+document.getElementById('favoriteStation').addEventListener('change', updateRatingSubmitState);
+
 // Station rating
 function showRatingBox(id, name, qrPayload) {
     const l = LANG[currentLang];
@@ -402,12 +529,20 @@ function showRatingBox(id, name, qrPayload) {
     pendingRatingStationName = name;
     pendingQrPayload = qrPayload;
     selectedRating = 0;
+    isEvaluationOnly = false;
+    const completedCount = Object.values(globalUserData?.stations ?? {}).filter(Boolean).length;
+    isFinalStationEvaluation = completedCount === STATIONS.length - 1;
+    document.getElementById('stationRatingFields').classList.remove('hidden');
+    document.getElementById('activityEvaluationFields').classList.toggle('hidden', !isFinalStationEvaluation);
+    if (isFinalStationEvaluation) resetActivityEvaluationFields();
 
     document.getElementById('ratingTitle').innerText = name;
     document.getElementById('ratingBox').classList.remove('hidden');
     document.getElementById('mapWrapper').style.display = 'none';
     document.getElementById('btnSubmitRating').disabled = true;
-    document.getElementById('btnSubmitRating').innerText = l.ratingSubmitBtn;
+    document.getElementById('btnSubmitRating').innerText = isFinalStationEvaluation
+        ? l.finalRatingSubmit
+        : l.ratingSubmitBtn;
 
     const emojis = document.querySelectorAll('#starContainer span');
     emojis.forEach(emoji => {
@@ -416,13 +551,34 @@ function showRatingBox(id, name, qrPayload) {
             emojis.forEach(s => s.classList.remove('active'));
             this.classList.add('active');
             selectedRating = parseInt(this.getAttribute('data-value'));
-            document.getElementById('btnSubmitRating').disabled = false;
+            updateRatingSubmitState();
         };
     });
+    updateRatingSubmitState();
+}
+
+function openActivityEvaluationOnly() {
+    isEvaluationOnly = true;
+    isFinalStationEvaluation = false;
+    selectedRating = 0;
+    pendingRatingStationId = null;
+    pendingRatingStationName = null;
+    pendingQrPayload = null;
+    resetActivityEvaluationFields();
+    document.getElementById('stationRatingFields').classList.add('hidden');
+    document.getElementById('activityEvaluationFields').classList.remove('hidden');
+    document.getElementById('ratingBox').classList.remove('hidden');
+    document.getElementById('mapWrapper').style.display = 'none';
+    document.getElementById('btnSubmitRating').innerText = LANG[currentLang].evaluationSubmit;
+    updateRatingSubmitState();
 }
 
 async function submitRating() {
-    if (selectedRating === 0 || pendingRatingStationId === null) return;
+    if ((!isEvaluationOnly && (selectedRating === 0 || pendingRatingStationId === null)) ||
+        ((isFinalStationEvaluation || isEvaluationOnly) && !isActivityEvaluationComplete())) {
+        alert(LANG[currentLang].alerts.evaluationRequired);
+        return;
+    }
     const l = LANG[currentLang];
     const btn = document.getElementById('btnSubmitRating');
     btn.disabled = true;
@@ -434,19 +590,32 @@ async function submitRating() {
 
     document.getElementById('ratingBox').classList.add('hidden');
     document.getElementById('mapWrapper').style.display = 'flex';
-    toggleStationContent(targetId, true);
+    if (!isEvaluationOnly) toggleStationContent(targetId, true);
     try {
-        const { participant } = await API.participant.completeStation(
-            currentUserCode,
-            currentSessionToken,
-            targetId,
-            currentRating,
-            qrPayload,
-        );
+        const evaluation = isFinalStationEvaluation || isEvaluationOnly
+            ? readActivityEvaluation()
+            : null;
+        const { participant } = isEvaluationOnly
+            ? await API.participant.submitEvaluation(
+                currentUserCode,
+                currentSessionToken,
+                evaluation,
+            )
+            : await API.participant.completeStation(
+                currentUserCode,
+                currentSessionToken,
+                targetId,
+                currentRating,
+                qrPayload,
+                evaluation,
+            );
         globalUserData = participant;
         pendingRatingStationId = null;
         pendingRatingStationName = null;
         pendingQrPayload = null;
+        if (evaluation) currentScreenView = 'reward';
+        isFinalStationEvaluation = false;
+        isEvaluationOnly = false;
         renderUI(globalUserData);
     } catch(e) {
         if (handleSessionError(e)) return;
@@ -455,8 +624,10 @@ async function submitRating() {
         document.getElementById('ratingBox').classList.remove('hidden');
         document.getElementById('mapWrapper').style.display = 'none';
     } finally {
-        btn.innerText = l.ratingSubmitBtn;
-        btn.disabled = selectedRating === 0;
+        btn.innerText = isFinalStationEvaluation
+            ? l.finalRatingSubmit
+            : isEvaluationOnly ? l.evaluationSubmit : l.ratingSubmitBtn;
+        updateRatingSubmitState();
     }
 }
 
@@ -614,47 +785,24 @@ function resetScannerUI() {
     isProcessingScan = false;
 }
 
-// Reward redemption
-function redeemReward() {
-    finalSelectedRating = 0;
-    document.getElementById('finalAssessmentOverlay').classList.remove('hidden');
-    document.getElementById('btnSubmitFinal').disabled = true;
-
-    const finalStars = document.querySelectorAll('#finalStarContainer span');
-    finalStars.forEach(star => {
-        star.classList.remove('active');
-        star.onclick = function() {
-            finalSelectedRating = parseInt(this.getAttribute('data-value'));
-            finalStars.forEach(s => s.classList.remove('active'));
-            for(let i=0; i<finalSelectedRating; i++) finalStars[i].classList.add('active');
-            document.getElementById('btnSubmitFinal').disabled = false;
-        };
-    });
-}
-
-function closeFinalAssessment() {
-    document.getElementById('finalAssessmentOverlay').classList.add('hidden');
-}
-
-async function submitFinalAssessment() {
-    if (finalSelectedRating === 0) return;
-    const btn = document.getElementById('btnSubmitFinal');
+// Staff reward confirmation
+async function confirmRewardReceipt() {
+    const l = LANG[currentLang];
+    if (!confirm(l.alerts.confirmReward)) return;
+    const btn = document.getElementById('btnConfirmReward');
     btn.disabled = true;
-
     try {
-        const { participant } = await API.participant.redeem(
+        const { participant } = await API.participant.confirmReward(
             currentUserCode,
             currentSessionToken,
-            finalSelectedRating,
         );
         globalUserData = participant;
         renderUI(globalUserData);
-        closeFinalAssessment();
-        switchView('reward');
-    } catch(e) {
-        if (handleSessionError(e)) return;
-        console.error("Save Error", e);
-        alert(LANG[currentLang].alerts.errSave);
+        alert(l.alerts.rewardReceived);
+    } catch (error) {
+        if (handleSessionError(error)) return;
+        console.error("Reward confirmation error", error);
+        alert(l.alerts.errSave);
     } finally {
         btn.disabled = false;
     }
@@ -701,7 +849,6 @@ function clearLocalSession() {
         document.getElementById('ratingBox').classList.add('hidden');
         document.getElementById('mapWrapper').style.display = 'flex';
 
-        closeFinalAssessment();
     } catch (error) { location.reload(); }
 }
 

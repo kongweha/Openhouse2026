@@ -159,6 +159,15 @@ function emptyParticipant() {
   };
 }
 
+function activityEvaluation() {
+  return {
+    overallSatisfaction: 5,
+    stationPreferences: { 0: 4, 1: 5 },
+    favoriteStationId: 1,
+    suggestion: "Great event",
+  };
+}
+
 test("registration allocates the lowest unused code and is idempotent", async () => {
   const { api, database } = createService({
     users: {
@@ -199,7 +208,7 @@ test("registration allocates the lowest unused code and is idempotent", async ()
   assert.equal(api.registration.recover, undefined);
 });
 
-test("participant completes stations, redeems, and draws once", async () => {
+test("participant evaluates the final station before staff confirms reward", async () => {
   const { api } = createService({
     users: {
       "100001": {
@@ -223,8 +232,8 @@ test("participant completes stations, redeems, and draws once", async () => {
   assert.ok(login.sessionToken);
 
   await assert.rejects(
-    api.participant.redeem("100001", login.sessionToken, 5),
-    (error) => error.code === "REDEEM_NOT_READY",
+    api.participant.confirmReward("100001", login.sessionToken),
+    (error) => error.code === "REWARD_NOT_READY",
   );
 
   const first = await api.participant.completeStation(
@@ -237,14 +246,30 @@ test("participant completes stations, redeems, and draws once", async () => {
   assert.equal(first.participant.stations[0], true);
   assert.equal(first.participant.ratings[0], 5);
 
+  await assert.rejects(
+    api.participant.completeStation(
+      "100001",
+      login.sessionToken,
+      1,
+      4,
+      `QR_STN_02|${Date.now()}`,
+    ),
+    (error) => error.code === "ACTIVITY_EVALUATION_REQUIRED",
+  );
+
   await api.participant.completeStation(
     "100001",
     login.sessionToken,
     1,
     4,
     `QR_STN_02|${Date.now()}`,
+    activityEvaluation(),
   );
-  const redeemed = await api.participant.redeem("100001", login.sessionToken, 5);
+  const evaluated = await api.participant.get("100001");
+  assert.equal(evaluated.participant.activityEvaluation.overallSatisfaction, 5);
+  assert.equal(evaluated.participant.isRedeemed, false);
+
+  const redeemed = await api.participant.confirmReward("100001", login.sessionToken);
   assert.equal(redeemed.participant.isRedeemed, true);
 
   const drawn = await api.participant.draw("100001", login.sessionToken);
@@ -292,6 +317,26 @@ test("a newer login replaces the previous participant session", async () => {
     `QR_STN_01|${Date.now()}`,
   );
   assert.equal(updated.participant.stations[0], true);
+});
+
+test("a previously completed participant can submit the new evaluation", async () => {
+  const { api } = createService({
+    users: {
+      "100001": {
+        stations: [true, true],
+        isRedeemed: false,
+        registration: { studentId: "1234567890" },
+      },
+    },
+  });
+  const login = await api.participant.login("100001");
+  const result = await api.participant.submitEvaluation(
+    "100001",
+    login.sessionToken,
+    activityEvaluation(),
+  );
+  assert.equal(result.participant.activityEvaluation.favoriteStationId, 1);
+  assert.equal(result.participant.isRedeemed, false);
 });
 
 test("registration fails clearly when no unused code remains", async () => {

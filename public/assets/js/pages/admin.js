@@ -118,7 +118,11 @@ function renderDashboard() {
             <td>${visit}</td>
             <td><b>${passed}</b> / ${STATION_COUNT}</td>
             <td><button class="badge ${statusClass} clickable-status" data-code="${escapeHtml(code)}">${statusText}</button></td>
-            <td>${user.isRedeemed ? '<span class="badge redeemed">รับแล้ว</span>' : '<span class="badge none">-</span>'}</td>
+            <td>${user.isRedeemed
+                ? '<span class="badge redeemed">รับแล้ว</span>'
+                : user.activityEvaluation
+                    ? '<span class="badge playing">รอเจ้าหน้าที่ยืนยัน</span>'
+                    : '<span class="badge none">-</span>'}</td>
         </tr>`];
     });
     document.getElementById("tableDashboard").innerHTML =
@@ -182,14 +186,18 @@ function csvValue(value) {
 }
 
 function exportCSV() {
-    const headers = ["รหัส Stamp Card", "รหัสนิสิต", "ระดับการศึกษา", "เคยมา Open House", "สถานะ", "ฐานที่ผ่าน"];
-    STATIONS.forEach((station) => headers.push(station.name, "เวลา", "คะแนน"));
+    const headers = ["รหัส Stamp Card", "รหัสนิสิต", "ระดับการศึกษา", "เคยมา Open House", "สถานะ", "ฐานที่ผ่าน", "ความพึงพอใจรวม", "ฐานที่ชอบที่สุด", "ข้อเสนอแนะ"];
+    STATIONS.forEach((station) => headers.push(station.name, "เวลา", "ความชัดเจน", "ความชอบ"));
     const rows = [headers.map(csvValue).join(",")];
     Object.keys(globalUsersData).sort().forEach((code) => {
         const user = globalUsersData[code];
         const scans = scansFor(user);
         const passed = passedCount(user);
         const status = user.isRedeemed ? "รับรางวัลแล้ว" : passed === STATION_COUNT ? "ผ่านครบแล้ว" : passed ? "กำลังเล่น" : "ยังไม่เริ่ม";
+        const evaluation = user.activityEvaluation;
+        const favoriteStation = STATIONS.find(
+            (station) => station.id === Number(evaluation?.favoriteStationId),
+        );
         const row = [
             code,
             user.registration?.studentId ?? "",
@@ -197,6 +205,9 @@ function exportCSV() {
             user.registration ? user.registration.hasVisitedOpenHouse ? "เคย" : "ไม่เคย" : "",
             status,
             `${passed}/${STATION_COUNT}`,
+            evaluation?.overallSatisfaction ?? "",
+            favoriteStation?.name ?? "",
+            evaluation?.suggestion ?? "",
         ];
         let lastTime = user.loginTime;
         STATIONS.forEach((station) => {
@@ -205,6 +216,7 @@ function exportCSV() {
                 scan ? scan.name : "",
                 scan ? getDuration(lastTime, scan.time) : "",
                 user.ratings?.[station.id] ?? "",
+                evaluation?.stationPreferences?.[station.id] ?? "",
             );
             if (scan) lastTime = scan.time;
         });
@@ -241,6 +253,12 @@ function openModal(code) {
         items.push(`<li><b>ฐาน: ${escapeHtml(scan.name)}</b> <span class="timeline-time">${formatTime(scan.time)}</span><br><span class="duration-box">ใช้เวลา ${getDuration(lastTime, scan.time) || "-"}</span></li>`);
         lastTime = scan.time;
     });
+    if (user.activityEvaluation) {
+        const favorite = STATIONS.find(
+            (station) => station.id === Number(user.activityEvaluation.favoriteStationId),
+        );
+        items.push(`<li><b>ประเมินกิจกรรม</b> <span class="timeline-time">${formatTime(user.activityEvaluation.submittedAt)}</span><br><span class="duration-box">พึงพอใจ ${user.activityEvaluation.overallSatisfaction}/5 · ชอบที่สุด ${escapeHtml(favorite?.name ?? "-")}</span></li>`);
+    }
     if (user.isRedeemed) items.push(`<li><b>แลกรางวัล</b> <span class="timeline-time">${formatTime(user.redeemTime)}</span></li>`);
     document.getElementById("timelineContent").innerHTML =
         items.join("") || "<li>ยังไม่มีประวัติการเล่น</li>";

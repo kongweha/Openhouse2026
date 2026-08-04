@@ -14,8 +14,10 @@
 4. การลงทะเบียนใหม่แสดงรหัสครั้งเดียว ปุ่มไป Stamp จะส่งรหัสผ่าน `sessionStorage` และเติมช่องล็อกอินให้อัตโนมัติ
 5. หากรหัสนิสิตเคยลงทะเบียนแล้ว หน้าเว็บไม่แสดงหรือส่งรหัสเดิมกลับ
 6. ผู้ลืมรหัสเปิด `forgot-code.html` และต้องนำบัตรนิสิตหรือ CU NEX ให้เจ้าหน้าที่ตรวจตัวตน
-7. เมื่อรหัสเดียวกันล็อกอินใหม่ `activeSession` จะถูกแทนที่ อุปกรณ์เดิมถูกออกจากระบบและเขียนข้อมูลต่อไม่ได้
-8. ผู้ร่วมงานสแกน Dynamic QR ให้คะแนน เล่นครบ 7 ฐาน แลกรางวัล และสุ่มการ์ดหนึ่งใบ
+7. เมื่อผู้เล่นประเมินฐานสุดท้าย หน้าเดียวกันจะให้ประเมินกิจกรรมวันนี้: ความพึงพอใจรวม ความชอบทุกฐาน ฐานที่ชอบที่สุด และข้อเสนอแนะ
+8. หลังส่งแบบประเมิน ระบบเปิดหน้ารับรางวัลแต่ยังไม่ตั้ง `isRedeemed`; เจ้าหน้าที่ต้องกดยืนยันหลังมอบรางวัล ระบบจึงบันทึกเวลาและแจ้งผลสำเร็จ
+9. เมื่อรหัสเดียวกันล็อกอินใหม่ `activeSession` จะถูกแทนที่ อุปกรณ์เดิมถูกออกจากระบบและเขียนข้อมูลต่อไม่ได้
+10. หลังยืนยันรับรางวัล ผู้เล่นจึงสุ่มการ์ดได้หนึ่งใบ
 
 ฐาน ID 0 และ 1 คือ `Library journey` และ `Query Quarry`
 
@@ -63,7 +65,12 @@ users/{accessCode}
   redeemTime?: number
   ratings/{stationId}?: number
   scanHistory/{pushId}?: { id: number, name: string, time: number }
-  finalIntentionRating?: number
+  activityEvaluation?:
+    overallSatisfaction: number (1-5)
+    stationPreferences/{stationId}: number (1-5)
+    favoriteStationId: number
+    suggestion: string (สูงสุด 1000 ตัวอักษร)
+    submittedAt: number
   drawnCardId?: number
 
 studentRegistrations/{studentId}
@@ -76,6 +83,10 @@ studentRegistrations/{studentId}
 
 - ข้อมูลเก่าอาจไม่มี `educationLevel`; Admin แสดง `-`
 - ลงทะเบียนรหัสนิสิตเดิมคืน `{ created: false }` โดยไม่คืน `accessCode`
+- `completeStation()` บังคับ `activityEvaluation` เมื่อ transaction นั้นทำให้ครบฐานสุดท้าย เพื่อบันทึกคะแนนฐานและแบบประเมินพร้อมกัน
+- ผู้เล่นเก่าที่ครบทุกฐานแต่ยังไม่มีแบบประเมินใช้ `submitEvaluation()` ได้
+- `confirmReward()` เป็นคนละ transaction และทำได้เมื่อครบทุกฐานพร้อมมีแบบประเมินแล้วเท่านั้น
+- หน้า Admin และ CSV แสดงความพึงพอใจ ฐานโปรด ข้อเสนอแนะ และความชอบรายฐาน
 - session ใหม่แทน session เดิม และทุก action ที่เปลี่ยนข้อมูลตรวจ token ใน transaction
 - `activeSession` เป็นการควบคุมเชิงแอป ไม่ใช่ authentication ที่แข็งแรง หาก Rules เปิดกว้าง ผู้โจมตียังข้าม client ได้
 - Stamp ไม่มี polling ข้อมูลผู้ใช้ แต่มี listener เฉพาะ token ของ session เพื่อออกจากระบบเมื่อถูกแทนที่
@@ -91,7 +102,8 @@ studentRegistrations/{studentId}
 1. **Critical — Database/Admin ไม่มี authentication ที่บังคับด้วย Rules ที่ได้รับการตรวจแล้ว**
 2. **Critical — QR forge/replay ได้** เพราะเวลาและ payload ตรวจใน browser
 3. **High — Single-session เป็น client-side coordination** ไม่ใช่หลักฐานตัวตน
-4. browser timestamps และ client validation แก้ไขได้
+4. **High — ปุ่มยืนยันรับรางวัลระบุว่าเจ้าหน้าที่เท่านั้น แต่ยังไม่มี Staff Auth/Rules จึงบังคับสิทธิ์จริงไม่ได้**
+5. browser timestamps และ client validation แก้ไขได้
 
 ## Ownership
 
@@ -112,4 +124,4 @@ npm run check
 git push origin main
 ```
 
-ล่าสุด `npm run check` ผ่าน: static validator 0 warnings และ Firebase service tests 5/5 รวมกรณี session ใหม่แทน session เดิม
+ล่าสุด `npm run check` ผ่าน: static validator 0 warnings และ Firebase service tests 6/6 รวม final-station evaluation, legacy evaluation, staff reward confirmation และ session replacement
