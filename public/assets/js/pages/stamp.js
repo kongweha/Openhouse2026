@@ -357,7 +357,7 @@ function stationNameArcMarkup(station) {
     const compactClass = station.name.length > 20 ? 'compact' : '';
     return `
         <svg class="station-name-arc" viewBox="0 0 100 100" aria-hidden="true">
-            <defs><path id="${pathId}" d="M 9 51 A 41 41 0 0 1 91 51"></path></defs>
+            <defs><path id="${pathId}" d="M 8 46 A 42 42 0 0 1 92 46"></path></defs>
             <text class="${compactClass}">
                 <textPath href="#${pathId}" startOffset="50%" text-anchor="middle">${station.name}</textPath>
             </text>
