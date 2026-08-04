@@ -17,7 +17,7 @@ The source-to-local mapping is documented below.
 
 ## Station images
 
-The current station artwork was provided by the project owner on 2026-08-04.
+The current compressed station artwork was provided by the project owner on 2026-08-04.
 Each supplied image is used for both the uncollected and collected runtime assets.
 
 | Station | Current source for both states |
