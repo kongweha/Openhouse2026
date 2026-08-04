@@ -140,6 +140,13 @@ function formatMessage(message, values) {
     );
 }
 
+window.addEventListener('load', () => {
+    STATIONS.forEach(st => {
+        const img1 = new Image(); img1.src = st.images.unstamped;
+        const img2 = new Image(); img2.src = st.images.stamped;
+    });
+});
+
 // Participant session state
 let currentUserCode = "";
 let currentSessionToken = "";
@@ -381,11 +388,11 @@ function renderUI(userData) {
         if (isPassed) {
             count++;
             node.className = `station-node st-${currentPosClass} stamped`;
-            node.innerHTML = `<img src="${st.images.stamped}" alt="${st.name}" decoding="async"><span>${st.name}</span>`;
+            node.innerHTML = `<img src="${st.images.stamped}" alt="${st.name}"><span>${st.name}</span>`;
             node.onclick = () => toggleStationContent(index);
         } else {
             node.className = `station-node st-${currentPosClass} unstamped`;
-            node.innerHTML = `<img src="${st.images.unstamped}" alt="${st.name}" decoding="async"><span>${st.name}</span>`;
+            node.innerHTML = `<img src="${st.images.unstamped}" alt="${st.name}"><span>${st.name}</span>`;
             node.onclick = () => {
                 if(!userData.isRedeemed) openScannerFor(index);
             };

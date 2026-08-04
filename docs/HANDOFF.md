@@ -2,7 +2,6 @@
 
 ## 2026-08-04 station presentation update
 
-- Removed eager loading of all 14 station-state images from the login screen. Stamp now inserts only the seven required images after login with asynchronous decoding, and persistent `will-change` hints were removed to reduce typing and interaction lag.
 - Replaced the station artwork again with the owner-provided files from the `compressed` set.
 - Station images are sized at 114% but clipped inside the dashed circle, keeping the border visible while cropping out the artwork's purple edge. Collected-station names are centered over the image and hide only while that station's content is open.
 - Replaced all seven station illustrations with the owner-provided images. Each supplied image is copied to both the uncollected and collected runtime assets for its station.

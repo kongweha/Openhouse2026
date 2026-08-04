@@ -123,7 +123,6 @@ studentRegistrations/{studentId}
 - Station ID 2 is named `Play Time` in the shared station configuration.
 - Clicking a station displays only its localized title and content. Previously submitted station-rating results are not appended to this detail view; the scan-time rating flow and stored rating data remain unchanged.
 - Station artwork uses the owner-provided compressed WebP files. Images are enlarged inside the dashed circular clip so the purple edge embedded in the artwork is hidden without painting over the dashed border. Uncollected stations are grayscale; collected stations are full color and show the station name centered over the image. Opening a collected station's content temporarily hides that overlaid name and closing the content restores it.
-- Station artwork is not preloaded on the login screen. The seven visible state images begin asynchronous decoding only after a successful login, avoiding input lag from decoding fourteen large WebP assets while the participant enters a code. Persistent `will-change` layer hints were removed from Stamp controls to reduce compositor memory pressure.
 
 ## Ownership
 
