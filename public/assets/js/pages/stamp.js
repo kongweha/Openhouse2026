@@ -352,18 +352,6 @@ async function login() {
 }
 
 // Stamp-card rendering
-function stationNameArcMarkup(station) {
-    const pathId = `station-name-arc-${station.id}`;
-    const compactClass = station.name.length > 20 ? 'compact' : '';
-    return `
-        <svg class="station-name-arc" viewBox="0 0 100 100" aria-hidden="true">
-            <defs><path id="${pathId}" d="M 8 46 A 42 42 0 0 1 92 46"></path></defs>
-            <text class="${compactClass}">
-                <textPath href="#${pathId}" startOffset="50%" text-anchor="middle">${station.name}</textPath>
-            </text>
-        </svg>`;
-}
-
 function renderUI(userData) {
     if (!userData) return;
     const l = LANG[currentLang];
@@ -399,7 +387,7 @@ function renderUI(userData) {
         if (isPassed) {
             count++;
             node.className = `station-node st-${currentPosClass} stamped`;
-            node.innerHTML = `<img src="${st.images.stamped}" alt="${st.name}">${stationNameArcMarkup(st)}`;
+            node.innerHTML = `<img src="${st.images.stamped}" alt="${st.name}"><span>${st.name}</span>`;
             node.onclick = () => toggleStationContent(index);
         } else {
             node.className = `station-node st-${currentPosClass} unstamped`;
