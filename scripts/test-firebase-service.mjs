@@ -208,7 +208,7 @@ test("registration allocates the lowest unused code and is idempotent", async ()
   assert.equal(api.registration.recover, undefined);
 });
 
-test("participant evaluates the final station before staff confirms reward", async () => {
+test("participant completes the final station, answers both evaluations, then receives reward", async () => {
   const { api } = createService({
     users: {
       "100001": {
@@ -246,26 +246,28 @@ test("participant evaluates the final station before staff confirms reward", asy
   assert.equal(first.participant.stations[0], true);
   assert.equal(first.participant.ratings[0], 5);
 
-  await assert.rejects(
-    api.participant.completeStation(
-      "100001",
-      login.sessionToken,
-      1,
-      4,
-      `QR_STN_02|${Date.now()}`,
-    ),
-    (error) => error.code === "ACTIVITY_EVALUATION_REQUIRED",
-  );
-
-  await api.participant.completeStation(
+  const completed = await api.participant.completeStation(
     "100001",
     login.sessionToken,
     1,
     4,
     `QR_STN_02|${Date.now()}`,
+  );
+  assert.equal(completed.participant.finalIntentionRating, null);
+  assert.equal(completed.participant.activityEvaluation, null);
+
+  const intention = await api.participant.submitFinalIntention(
+    "100001",
+    login.sessionToken,
+    4,
+  );
+  assert.equal(intention.participant.finalIntentionRating, 4);
+
+  const evaluated = await api.participant.submitEvaluation(
+    "100001",
+    login.sessionToken,
     activityEvaluation(),
   );
-  const evaluated = await api.participant.get("100001");
   assert.equal(evaluated.participant.activityEvaluation.overallSatisfaction, 5);
   assert.equal(evaluated.participant.isRedeemed, false);
 
@@ -330,6 +332,19 @@ test("a previously completed participant can submit the new evaluation", async (
     },
   });
   const login = await api.participant.login("100001");
+  await assert.rejects(
+    api.participant.submitEvaluation(
+      "100001",
+      login.sessionToken,
+      activityEvaluation(),
+    ),
+    (error) => error.code === "EVALUATION_NOT_READY",
+  );
+  await api.participant.submitFinalIntention(
+    "100001",
+    login.sessionToken,
+    3,
+  );
   const result = await api.participant.submitEvaluation(
     "100001",
     login.sessionToken,

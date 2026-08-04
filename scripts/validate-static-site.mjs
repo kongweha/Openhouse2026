@@ -167,13 +167,12 @@ if (await exists(publicRoot)) {
         'id="favoriteStation"',
         'id="activitySuggestion"',
         'id="btnConfirmReward"',
+        'id="finalAssessmentOverlay"',
+        'id="finalStarContainer"',
       ];
-      if (
-        requiredStampControls.some((control) => !html.includes(control)) ||
-        html.includes('id="finalAssessmentOverlay"')
-      ) {
+      if (requiredStampControls.some((control) => !html.includes(control))) {
         errors.push(
-          `${relativeHtml} must combine final-station evaluation and staff reward confirmation.`,
+          `${relativeHtml} must separate final-station intention, activity evaluation, and staff reward confirmation.`,
         );
       }
     }

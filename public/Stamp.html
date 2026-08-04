@@ -76,11 +76,8 @@
                 </div>
                 <div id="activityEvaluationFields" class="activity-evaluation hidden">
                     <h3 id="txtActivityEvaluationHeader">ประเมินกิจกรรมวันนี้</h3>
-                    <label id="txtOverallSatisfaction" for="overallSatisfaction">ความพึงพอใจโดยรวม</label>
-                    <select id="overallSatisfaction" class="evaluation-control">
-                        <option value="">เลือกคะแนน 1–5</option>
-                        <option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option>
-                    </select>
+                    <p id="txtOverallSatisfaction" class="evaluation-label">ความพึงพอใจโดยรวม</p>
+                    <div id="overallSatisfaction" class="evaluation-stars" role="radiogroup" aria-label="ความพึงพอใจโดยรวม"></div>
                     <p id="txtStationPreference" class="evaluation-label">ความชอบในแต่ละฐาน</p>
                     <div id="stationPreferenceFields"></div>
                     <label id="txtFavoriteStation" for="favoriteStation">ฐานที่ชอบที่สุด</label>
@@ -123,9 +120,23 @@
         </div>
     </div>
 
+    <!-- คำถามความตั้งใจใช้พื้นที่ห้องสมุด แสดงหลังประเมินฐานสุดท้าย -->
+    <div id="finalAssessmentOverlay" class="modal-overlay hidden">
+        <div class="modal-content">
+            <h3 id="txtFinalHeader" style="margin-top: 0; color: #be185d; font-size: 20px;">📝 Final Assessment</h3>
+            <p id="txtFinalDesc" style="font-size: 15px; color: #831843; margin-bottom: 20px; line-height: 1.6; text-align: left; font-weight: 500;">
+                Based on today's activities, how likely are you to use the physical library space (e.g., Chula AIX) this semester?
+            </p>
+            <div class="final-stars" id="finalStarContainer">
+                <span data-value="1">★</span><span data-value="2">★</span><span data-value="3">★</span><span data-value="4">★</span><span data-value="5">★</span>
+            </div>
+            <button id="btnSubmitFinal" class="btn-primary" type="button" disabled onclick="submitFinalIntentionAssessment()">Submit assessment</button>
+        </div>
+    </div>
+
     <script defer src="assets/js/config/app-config.js?v=20260724-1"></script>
     <script defer src="assets/js/config/firebase-config.js"></script>
-    <script defer src="assets/js/shared/firebase-service.js?v=20260804-2"></script>
-    <script defer src="assets/js/pages/stamp.js?v=20260804-2"></script>
+    <script defer src="assets/js/shared/firebase-service.js?v=20260804-3"></script>
+    <script defer src="assets/js/pages/stamp.js?v=20260804-3"></script>
 </body>
 </html>

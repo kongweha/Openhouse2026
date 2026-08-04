@@ -20,7 +20,7 @@ const LANG = {
         saving: "Saving...",
         finalHeader: "📝 Final Assessment",
         finalDesc: "Based on today's activities, how likely are you to use the physical library space (e.g., Chula AIX) this semester?",
-        finalSubmit: "Confirm & Claim",
+        finalSubmit: "Submit assessment",
         successTitle: "🎁 Reward claimed successfully!",
         successSub: "(Cannot be played again)",
         evaluationCompleteTitle: "Activity evaluation completed",
@@ -34,10 +34,9 @@ const LANG = {
         favoriteStation: "Your favorite station",
         suggestion: "Suggestions",
         suggestionPlaceholder: "Enter suggestions (optional)",
-        selectScore: "Select 1–5",
         selectStation: "Select a station",
-        finalRatingSubmit: "Submit station and activity evaluation",
         evaluationSubmit: "Submit activity evaluation",
+        intentionPendingButton: "Complete the library-use assessment first",
         mapPlaceholder: "[ Map for reward pickup goes here ]",
         btnViewStamps: "View My Stamp Card",
         btnBackToReward: "⬅ Back to Reward Page",
@@ -80,7 +79,7 @@ const LANG = {
         saving: "กำลังบันทึก...",
         finalHeader: "📝 แบบประเมินก่อนรับรางวัล",
         finalDesc: "จากกิจกรรมในวันนี้ คุณมีความตั้งใจที่จะเข้าไปใช้บริการพื้นที่จริงของสำนักวิทยทรัพยากร (เช่น พื้นที่ Chula AIX) ภายในภาคการศึกษานี้ มากน้อยเพียงใด?",
-        finalSubmit: "ยืนยันและรับรางวัล",
+        finalSubmit: "ส่งแบบประเมิน",
         successTitle: "🎁 รับของรางวัลเรียบร้อยแล้ว!",
         successSub: "(ไม่สามารถเล่นซ้ำได้)",
         evaluationCompleteTitle: "ประเมินกิจกรรมเรียบร้อยแล้ว",
@@ -94,10 +93,9 @@ const LANG = {
         favoriteStation: "ฐานที่ชอบที่สุด",
         suggestion: "ข้อเสนอแนะ",
         suggestionPlaceholder: "พิมพ์ข้อเสนอแนะ (ไม่บังคับ)",
-        selectScore: "เลือกคะแนน 1–5",
         selectStation: "เลือกฐาน",
-        finalRatingSubmit: "ส่งแบบประเมินฐานและกิจกรรม",
         evaluationSubmit: "ส่งแบบประเมินกิจกรรม",
+        intentionPendingButton: "กรุณาประเมินแนวโน้มการใช้ห้องสมุดก่อน",
         mapPlaceholder: "[ พื้นที่สำหรับใส่แผนที่จุดรับของรางวัล ]",
         btnViewStamps: "ดูบัตรสะสมแต้ม",
         btnBackToReward: "⬅ กลับไปหน้าของรางวัล",
@@ -159,8 +157,10 @@ let pendingRatingStationId = null;
 let pendingRatingStationName = null;
 let pendingQrPayload = null;
 let selectedRating = 0;
+let finalSelectedRating = 0;
+let activityOverallRating = 0;
+let activityStationPreferences = {};
 let currentScreenView = null;
-let isFinalStationEvaluation = false;
 let isEvaluationOnly = false;
 
 // View and language controls
@@ -231,9 +231,12 @@ function applyLanguage() {
     document.getElementById('txtSuggestion').innerText = l.suggestion;
     document.getElementById('activitySuggestion').placeholder = l.suggestionPlaceholder;
     renderEvaluationOptions();
-    document.getElementById('btnSubmitRating').innerText = isFinalStationEvaluation
-        ? l.finalRatingSubmit
-        : isEvaluationOnly ? l.evaluationSubmit : l.ratingSubmitBtn;
+    document.getElementById('txtFinalHeader').innerText = l.finalHeader;
+    document.getElementById('txtFinalDesc').innerText = l.finalDesc;
+    document.getElementById('btnSubmitFinal').innerText = l.finalSubmit;
+    document.getElementById('btnSubmitRating').innerText = isEvaluationOnly
+        ? l.evaluationSubmit
+        : l.ratingSubmitBtn;
     updateRatingSubmitState();
     document.getElementById('txtMapPlaceholder').innerText = l.mapPlaceholder;
     document.getElementById('btnViewStamps').innerText = l.btnViewStamps;
@@ -396,7 +399,7 @@ function renderUI(userData) {
         { count, total: STATIONS.length },
     );
 
-    if (userData.activityEvaluation || userData.isRedeemed) {
+    if ((userData.activityEvaluation && userData.finalIntentionRating) || userData.isRedeemed) {
         btnRedeem.classList.add('hidden');
         btnBackToReward.style.display = 'block';
         btnLogoutStamp.style.display = 'none';
@@ -419,13 +422,19 @@ function renderUI(userData) {
         btnBackToReward.style.display = 'none';
         btnLogoutStamp.style.display = 'block';
 
-        btnRedeem.disabled = (count < STATIONS.length);
-        btnRedeem.innerText = (count < STATIONS.length)
+        const stationsComplete = count === STATIONS.length;
+        btnRedeem.disabled = !stationsComplete || !userData.finalIntentionRating;
+        btnRedeem.innerText = !stationsComplete
             ? formatMessage(l.redeemBtn, { total: STATIONS.length })
-            : l.redeemReadyBtn;
-        btnRedeem.style.backgroundColor = (count < STATIONS.length) ? "#fca5a5" : "#f87171";
+            : userData.finalIntentionRating
+                ? l.redeemReadyBtn
+                : l.intentionPendingButton;
+        btnRedeem.style.backgroundColor = btnRedeem.disabled ? "#fca5a5" : "#f87171";
 
         switchView('stamp');
+        if (stationsComplete && !userData.finalIntentionRating) {
+            setTimeout(openFinalIntentionAssessment, 0);
+        }
     }
 }
 
@@ -453,6 +462,15 @@ function toggleStationContent(stationId, forceOpen = false) {
     }
 }
 
+function renderStarButtons(container, selectedValue, onSelect) {
+    container.innerHTML = [1, 2, 3, 4, 5].map((value) =>
+        `<button type="button" class="${value <= selectedValue ? 'active' : ''}" data-value="${value}" role="radio" aria-checked="${value === selectedValue}" aria-label="${value} stars">★</button>`,
+    ).join('');
+    container.querySelectorAll('button').forEach((button) => {
+        button.addEventListener('click', () => onSelect(Number(button.dataset.value)));
+    });
+}
+
 function renderEvaluationOptions() {
     const l = LANG[currentLang];
     const favorite = document.getElementById('favoriteStation');
@@ -461,65 +479,63 @@ function renderEvaluationOptions() {
         STATIONS.map((station) => `<option value="${station.id}">${station.name}</option>`).join('');
     favorite.value = previousFavorite;
 
+    const overall = document.getElementById('overallSatisfaction');
+    overall.setAttribute('aria-label', l.overallSatisfaction);
+    renderStarButtons(overall, activityOverallRating, (value) => {
+        activityOverallRating = value;
+        renderEvaluationOptions();
+        updateRatingSubmitState();
+    });
+
     const container = document.getElementById('stationPreferenceFields');
-    const previous = Object.fromEntries(
-        [...container.querySelectorAll('select')].map((select) => [select.dataset.stationId, select.value]),
-    );
     container.innerHTML = STATIONS.map((station) => `
         <div class="station-preference-row">
-            <label for="stationPreference${station.id}">${station.name}</label>
-            <select id="stationPreference${station.id}" class="evaluation-control station-preference" data-station-id="${station.id}">
-                <option value="">${l.selectScore}</option>
-                <option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option>
-            </select>
+            <label>${station.name}</label>
+            <div class="evaluation-stars station-preference" data-station-id="${station.id}" role="radiogroup" aria-label="${station.name}"></div>
         </div>`).join('');
-    container.querySelectorAll('select').forEach((select) => {
-        select.value = previous[select.dataset.stationId] ?? '';
-        select.addEventListener('change', updateRatingSubmitState);
+    container.querySelectorAll('.station-preference').forEach((stars) => {
+        const stationId = Number(stars.dataset.stationId);
+        renderStarButtons(stars, activityStationPreferences[stationId] ?? 0, (value) => {
+            activityStationPreferences[stationId] = value;
+            renderEvaluationOptions();
+            updateRatingSubmitState();
+        });
     });
 }
 
 function resetActivityEvaluationFields() {
-    document.getElementById('overallSatisfaction').value = '';
+    activityOverallRating = 0;
+    activityStationPreferences = {};
     document.getElementById('favoriteStation').value = '';
     document.getElementById('activitySuggestion').value = '';
-    document.querySelectorAll('.station-preference').forEach((select) => { select.value = ''; });
+    renderEvaluationOptions();
 }
 
 function readActivityEvaluation() {
     return {
-        overallSatisfaction: Number(document.getElementById('overallSatisfaction').value),
-        stationPreferences: Object.fromEntries(
-            [...document.querySelectorAll('.station-preference')].map((select) => [
-                select.dataset.stationId,
-                Number(select.value),
-            ]),
-        ),
+        overallSatisfaction: activityOverallRating,
+        stationPreferences: { ...activityStationPreferences },
         favoriteStationId: Number(document.getElementById('favoriteStation').value),
         suggestion: document.getElementById('activitySuggestion').value.trim(),
     };
 }
 
 function isActivityEvaluationComplete() {
-    const evaluation = readActivityEvaluation();
-    return evaluation.overallSatisfaction >= 1 &&
-        evaluation.overallSatisfaction <= 5 &&
+    return activityOverallRating >= 1 &&
+        activityOverallRating <= 5 &&
         document.getElementById('favoriteStation').value !== '' &&
-        STATIONS.some((station) => station.id === evaluation.favoriteStationId) &&
         STATIONS.every((station) => {
-            const rating = evaluation.stationPreferences[station.id];
+            const rating = activityStationPreferences[station.id];
             return Number.isInteger(rating) && rating >= 1 && rating <= 5;
         });
 }
 
 function updateRatingSubmitState() {
-    const needsEvaluation = isFinalStationEvaluation || isEvaluationOnly;
-    const stationReady = isEvaluationOnly || selectedRating > 0;
-    document.getElementById('btnSubmitRating').disabled =
-        !stationReady || (needsEvaluation && !isActivityEvaluationComplete());
+    document.getElementById('btnSubmitRating').disabled = isEvaluationOnly
+        ? !isActivityEvaluationComplete()
+        : selectedRating === 0;
 }
 
-document.getElementById('overallSatisfaction').addEventListener('change', updateRatingSubmitState);
 document.getElementById('favoriteStation').addEventListener('change', updateRatingSubmitState);
 
 // Station rating
@@ -530,19 +546,12 @@ function showRatingBox(id, name, qrPayload) {
     pendingQrPayload = qrPayload;
     selectedRating = 0;
     isEvaluationOnly = false;
-    const completedCount = Object.values(globalUserData?.stations ?? {}).filter(Boolean).length;
-    isFinalStationEvaluation = completedCount === STATIONS.length - 1;
     document.getElementById('stationRatingFields').classList.remove('hidden');
-    document.getElementById('activityEvaluationFields').classList.toggle('hidden', !isFinalStationEvaluation);
-    if (isFinalStationEvaluation) resetActivityEvaluationFields();
-
+    document.getElementById('activityEvaluationFields').classList.add('hidden');
     document.getElementById('ratingTitle').innerText = name;
     document.getElementById('ratingBox').classList.remove('hidden');
     document.getElementById('mapWrapper').style.display = 'none';
-    document.getElementById('btnSubmitRating').disabled = true;
-    document.getElementById('btnSubmitRating').innerText = isFinalStationEvaluation
-        ? l.finalRatingSubmit
-        : l.ratingSubmitBtn;
+    document.getElementById('btnSubmitRating').innerText = l.ratingSubmitBtn;
 
     const emojis = document.querySelectorAll('#starContainer span');
     emojis.forEach(emoji => {
@@ -550,7 +559,7 @@ function showRatingBox(id, name, qrPayload) {
         emoji.onclick = function() {
             emojis.forEach(s => s.classList.remove('active'));
             this.classList.add('active');
-            selectedRating = parseInt(this.getAttribute('data-value'));
+            selectedRating = Number(this.dataset.value);
             updateRatingSubmitState();
         };
     });
@@ -558,12 +567,12 @@ function showRatingBox(id, name, qrPayload) {
 }
 
 function openActivityEvaluationOnly() {
+    if (!globalUserData?.finalIntentionRating) {
+        openFinalIntentionAssessment();
+        return;
+    }
     isEvaluationOnly = true;
-    isFinalStationEvaluation = false;
     selectedRating = 0;
-    pendingRatingStationId = null;
-    pendingRatingStationName = null;
-    pendingQrPayload = null;
     resetActivityEvaluationFields();
     document.getElementById('stationRatingFields').classList.add('hidden');
     document.getElementById('activityEvaluationFields').classList.remove('hidden');
@@ -574,59 +583,50 @@ function openActivityEvaluationOnly() {
 }
 
 async function submitRating() {
-    if ((!isEvaluationOnly && (selectedRating === 0 || pendingRatingStationId === null)) ||
-        ((isFinalStationEvaluation || isEvaluationOnly) && !isActivityEvaluationComplete())) {
+    if (isEvaluationOnly && !isActivityEvaluationComplete()) {
         alert(LANG[currentLang].alerts.evaluationRequired);
         return;
     }
+    if (!isEvaluationOnly && (selectedRating === 0 || pendingRatingStationId === null)) return;
     const l = LANG[currentLang];
     const btn = document.getElementById('btnSubmitRating');
+    const wasEvaluationOnly = isEvaluationOnly;
+    const completedBefore = Object.values(globalUserData?.stations ?? {}).filter(Boolean).length;
     btn.disabled = true;
-
-    const targetId = pendingRatingStationId;
-    const targetName = pendingRatingStationName;
-    const currentRating = selectedRating;
-    const qrPayload = pendingQrPayload;
-
     document.getElementById('ratingBox').classList.add('hidden');
     document.getElementById('mapWrapper').style.display = 'flex';
-    if (!isEvaluationOnly) toggleStationContent(targetId, true);
     try {
-        const evaluation = isFinalStationEvaluation || isEvaluationOnly
-            ? readActivityEvaluation()
-            : null;
-        const { participant } = isEvaluationOnly
+        const { participant } = wasEvaluationOnly
             ? await API.participant.submitEvaluation(
                 currentUserCode,
                 currentSessionToken,
-                evaluation,
+                readActivityEvaluation(),
             )
             : await API.participant.completeStation(
                 currentUserCode,
                 currentSessionToken,
-                targetId,
-                currentRating,
-                qrPayload,
-                evaluation,
+                pendingRatingStationId,
+                selectedRating,
+                pendingQrPayload,
             );
         globalUserData = participant;
         pendingRatingStationId = null;
         pendingRatingStationName = null;
         pendingQrPayload = null;
-        if (evaluation) currentScreenView = 'reward';
-        isFinalStationEvaluation = false;
         isEvaluationOnly = false;
+        if (wasEvaluationOnly) currentScreenView = 'reward';
         renderUI(globalUserData);
-    } catch(e) {
-        if (handleSessionError(e)) return;
-        console.error("Save Error", e);
-        alert(e.code === 'EXPIRED_QR' ? l.alerts.errQrExpire : l.alerts.errSave);
+        if (!wasEvaluationOnly && completedBefore === STATIONS.length - 1) {
+            openFinalIntentionAssessment();
+        }
+    } catch (error) {
+        if (handleSessionError(error)) return;
+        console.error("Save Error", error);
+        alert(error.code === 'EXPIRED_QR' ? l.alerts.errQrExpire : l.alerts.errSave);
         document.getElementById('ratingBox').classList.remove('hidden');
         document.getElementById('mapWrapper').style.display = 'none';
     } finally {
-        btn.innerText = isFinalStationEvaluation
-            ? l.finalRatingSubmit
-            : isEvaluationOnly ? l.evaluationSubmit : l.ratingSubmitBtn;
+        btn.innerText = isEvaluationOnly ? l.evaluationSubmit : l.ratingSubmitBtn;
         updateRatingSubmitState();
     }
 }
@@ -785,6 +785,52 @@ function resetScannerUI() {
     isProcessingScan = false;
 }
 
+// Library-use intention assessment shown after the final station
+function openFinalIntentionAssessment() {
+    const overlay = document.getElementById('finalAssessmentOverlay');
+    if (!overlay.classList.contains('hidden')) return;
+    finalSelectedRating = 0;
+    overlay.classList.remove('hidden');
+    document.getElementById('btnSubmitFinal').disabled = true;
+    const stars = document.querySelectorAll('#finalStarContainer span');
+    stars.forEach((star) => {
+        star.classList.remove('active');
+        star.onclick = function() {
+            finalSelectedRating = Number(this.dataset.value);
+            stars.forEach((item, index) => {
+                item.classList.toggle('active', index < finalSelectedRating);
+            });
+            document.getElementById('btnSubmitFinal').disabled = false;
+        };
+    });
+}
+
+function closeFinalIntentionAssessment() {
+    document.getElementById('finalAssessmentOverlay').classList.add('hidden');
+}
+
+async function submitFinalIntentionAssessment() {
+    if (!finalSelectedRating) return;
+    const btn = document.getElementById('btnSubmitFinal');
+    btn.disabled = true;
+    try {
+        const { participant } = await API.participant.submitFinalIntention(
+            currentUserCode,
+            currentSessionToken,
+            finalSelectedRating,
+        );
+        globalUserData = participant;
+        closeFinalIntentionAssessment();
+        renderUI(globalUserData);
+    } catch (error) {
+        if (handleSessionError(error)) return;
+        console.error("Final intention assessment error", error);
+        alert(LANG[currentLang].alerts.errSave);
+    } finally {
+        btn.disabled = false;
+    }
+}
+
 // Staff reward confirmation
 async function confirmRewardReceipt() {
     const l = LANG[currentLang];
@@ -849,6 +895,7 @@ function clearLocalSession() {
         document.getElementById('ratingBox').classList.add('hidden');
         document.getElementById('mapWrapper').style.display = 'flex';
 
+        closeFinalIntentionAssessment();
     } catch (error) { location.reload(); }
 }
 

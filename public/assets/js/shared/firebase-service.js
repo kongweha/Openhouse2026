@@ -110,6 +110,7 @@
       redeemTime: user.redeemTime ?? null,
       ratings: user.ratings ?? {},
       scanHistory: user.scanHistory ?? {},
+      finalIntentionRating: user.finalIntentionRating ?? null,
       activityEvaluation: user.activityEvaluation ?? null,
       drawnCardId: user.drawnCardId ?? null,
     };
@@ -357,14 +358,10 @@
     stationId,
     ratingValue,
     qrPayload,
-    activityEvaluationValue = null,
   ) {
     const accessCode = normalizeAccessCode(accessCodeValue);
     const rating = assertRating(ratingValue);
     const station = validateQrPayload(qrPayload, stationId);
-    const activityEvaluation = activityEvaluationValue
-      ? normalizeActivityEvaluation(activityEvaluationValue)
-      : null;
     const historyKey = db
       .ref(`users/${accessCode}/scanHistory`)
       .push().key;
@@ -386,23 +383,50 @@
           name: station.name,
           time: scannedAt,
         };
-        if (stationValues(user).filter(Boolean).length === stations.length) {
-          if (!activityEvaluation) {
-            fail(
-              "ACTIVITY_EVALUATION_REQUIRED",
-              "The final station requires an activity evaluation.",
-            );
-          }
-          user.activityEvaluation = {
-            ...activityEvaluation,
-            submittedAt: scannedAt,
-          };
-        }
         return user;
       },
     );
     if (!transaction.committed) {
       fail("STATION_UPDATE_REJECTED", "Station update was rejected.");
+    }
+    return {
+      participant: sanitizeParticipant(
+        accessCode,
+        transaction.snapshot.val(),
+      ),
+    };
+  }
+
+  async function submitFinalIntention(
+    accessCodeValue,
+    sessionToken,
+    ratingValue,
+  ) {
+    const accessCode = normalizeAccessCode(accessCodeValue);
+    const finalIntentionRating = assertRating(
+      ratingValue,
+      "INVALID_FINAL_INTENTION_RATING",
+    );
+    const userReference = db.ref(`users/${accessCode}`);
+    const transaction = await transactionFromServerSnapshot(
+      userReference,
+      (user) => {
+        if (!user?.registration?.studentId) return;
+        assertActiveSession(user, sessionToken);
+        if (stationValues(user).filter(Boolean).length !== stations.length) {
+          return;
+        }
+        if (!user.isRedeemed) {
+          user.finalIntentionRating = finalIntentionRating;
+        }
+        return user;
+      },
+    );
+    if (!transaction.committed) {
+      fail(
+        "FINAL_INTENTION_NOT_READY",
+        "All stations must be complete before this assessment.",
+      );
     }
     return {
       participant: sanitizeParticipant(
@@ -430,6 +454,7 @@
         if (stationValues(user).filter(Boolean).length !== stations.length) {
           return;
         }
+        if (!user.finalIntentionRating) return;
         if (user.isRedeemed) return user;
         user.activityEvaluation = {
           ...activityEvaluation,
@@ -462,6 +487,7 @@
         assertActiveSession(user, sessionToken);
         if (
           stationValues(user).filter(Boolean).length !== stations.length ||
+          !user.finalIntentionRating ||
           !user.activityEvaluation
         ) {
           return;
@@ -585,6 +611,7 @@
       login,
       get: getParticipant,
       completeStation,
+      submitFinalIntention,
       submitEvaluation,
       confirmReward,
       draw,

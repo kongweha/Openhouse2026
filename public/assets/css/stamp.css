@@ -54,9 +54,12 @@ button:active { transform: scale(0.97); }
 .activity-evaluation h3 { margin: 0 0 16px; color: #be185d; text-align: center; }
 .activity-evaluation label, .evaluation-label { display: block; margin: 12px 0 6px; color: #334155; font-weight: 700; }
 .evaluation-control { width: 100%; padding: 11px; border: 2px solid #cbd5e1; border-radius: 10px; background: white; color: #0f172a; font: inherit; }
-.station-preference-row { display: grid; grid-template-columns: minmax(0, 1fr) 82px; gap: 10px; align-items: center; margin-bottom: 8px; }
+.station-preference-row { display: grid; grid-template-columns: 1fr; gap: 10px; align-items: center; margin-bottom: 8px; padding: 10px 0; border-bottom: 1px solid #e2e8f0; }
 .station-preference-row label { margin: 0; font-size: 13px; }
-.station-preference-row select { padding: 8px; }
+.evaluation-stars { display: flex; justify-content: center; gap: 5px; margin: 6px 0 12px; }
+.evaluation-stars button { width: auto; margin: 0; padding: 2px; border: 0; background: transparent; color: #cbd5e1; box-shadow: none; font-size: 30px; line-height: 1; }
+.evaluation-stars button.active { color: #f59e0b; }
+.evaluation-stars button:focus-visible { outline: 3px solid rgba(245, 158, 11, .3); outline-offset: 2px; }
 .btn-cancel { background-color: #64748b; color: white; display: none; margin-top: 10px; }
 .btn-logout { background-color: #94a3b8; color: white; margin-top: 10px; font-size: 14px; padding: 10px; }
 .btn-back-reward { background-color: #f59e0b; color: white; margin-top: 15px; box-shadow: 0 4px 6px rgba(245,158,11,0.25); }
