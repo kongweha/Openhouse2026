@@ -1,5 +1,11 @@
 # Handoff — OpenHouse2026
 
+## 2026-08-04 station presentation update
+
+- Replaced all seven station illustrations with the owner-provided images. Each supplied image is copied to both the uncollected and collected runtime assets for its station.
+- Renamed `Play Zone` to `Play Time` in the shared station configuration.
+- Station detail popups now show only the localized station title and content. The scan-time rating flow and stored rating data remain unchanged.
+
 - อัปเดต: 2026-08-04
 - Branch: `main`
 - Deploy: GitHub Pages จาก `public/`

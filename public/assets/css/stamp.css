@@ -85,7 +85,6 @@ button:active { transform: scale(0.97); }
 .stars span.active { opacity: 1; filter: grayscale(0%); transform: scale(1.06); font-weight: bold; color: #b45309; background-color: #fef08a; border-color: #fde047; box-shadow: 0 4px 8px rgba(253, 224, 71, 0.3); }
 .stars span .emoji { font-size: 26px; margin-bottom: 2px; }
 .stars span .rating-label { font-size: 11px; }
-.display-stars { font-size: 14px; color: #d97706; margin-top: 15px; padding-top: 12px; border-top: 1px dashed #fcd34d; font-weight: bold; text-align: center;}
 
 /* Success Banner */
 .success-banner { background-color: #fffbeb; border: 2px solid #f59e0b; color: #d97706; padding: 25px 15px; border-radius: 16px; margin: 15px 0; font-weight: bold; box-shadow: 0 4px 10px rgba(245,158,11,0.15); animation: fadeIn 0.3s ease;}

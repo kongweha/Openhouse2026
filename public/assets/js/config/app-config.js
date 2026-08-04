@@ -33,7 +33,7 @@
     },
     {
       id: 2,
-      name: "Play Zone",
+      name: "Play Time",
       qrCode: "QR_STN_03",
       images: {
         unstamped: `${stationImageRoot}/play-zone-uncollected.webp`,

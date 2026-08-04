@@ -3,7 +3,7 @@
 The project contains 30 production images: 14 station states and 16 prediction
 cards.
 
-The station images and prediction cards 1–7 were copied byte-for-byte from:
+The original station images and prediction cards 1–7 were copied byte-for-byte from:
 
 - Repository: `kongweha/Gametest`
 - Source directory: `picture/`
@@ -17,15 +17,18 @@ The source-to-local mapping is documented below.
 
 ## Station images
 
-| Station | Uncollected source | Collected source |
-| --- | --- | --- |
-| Library journey | `LIBRARY PLAYGROUND1.webp` | `LIBRARY PLAYGROUND2.webp` |
-| Query Quarry | `Discovery LAB1.webp` | `Discovery LAB2.webp` |
-| Play Zone | `Play ZONE1.webp` | `Play ZONE2.webp` |
-| Perfect Match | `Treasure corner1.webp` | `Treasure corner2.webp` |
-| Camera Go! | `Media studio1.webp` | `Media studio2.webp` |
-| Joy Tech Station | `8.webp` | `1145405557.webp` |
-| Green Mission | `Safety Checkpoint1.webp` | `Safety Checkpoint2.webp` |
+The current station artwork was provided by the project owner on 2026-08-04.
+Each supplied image is used for both the uncollected and collected runtime assets.
+
+| Station | Current source for both states |
+| --- | --- |
+| Library journey | `Library journey.webp` |
+| Query Quarry | `Query Quarry.webp` |
+| Play Time | `Play Time.webp` |
+| Perfect Match: TAIC Collections | `Perfect Match TAIC Collections.webp` |
+| Camera Go! | `Camera Go!.webp` |
+| Joy Tech Station | `Joy Tech Station.webp` |
+| Green Mission | `Green Mission.webp` |
 
 ## Card images
 

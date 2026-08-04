@@ -49,8 +49,6 @@ const LANG = {
         txtDrawTitle: "🔮 Wheel of Fate",
         btnStartDraw: "Draw a Card",
         emoji: ["Confused", "Complex", "Okay", "Clear", "Super Clear"],
-        ratingResultTitle: "⭐ Your Rating",
-        ratingLabels: { 1: "😵‍💫 Confused", 2: "🤔 Complex", 3: "😐 Okay", 4: "🙂 Clear", 5: "🤩 Super Clear" },
         alerts: {
             errLength: "Please enter all {length} digits.",
             errNotFound: "❌ Code not found in the system.",
@@ -113,8 +111,6 @@ const LANG = {
         txtDrawTitle: "🔮 หมุนล้อชะตา",
         btnStartDraw: "เริ่มสุ่มการ์ด",
         emoji: ["งงมาก", "แอบซับซ้อน", "พอได้อยู่", "เข้าใจดี", "เคลียร์สุดๆ"],
-        ratingResultTitle: "⭐ ผลการประเมินของคุณ",
-        ratingLabels: { 1: "😵‍💫 งงมาก", 2: "🤔 แอบซับซ้อน", 3: "😐 พอได้อยู่", 4: "🙂 เข้าใจดี", 5: "🤩 เคลียร์สุดๆ" },
         alerts: {
             errLength: "กรุณากรอกรหัสให้ครบ {length} หลัก",
             errNotFound: "❌ ไม่พบรหัสนี้ในระบบ",
@@ -449,24 +445,13 @@ function renderUI(userData) {
 
 function toggleStationContent(stationId, forceOpen = false) {
     const box = document.getElementById('contentBox');
-    const l = LANG[currentLang];
     const contentText = STATIONS[stationId].content[currentLang];
 
     if (!forceOpen && box.dataset.activeId == stationId && !box.classList.contains('hidden')) {
         box.classList.add('hidden');
     } else {
         box.dataset.activeId = stationId;
-        let ratingHtml = "";
-        if (globalUserData && globalUserData.ratings && globalUserData.ratings[stationId]) {
-            const starCount = globalUserData.ratings[stationId];
-            const ratingResult = l.ratingLabels[starCount] || "";
-            ratingHtml = `
-            <div class="display-stars">
-                ${l.ratingResultTitle}
-                <div style="font-size:20px; color:#b45309; margin-top:5px; font-weight:normal;">${ratingResult}</div>
-            </div>`;
-        }
-        box.innerHTML = `<h3>📖 ${STATIONS[stationId].name}</h3><p>${contentText}</p>${ratingHtml}`;
+        box.innerHTML = `<h3>📖 ${STATIONS[stationId].name}</h3><p>${contentText}</p>`;
         box.classList.remove('hidden');
     }
 }

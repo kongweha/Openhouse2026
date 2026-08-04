@@ -117,6 +117,12 @@ studentRegistrations/{studentId}
 4. **High — ปุ่มยืนยันรับรางวัลระบุว่าเจ้าหน้าที่เท่านั้น แต่ยังไม่มี Staff Auth/Rules จึงบังคับสิทธิ์จริงไม่ได้**
 5. browser timestamps และ client validation แก้ไขได้
 
+## Station presentation
+
+- The seven station illustrations were replaced with owner-provided artwork on 2026-08-04. Each station uses the same supplied illustration for its uncollected and collected asset paths; the uncollected state remains visually dimmed by CSS.
+- Station ID 2 is named `Play Time` in the shared station configuration.
+- Clicking a station displays only its localized title and content. Previously submitted station-rating results are not appended to this detail view; the scan-time rating flow and stored rating data remain unchanged.
+
 ## Ownership
 
 | เรื่อง | Source of truth |
