@@ -148,6 +148,16 @@
     elements.formStatus.textContent = activeCopy().errors[currentErrorCode] ?? activeCopy().errors.default;
   }
 
+  function scrollToAccessCode() {
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    window.requestAnimationFrame(() => {
+      elements.resultPanel.scrollIntoView({
+        behavior: reduceMotion ? "auto" : "smooth",
+        block: "center",
+      });
+    });
+  }
+
   elements.langTh.addEventListener("click", () => setLanguage("th"));
   elements.langEn.addEventListener("click", () => setLanguage("en"));
   elements.studentId.addEventListener("input", normalizeStudentId);
@@ -175,6 +185,7 @@
       currentResult = result;
       elements.resultPanel.classList.remove("hidden");
       renderResult();
+      if (result.created) scrollToAccessCode();
     } catch (error) {
       showError(error);
     } finally {
