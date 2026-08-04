@@ -45,6 +45,37 @@
     fail("INVALID_VISIT_HISTORY", "Visit history must be yes or no.");
   }
 
+  function normalizeEducationLevel(value) {
+    const educationLevel = String(value ?? "").trim();
+    if (!["bachelor", "master", "doctorate"].includes(educationLevel)) {
+      fail(
+        "INVALID_EDUCATION_LEVEL",
+        "Education level must be bachelor, master, or doctorate.",
+      );
+    }
+    return educationLevel;
+  }
+
+  function createSessionToken() {
+    if (typeof window.crypto.randomUUID === "function") {
+      return window.crypto.randomUUID();
+    }
+    const values = new Uint32Array(4);
+    window.crypto.getRandomValues(values);
+    return [...values]
+      .map((value) => value.toString(16).padStart(8, "0"))
+      .join("");
+  }
+
+  function assertActiveSession(user, sessionToken) {
+    if (
+      !sessionToken ||
+      user?.activeSession?.token !== String(sessionToken)
+    ) {
+      fail("SESSION_REPLACED", "This session is no longer active.");
+    }
+  }
+
   function stationValues(user) {
     return Array.isArray(user?.stations)
       ? user.stations
@@ -143,10 +174,15 @@
     });
   }
 
-  async function register(studentIdValue, hasVisitedValue) {
+  async function register(
+    studentIdValue,
+    hasVisitedValue,
+    educationLevelValue,
+  ) {
     const studentId = normalizeStudentId(studentIdValue);
     const hasVisitedOpenHouse =
       normalizeVisitedFlag(hasVisitedValue);
+    const educationLevel = normalizeEducationLevel(educationLevelValue);
     const registeredAt = Date.now();
     const registrationReference = db.ref(
       `studentRegistrations/${studentId}`,
@@ -158,10 +194,7 @@
     ]);
     const existing = existingSnapshot.val();
     if (existing?.accessCode) {
-      return {
-        accessCode: normalizeAccessCode(existing.accessCode),
-        created: false,
-      };
+      return { created: false };
     }
 
     const users = usersSnapshot.val() ?? {};
@@ -188,6 +221,7 @@
             registration: {
               studentId,
               hasVisitedOpenHouse,
+              educationLevel,
               registeredAt,
             },
           };
@@ -215,6 +249,7 @@
               studentId,
               accessCode,
               hasVisitedOpenHouse,
+              educationLevel,
               registeredAt,
             };
           },
@@ -234,10 +269,7 @@
         normalizeAccessCode(assignedAccessCode);
       if (normalizedAssignedCode !== accessCode) {
         await releaseClaim();
-        return {
-          accessCode: normalizedAssignedCode,
-          created: false,
-        };
+        return { created: false };
       }
 
       return { accessCode, created: true };
@@ -249,28 +281,20 @@
     );
   }
 
-  async function recover(studentIdValue) {
-    const studentId = normalizeStudentId(studentIdValue);
-    const snapshot = await db
-      .ref(`studentRegistrations/${studentId}/accessCode`)
-      .once("value");
-    if (!snapshot.exists()) {
-      fail(
-        "REGISTRATION_NOT_FOUND",
-        "No registration was found for this student ID.",
-      );
-    }
-    return { accessCode: normalizeAccessCode(snapshot.val()) };
-  }
-
   async function login(accessCodeValue) {
     const accessCode = normalizeAccessCode(accessCodeValue);
+    const sessionToken = createSessionToken();
+    const sessionStartedAt = Date.now();
     const userReference = db.ref(`users/${accessCode}`);
     const transaction = await transactionFromServerSnapshot(
       userReference,
       (user) => {
         if (!user?.registration?.studentId) return;
         user.loginTime ??= Date.now();
+        user.activeSession = {
+          token: sessionToken,
+          startedAt: sessionStartedAt,
+        };
         return user;
       },
     );
@@ -278,6 +302,7 @@
       fail("CODE_NOT_REGISTERED", "Participant code is not registered.");
     }
     return {
+      sessionToken,
       participant: sanitizeParticipant(
         accessCode,
         transaction.snapshot.val(),
@@ -295,6 +320,7 @@
 
   async function completeStation(
     accessCodeValue,
+    sessionToken,
     stationId,
     ratingValue,
     qrPayload,
@@ -311,6 +337,7 @@
       userReference,
       (user) => {
         if (!user?.registration?.studentId || user.isRedeemed) return;
+        assertActiveSession(user, sessionToken);
         user.stations ??= Array(stations.length).fill(false);
         if (user.stations[stationId] === true) return user;
         user.stations[stationId] = true;
@@ -336,7 +363,11 @@
     };
   }
 
-  async function redeem(accessCodeValue, finalRatingValue) {
+  async function redeem(
+    accessCodeValue,
+    sessionToken,
+    finalRatingValue,
+  ) {
     const accessCode = normalizeAccessCode(accessCodeValue);
     const finalIntentionRating = assertRating(
       finalRatingValue,
@@ -347,6 +378,7 @@
       userReference,
       (user) => {
         if (!user?.registration?.studentId) return;
+        assertActiveSession(user, sessionToken);
         if (stationValues(user).filter(Boolean).length !== stations.length) {
           return;
         }
@@ -372,13 +404,14 @@
     };
   }
 
-  async function draw(accessCodeValue) {
+  async function draw(accessCodeValue, sessionToken) {
     const accessCode = normalizeAccessCode(accessCodeValue);
     const userReference = db.ref(`users/${accessCode}`);
     const transaction = await transactionFromServerSnapshot(
       userReference,
       (user) => {
         if (!user?.registration?.studentId || !user.isRedeemed) return;
+        assertActiveSession(user, sessionToken);
         user.drawnCardId ??=
           Math.floor(Math.random() * config.destinyCards.length) + 1;
         return user;
@@ -393,6 +426,39 @@
         transaction.snapshot.val(),
       ),
     };
+  }
+
+  async function logout(accessCodeValue, sessionToken) {
+    const accessCode = normalizeAccessCode(accessCodeValue);
+    const userReference = db.ref(`users/${accessCode}`);
+    await transactionFromServerSnapshot(userReference, (user) => {
+      if (!user || user.activeSession?.token !== String(sessionToken)) {
+        return user;
+      }
+      const updatedUser = { ...user };
+      delete updatedUser.activeSession;
+      return updatedUser;
+    });
+    return { loggedOut: true };
+  }
+
+  async function watchSession(accessCodeValue, sessionToken, onReplaced) {
+    const accessCode = normalizeAccessCode(accessCodeValue);
+    const expectedToken = String(sessionToken ?? "");
+    const sessionReference = db.ref(
+      `users/${accessCode}/activeSession/token`,
+    );
+    const initialSnapshot = await sessionReference.once("value");
+    if (initialSnapshot.val() !== expectedToken) {
+      onReplaced();
+      return () => {};
+    }
+
+    const handler = (snapshot) => {
+      if (snapshot.val() !== expectedToken) onReplaced();
+    };
+    sessionReference.on("value", handler);
+    return () => sessionReference.off("value", handler);
   }
 
   async function getUsers() {
@@ -431,13 +497,15 @@
 
   window.OpenHouseApi = Object.freeze({
     FirebaseServiceError,
-    registration: Object.freeze({ register, recover }),
+    registration: Object.freeze({ register }),
     participant: Object.freeze({
       login,
       get: getParticipant,
       completeStation,
       redeem,
       draw,
+      logout,
+      watchSession,
     }),
     admin: Object.freeze({ getUsers, resetCodes, clearUsers }),
   });

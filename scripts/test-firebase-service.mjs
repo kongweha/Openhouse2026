@@ -168,7 +168,7 @@ test("registration allocates the lowest unused code and is idempotent", async ()
     },
   });
 
-  const created = await api.registration.register("1234567890", "yes");
+  const created = await api.registration.register("1234567890", "yes", "bachelor");
   assert.ok(database.readPaths.has("users/100001"));
   assert.deepEqual(
     { ...created },
@@ -182,19 +182,21 @@ test("registration allocates the lowest unused code and is idempotent", async ()
     database.data.studentRegistrations["1234567890"].accessCode,
     "100001",
   );
+  assert.equal(
+    database.data.users["100001"].registration.educationLevel,
+    "bachelor",
+  );
 
-  const repeated = await api.registration.register("1234567890", "no");
+  const repeated = await api.registration.register("1234567890", "no", "master");
   assert.deepEqual(
     { ...repeated },
-    { accessCode: "100001", created: false },
+    { created: false },
   );
   assert.equal(
     database.data.users["100001"].registration.hasVisitedOpenHouse,
     true,
   );
-
-  const recovered = await api.registration.recover("1234567890");
-  assert.equal(recovered.accessCode, "100001");
+  assert.equal(api.registration.recover, undefined);
 });
 
 test("participant completes stations, redeems, and draws once", async () => {
@@ -218,14 +220,16 @@ test("participant completes stations, redeems, and draws once", async () => {
 
   const login = await api.participant.login("100001");
   assert.ok(login.participant.loginTime);
+  assert.ok(login.sessionToken);
 
   await assert.rejects(
-    api.participant.redeem("100001", 5),
+    api.participant.redeem("100001", login.sessionToken, 5),
     (error) => error.code === "REDEEM_NOT_READY",
   );
 
   const first = await api.participant.completeStation(
     "100001",
+    login.sessionToken,
     0,
     5,
     `QR_STN_01|${Date.now()}`,
@@ -235,20 +239,59 @@ test("participant completes stations, redeems, and draws once", async () => {
 
   await api.participant.completeStation(
     "100001",
+    login.sessionToken,
     1,
     4,
     `QR_STN_02|${Date.now()}`,
   );
-  const redeemed = await api.participant.redeem("100001", 5);
+  const redeemed = await api.participant.redeem("100001", login.sessionToken, 5);
   assert.equal(redeemed.participant.isRedeemed, true);
 
-  const drawn = await api.participant.draw("100001");
-  const drawnAgain = await api.participant.draw("100001");
+  const drawn = await api.participant.draw("100001", login.sessionToken);
+  const drawnAgain = await api.participant.draw("100001", login.sessionToken);
   assert.ok([1, 2].includes(drawn.participant.drawnCardId));
   assert.equal(
     drawnAgain.participant.drawnCardId,
     drawn.participant.drawnCardId,
   );
+});
+
+test("a newer login replaces the previous participant session", async () => {
+  const { api } = createService({
+    users: {
+      "100001": {
+        ...emptyParticipant(),
+        registration: {
+          studentId: "1234567890",
+          hasVisitedOpenHouse: false,
+          educationLevel: "master",
+          registeredAt: Date.now(),
+        },
+      },
+    },
+  });
+
+  const firstLogin = await api.participant.login("100001");
+  const secondLogin = await api.participant.login("100001");
+  assert.notEqual(firstLogin.sessionToken, secondLogin.sessionToken);
+  await assert.rejects(
+    api.participant.completeStation(
+      "100001",
+      firstLogin.sessionToken,
+      0,
+      5,
+      `QR_STN_01|${Date.now()}`,
+    ),
+    (error) => error.code === "SESSION_REPLACED",
+  );
+  const updated = await api.participant.completeStation(
+    "100001",
+    secondLogin.sessionToken,
+    0,
+    5,
+    `QR_STN_01|${Date.now()}`,
+  );
+  assert.equal(updated.participant.stations[0], true);
 });
 
 test("registration fails clearly when no unused code remains", async () => {
@@ -264,7 +307,7 @@ test("registration fails clearly when no unused code remains", async () => {
   });
 
   await assert.rejects(
-    api.registration.register("1234567890", false),
+    api.registration.register("1234567890", false, "doctorate"),
     (error) => error.code === "NO_AVAILABLE_CODES",
   );
 });
@@ -278,13 +321,11 @@ test("concurrent requests for one student keep only one claimed code", async () 
   });
 
   const results = await Promise.all([
-    api.registration.register("1234567890", "yes"),
-    api.registration.register("1234567890", "yes"),
+    api.registration.register("1234567890", "yes", "bachelor"),
+    api.registration.register("1234567890", "yes", "bachelor"),
   ]);
-  assert.deepEqual(
-    new Set(results.map((result) => result.accessCode)),
-    new Set(["100001"]),
-  );
+  assert.equal(results.filter((result) => result.created).length, 1);
+  assert.equal(results.find((result) => result.created).accessCode, "100001");
   assert.equal(
     Object.values(database.data.users).filter(
       (user) => user.registration?.studentId === "1234567890",

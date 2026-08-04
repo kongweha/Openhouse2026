@@ -39,7 +39,8 @@ const LANG = {
             errQrExpire: "❌ QR Code expired. Please scan the latest QR.",
             errQrFormat: "❌ Invalid QR code format.",
             errQrWrong: "❌ Wrong QR code for this station.",
-            errSave: "Error saving data. Please try again."
+            errSave: "Error saving data. Please try again.",
+            sessionReplaced: "This code was opened on another device. This session has been signed out."
         }
     },
     th: {
@@ -80,7 +81,8 @@ const LANG = {
             errQrExpire: "❌ QR Code นี้หมดอายุแล้ว\nกรุณาสแกน QR Code ล่าสุด",
             errQrFormat: "❌ รูปแบบ QR Code ไม่ถูกต้อง",
             errQrWrong: "❌ QR Code ไม่ถูกต้องสำหรับฐานนี้",
-            errSave: "เกิดข้อผิดพลาดในการบันทึก กรุณาลองใหม่"
+            errSave: "เกิดข้อผิดพลาดในการบันทึก กรุณาลองใหม่",
+            sessionReplaced: "รหัสนี้ถูกเปิดจากอุปกรณ์อื่น ระบบจึงออกจากระบบของอุปกรณ์นี้แล้ว"
         }
     }
 };
@@ -107,6 +109,9 @@ window.addEventListener('load', () => {
 
 // Participant session state
 let currentUserCode = "";
+let currentSessionToken = "";
+let stopSessionWatch = null;
+let isHandlingSessionReplacement = false;
 let html5QrCode;
 let activeTargetStation = null;
 let isScannerInitializing = false;
@@ -162,7 +167,7 @@ function applyLanguage() {
     document.getElementById('btnLogin').innerText = l.loginBtn;
     const forgotCodeLink = document.getElementById('forgotCodeLink');
     forgotCodeLink.innerText = l.forgotCode;
-    forgotCodeLink.href = `registration.html?mode=recover&lang=${currentLang}`;
+    forgotCodeLink.href = `forgot-code.html?lang=${currentLang}`;
     document.getElementById('txtCardTitle').innerText = l.cardTitle;
     document.getElementById('subStatusText').innerText = l.stampSubStatus;
     document.getElementById('btnCancel').innerText = l.cancelScanBtn;
@@ -266,8 +271,9 @@ async function login() {
     btn.disabled = true; btn.innerText = l.checking;
 
     try {
-        const { participant } = await API.participant.login(input);
+        const { participant, sessionToken } = await API.participant.login(input);
         currentUserCode = input;
+        currentSessionToken = sessionToken;
         currentScreenView = null;
         globalUserData = participant;
 
@@ -275,6 +281,7 @@ async function login() {
         document.getElementById('stampScreen').classList.remove('hidden');
         document.getElementById('displayUserCode').innerText = l.userIdPrefix + currentUserCode;
         renderUI(globalUserData);
+        await beginSessionWatch();
     } catch (error) {
         alert(
             error.code === 'CODE_NOT_REGISTERED'
@@ -431,6 +438,7 @@ async function submitRating() {
     try {
         const { participant } = await API.participant.completeStation(
             currentUserCode,
+            currentSessionToken,
             targetId,
             currentRating,
             qrPayload,
@@ -441,6 +449,7 @@ async function submitRating() {
         pendingQrPayload = null;
         renderUI(globalUserData);
     } catch(e) {
+        if (handleSessionError(e)) return;
         console.error("Save Error", e);
         alert(e.code === 'EXPIRED_QR' ? l.alerts.errQrExpire : l.alerts.errSave);
         document.getElementById('ratingBox').classList.remove('hidden');
@@ -488,10 +497,14 @@ function startCardDraw() {
         icon.classList.remove('shuffle-anim');
 
         try {
-            const { participant } = await API.participant.draw(currentUserCode);
+            const { participant } = await API.participant.draw(
+                currentUserCode,
+                currentSessionToken,
+            );
             globalUserData = participant;
             showDrawnCard(participant.drawnCardId);
         } catch(e) {
+            if (handleSessionError(e)) return;
             console.error("Save Draw Error", e);
             btn.disabled = false;
         }
@@ -631,6 +644,7 @@ async function submitFinalAssessment() {
     try {
         const { participant } = await API.participant.redeem(
             currentUserCode,
+            currentSessionToken,
             finalSelectedRating,
         );
         globalUserData = participant;
@@ -638,6 +652,7 @@ async function submitFinalAssessment() {
         closeFinalAssessment();
         switchView('reward');
     } catch(e) {
+        if (handleSessionError(e)) return;
         console.error("Save Error", e);
         alert(LANG[currentLang].alerts.errSave);
     } finally {
@@ -646,10 +661,29 @@ async function submitFinalAssessment() {
 }
 
 // Session cleanup
-function logout() {
+function stopWatchingSession() {
+    if (stopSessionWatch) stopSessionWatch();
+    stopSessionWatch = null;
+}
+
+async function beginSessionWatch() {
+    stopWatchingSession();
+    const code = currentUserCode;
+    const token = currentSessionToken;
+    stopSessionWatch = await API.participant.watchSession(code, token, () => {
+        if (code === currentUserCode && token === currentSessionToken) {
+            handleReplacedSession();
+        }
+    });
+}
+
+function clearLocalSession() {
     try {
+        stopWatchingSession();
         stopScan();
-        currentUserCode = ""; globalUserData = null;
+        currentUserCode = "";
+        currentSessionToken = "";
+        globalUserData = null;
         currentScreenView = null;
         pendingRatingStationId = null;
         pendingRatingStationName = null;
@@ -671,4 +705,35 @@ function logout() {
     } catch (error) { location.reload(); }
 }
 
+function handleReplacedSession() {
+    if (isHandlingSessionReplacement || !currentUserCode) return;
+    isHandlingSessionReplacement = true;
+    clearLocalSession();
+    alert(LANG[currentLang].alerts.sessionReplaced);
+    isHandlingSessionReplacement = false;
+}
+
+function handleSessionError(error) {
+    if (error?.code !== 'SESSION_REPLACED') return false;
+    handleReplacedSession();
+    return true;
+}
+
+async function logout() {
+    const code = currentUserCode;
+    const token = currentSessionToken;
+    clearLocalSession();
+    if (code && token) {
+        try { await API.participant.logout(code, token); }
+        catch (error) { console.warn('Remote logout failed', error); }
+    }
+}
+
 applyLanguage();
+
+const transferredCode = sessionStorage.getItem('openHousePendingAccessCode');
+sessionStorage.removeItem('openHousePendingAccessCode');
+if (new RegExp(`^\\d{${APP_CONFIG.participants.codeLength}}$`).test(transferredCode || '')) {
+    otpInputs.forEach((box, index) => { box.value = transferredCode[index]; });
+    otpInputs[otpInputs.length - 1].focus();
+}

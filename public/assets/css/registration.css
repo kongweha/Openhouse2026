@@ -124,6 +124,10 @@ input[type="text"]:focus {
     gap: 10px;
 }
 
+.choice-options-three {
+    grid-template-columns: repeat(3, 1fr);
+}
+
 .choice-input {
     position: absolute;
     width: 1px;
@@ -193,8 +197,14 @@ input[type="text"]:focus {
 .access-code { display: block; margin: 12px 0; color: #14532d; font: 800 38px/1 monospace; letter-spacing: .16em; }
 .link-button { background: #15803d; }
 .back-link { display: block; margin-top: 18px; color: #2563eb; text-align: center; }
+.secondary-link { display: inline-block; margin-top: 16px; color: #1d4ed8; font-weight: 700; }
+.security-notice { padding: 20px; border: 2px solid #bfdbfe; border-radius: 16px; background: #eff6ff; }
+.security-notice h2 { margin: 0 0 12px; font-size: 20px; }
+.security-notice ol { margin: 0; padding-left: 22px; color: #334155; line-height: 1.65; }
+.security-notice li + li { margin-top: 8px; }
 
 @media (max-width: 420px) {
     .registration-card { padding: 64px 20px 26px; }
     .language-switch { top: 16px; right: 18px; }
+    .choice-options-three { grid-template-columns: 1fr; }
 }

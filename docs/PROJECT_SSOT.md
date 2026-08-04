@@ -1,123 +1,62 @@
 # Project SSOT — OpenHouse2026
 
-- อัปเดตล่าสุด: 2026-07-24
+- อัปเดตล่าสุด: 2026-08-04
 - สถานะ: Static Firebase application บน Spark plan
+- Deploy root: `public/` ผ่าน GitHub Pages
 
-เอกสารนี้คือแหล่งข้อเท็จจริงหลักของโปรเจ็กต์ หากโค้ดและเอกสารไม่ตรงกัน
-ให้ตรวจพฤติกรรมจากโค้ดและแก้เอกสารใน change เดียวกัน
+เอกสารนี้คือแหล่งข้อเท็จจริงหลักของระบบ ต้องอัปเดตพร้อมโค้ดทุกครั้ง
 
-## 1. เป้าหมายและ flow
+## Flow ปัจจุบัน
 
-ระบบรองรับกิจกรรมสะสมตราประทับ 7 ฐาน:
+1. Admin สร้าง pool รหัส Stamp Card 6 หลัก 500 รหัส
+2. ผู้ร่วมงานลงทะเบียนด้วยรหัสนิสิต 10 หลัก ระดับการศึกษา (ตรี/โท/เอก) และประวัติการมางาน
+3. ระบบจองรหัสว่างที่มีค่าน้อยที่สุดด้วย Firebase transaction
+4. การลงทะเบียนใหม่แสดงรหัสครั้งเดียว ปุ่มไป Stamp จะส่งรหัสผ่าน `sessionStorage` และเติมช่องล็อกอินให้อัตโนมัติ
+5. หากรหัสนิสิตเคยลงทะเบียนแล้ว หน้าเว็บไม่แสดงหรือส่งรหัสเดิมกลับ
+6. ผู้ลืมรหัสเปิด `forgot-code.html` และต้องนำบัตรนิสิตหรือ CU NEX ให้เจ้าหน้าที่ตรวจตัวตน
+7. เมื่อรหัสเดียวกันล็อกอินใหม่ `activeSession` จะถูกแทนที่ อุปกรณ์เดิมถูกออกจากระบบและเขียนข้อมูลต่อไม่ได้
+8. ผู้ร่วมงานสแกน Dynamic QR ให้คะแนน เล่นครบ 7 ฐาน แลกรางวัล และสุ่มการ์ดหนึ่งใบ
 
-1. Admin สร้าง pool รหัส Stamp Card 6 หลักจำนวน 500 รหัส
-2. ผู้เข้าร่วมลงทะเบียนด้วยรหัสนิสิต 10 หลักและตอบว่าเคยมางานหรือไม่
-3. ระบบจองรหัสว่างที่มีค่าน้อยที่สุดและผูกรหัสนิสิตกับรหัส Stamp Card
-4. ผู้ที่ลืมรหัสค้นหารหัสเดิมด้วยรหัสนิสิต
-5. ผู้เข้าร่วมล็อกอิน สแกน Dynamic QR และให้คะแนนแต่ละฐาน
-6. เมื่อครบ 7 ฐาน ผู้เข้าร่วมประเมินภาพรวม แลกรางวัล และสุ่มการ์ดหนึ่งใบ
-7. Admin ดูความสัมพันธ์รหัสนิสิต/Stamp Card สถิติ เส้นทาง คะแนน และ CSV
+ฐาน ID 0 และ 1 คือ `Library journey` และ `Query Quarry`
 
-ฐาน ID 0 และ 1 ใช้ชื่อ `Library journey` และ `Query Quarry`
-
-## 2. Architecture และค่าใช้จ่าย
+## Architecture
 
 ```text
 GitHub Pages (HTML/CSS/JavaScript)
         │ Firebase Client SDK 9.22.2
         ▼
-Firebase Realtime Database: eventstampcard
+Firebase Realtime Database: eventstampcard (Spark)
 ```
 
-- Hosting: GitHub Pages จาก `public/`
-- Database: Firebase Realtime Database บน Spark plan
-- Backend/Cloud Functions: ไม่มี
-- Build step: ไม่มี
-- Firebase Web API key: อยู่ใน frontend ตาม Firebase Web App contract
-- Access control: ขึ้นกับ Realtime Database Rules เท่านั้น
-- Browser dependencies:
-  - Firebase compat SDK 9.22.2
-  - QRCode.js 1.0.0
-  - html5-qrcode 2.3.8 จาก unpkg
-- หน้าเว็บใช้ `preconnect` และ `defer` สำหรับ CDN scripts เพื่อลด render blocking
+- ไม่มี Cloud Functions และไม่ต้องใช้ Blaze plan
+- Firebase Web API key อยู่ใน frontend ตาม Firebase Web App contract; ความปลอดภัยต้องมาจาก Auth และ Database Rules
+- การอ่าน/เขียน Firebase ของ page scripts ต้องผ่าน `public/assets/js/shared/firebase-service.js`
+- ยังไม่ได้เปิด Firebase Authentication หรือ App Check และยังไม่ได้แก้ production Rules ในงานรอบนี้
 
-Firebase Web API key เป็น project identifier ไม่ใช่ private credential
-ห้ามใช้การซ่อน key แทน Security Rules
-
-## 3. Entry points
+## Routes
 
 | Route | หน้าที่ |
 | --- | --- |
-| `public/Stamp.html` | Stamp Card ของผู้เข้าร่วม มีลิงก์เฉพาะ “ลืมรหัส” (canonical) |
-| `public/index.html` | Redirect จาก URL รากไป `Stamp.html` |
-| `public/registration.html` | ลงทะเบียนและค้นหารหัสที่ลืม |
-| `public/registration.html?mode=recover&lang=th\|en` | แสดงเฉพาะฟอร์มลืมรหัสตามภาษาที่เลือกจาก Stamp |
-| `public/admin.html` | Admin dashboard |
+| `public/Stamp.html` | หน้า Stamp canonical และลิงก์ลืมรหัส |
+| `public/index.html` | Redirect ไป `Stamp.html` |
+| `public/registration.html` | ลงทะเบียนเท่านั้น ไม่มีเมนูลืมรหัส |
+| `public/forgot-code.html?lang=th|en` | ขั้นตอนตรวจตัวตนเพื่อขอรหัสเดิม |
+| `public/admin.html` | Dashboard รวมระดับการศึกษาและ CSV |
 | `public/generate-qr.html` | สร้าง Dynamic QR |
-| `public/GenerateQR.html` | Compatibility redirect ไป `generate-qr.html` |
+| `public/GenerateQR.html` | Compatibility redirect |
 
-`Stamp.html` เป็น participant implementation เพียงชุดเดียว
+`registration.html?mode=recover` เก่าจะ redirect ไป `forgot-code.html` เพื่อรักษาลิงก์เดิม
 
-## 3.1 Registration UI contract
-
-- หน้า Stamp ไม่มีลิงก์ลงทะเบียน มีเฉพาะลิงก์ “ลืมรหัส”
-- ลิงก์ลืมรหัสส่ง `mode=recover` และภาษาปัจจุบันผ่าน `lang=th|en`
-- `registration.html` ปกติยังมีแท็บลงทะเบียนและลืมรหัส
-- เมื่อมี `mode=recover` ต้องซ่อนแท็บและฟอร์มลงทะเบียน
-- หน้า Registration และ recovery-only สลับภาษาไทย/อังกฤษได้
-- คำตอบ “เคย/ไม่เคย” เป็น radio buttons แบบกดเลือก ไม่ใช่ select
-
-## 4. โครงสร้างและ ownership
-
-```text
-public/
-  index.html
-  Stamp.html
-  registration.html
-  admin.html
-  generate-qr.html
-  GenerateQR.html
-  assets/
-    css/
-    js/
-      config/
-        app-config.js
-        firebase-config.js
-      shared/
-        firebase-service.js
-        legacy-redirect.js
-      pages/
-    images/
-docs/
-  PROJECT_SSOT.md
-  HANDOFF.md
-scripts/
-  validate-static-site.mjs
-  test-firebase-service.mjs
-  serve.mjs
-```
-
-| ข้อมูล/พฤติกรรม | Source of truth |
-| --- | --- |
-| ฐาน, QR, จำนวนรหัส, timing และรูป | `public/assets/js/config/app-config.js` |
-| Firebase Web App configuration | `public/assets/js/config/firebase-config.js` |
-| การอ่าน/เขียน Firebase ทุกหน้า | `public/assets/js/shared/firebase-service.js` |
-| Registration UI | `public/registration.html` และ `pages/registration.js` |
-| Stamp UI | `public/Stamp.html` และ `pages/stamp.js` |
-| Admin UI | `public/admin.html` และ `pages/admin.js` |
-| Prediction card order | `app-config.js` และ `public/assets/images/cards/` |
-
-Page scripts ห้ามเรียก `firebase.database()` หรือ `.ref()` โดยตรง
-ต้องเรียกผ่าน `window.OpenHouseApi` จาก `firebase-service.js`
-
-## 5. Data contract
+## Data contract
 
 ```text
 users/{accessCode}
   registration:
     studentId: string
     hasVisitedOpenHouse: boolean
+    educationLevel: "bachelor" | "master" | "doctorate"
     registeredAt: number
+  activeSession?: { token: string, startedAt: number }
   stations: boolean[7] | object
   isRedeemed: boolean
   loginTime?: number
@@ -131,115 +70,46 @@ studentRegistrations/{studentId}
   studentId: string
   accessCode: string
   hasVisitedOpenHouse: boolean
+  educationLevel: "bachelor" | "master" | "doctorate"
   registeredAt: number
 ```
 
-- `studentId` เป็นเลข 10 หลัก
-- `accessCode` เป็นเลข 6 หลัก
-- Registration อ่าน mapping เดิมและ pool รหัสพร้อมกัน
-- การจองใช้ transaction เฉพาะ `users/{accessCode}` แล้ว transaction mapping ที่
-  `studentRegistrations/{studentId}` ไม่ส่งข้อมูลทั้ง root กลับ Firebase
-- Firebase transaction updater อาจได้รับ `null` ในรอบแรกแม้อ่าน child path แล้ว
-  service จึงใช้ `transactionFromServerSnapshot()` เป็น helper กลางสำหรับ
-  registration claim, login, complete station, redeem และ draw โดยใช้ snapshot
-  จาก server เป็น fallback เฉพาะรอบแรก แล้วปล่อยให้ Firebase ตรวจ
-  conflict/retry ก่อน commit
-- หากมีคำขอลงทะเบียนรหัสนิสิตเดียวกันพร้อมกัน ระบบคืนรหัสเดิมและปล่อยรหัสที่
-  claim เกินกลับเข้า pool
-- เลือกรหัสที่ยังไม่มี registration/login/scan/redeem เรียงจากค่าน้อยไปมาก
-- ลงทะเบียนรหัสนิสิตเดิมซ้ำคืนรหัสเดิม
-- เวลาและ validation มาจาก browser จึงแก้ไขได้
-- Stamp อ่านข้อมูลเมื่อ login และเมื่อทำ action เท่านั้น ไม่มี polling ทุก 3 วินาที
-  เพื่อประหยัด Realtime Database reads บน Spark plan
-- Prediction card IDs 1–16 map แบบหนึ่งต่อหนึ่งไป `Card_01` ถึง `Card_16`
-  ตามลำดับ โดย Card 2 เป็น PNG และใบอื่นเป็น WebP
+- ข้อมูลเก่าอาจไม่มี `educationLevel`; Admin แสดง `-`
+- ลงทะเบียนรหัสนิสิตเดิมคืน `{ created: false }` โดยไม่คืน `accessCode`
+- session ใหม่แทน session เดิม และทุก action ที่เปลี่ยนข้อมูลตรวจ token ใน transaction
+- `activeSession` เป็นการควบคุมเชิงแอป ไม่ใช่ authentication ที่แข็งแรง หาก Rules เปิดกว้าง ผู้โจมตียังข้าม client ได้
+- Stamp ไม่มี polling ข้อมูลผู้ใช้ แต่มี listener เฉพาะ token ของ session เพื่อออกจากระบบเมื่อถูกแทนที่
 
-## 6. QR contract
+## Security decisions และความเสี่ยง
 
-```text
-QR_STN_0N|<browser_timestamp_ms>
-```
+มาตรการชั่วคราวสำหรับลืมรหัสคือการตรวจบัตรกับเจ้าหน้าที่ เพราะไม่มีข้อมูลยืนยันตัวตนที่สองที่เชื่อถือได้ในฐานข้อมูลปัจจุบัน ระบบไม่เปิด API ค้นรหัสด้วย student ID แล้ว
 
-- Generator สร้างใหม่ทุก 90 วินาที
-- Scanner ยอมรับอายุไม่เกิน 90 วินาที
-- ยอมให้ timestamp นำหน้า 5 วินาที
-- ไม่มี signature, server validation หรือ replay protection
+แนวทางถาวรที่แนะนำ: เปิด Firebase Auth ส่ง email link/OTP ไปอีเมล Chula ที่ยืนยันแล้ว จากนั้นปรับ Database Rules ให้เจ้าของอ่านข้อมูลตนเองและให้บัญชี admin เท่านั้นที่อ่าน/แก้ข้อมูลทั้งหมด งานนี้ต้องทราบโดเมนอีเมลที่อนุญาตและต้องได้รับอนุมัติก่อนแก้ Auth/Rules production
 
-## 7. ความปลอดภัย
+ความเสี่ยงคงเหลือ:
 
-สถานะปัจจุบัน:
+1. **Critical — Database/Admin ไม่มี authentication ที่บังคับด้วย Rules ที่ได้รับการตรวจแล้ว**
+2. **Critical — QR forge/replay ได้** เพราะเวลาและ payload ตรวจใน browser
+3. **High — Single-session เป็น client-side coordination** ไม่ใช่หลักฐานตัวตน
+4. browser timestamps และ client validation แก้ไขได้
 
-- Firebase config อยู่ใน browser ตามข้อกำหนด Client SDK
-- Registration allocation ใช้ transaction แต่ทำจาก client
-- Admin ไม่มี authentication
-- Admin reset/clear มี browser confirmation เท่านั้น
-- ยังไม่ได้ review production Database Rules
+## Ownership
 
-ความเสี่ยง:
+| เรื่อง | Source of truth |
+| --- | --- |
+| ฐาน, QR, timing, การ์ดและรูป | `public/assets/js/config/app-config.js` |
+| Firebase config | `public/assets/js/config/firebase-config.js` |
+| Firebase operations | `public/assets/js/shared/firebase-service.js` |
+| Registration | `public/registration.html`, `assets/js/pages/registration.js` |
+| Forgot code | `public/forgot-code.html`, `assets/js/pages/forgot-code.js` |
+| Stamp | `public/Stamp.html`, `assets/js/pages/stamp.js` |
+| Admin | `public/admin.html`, `assets/js/pages/admin.js` |
 
-1. **Critical — Admin ไม่มี authorization**: ผู้ที่เข้าถึงฐานข้อมูลได้สามารถอ่าน
-   reset หรือล้างข้อมูล
-2. **Critical — QR forge ได้**: validation และ timestamp อยู่ใน browser
-3. **High — Forgot-code ใช้รหัสนิสิตอย่างเดียว**
-4. **High — Rules ที่เปิดกว้างทำให้ข้าม UI ได้**
-5. **Medium — CDN scripts ยังไม่มี SRI**
-
-การแก้ Firebase production Rules, Authentication, App Check หรือการล้างข้อมูล
-ต้องขออนุมัติเจ้าของระบบแยกก่อนดำเนินการ
-
-## 8. Known gaps
-
-- ไม่มี Firebase Emulator/Rules tests หรือ browser E2E
-- Registration ต้องมี pool รหัสใน `users` ก่อน
-- ความถูกต้องและความปลอดภัยจำกัดตาม architecture แบบ frontend-only
-
-## 9. คำสั่งมาตรฐาน
+## Validation และ deploy
 
 ```bash
 npm run check
-npm run serve
+git push origin main
 ```
 
-`npm run check` ตรวจโครงสร้าง static site และรัน service tests ด้วยฐานข้อมูลจำลอง
-โดยไม่อ่านหรือเขียน production database
-
-ไม่ต้องใช้ Firebase CLI และห้ามรัน `firebase deploy --only functions`
-
-## 10. Deployment
-
-เมื่อ push เข้า `main`, GitHub Actions จะตรวจและ deploy เฉพาะ `public/`
-ไป GitHub Pages ไม่มีการ deploy Firebase service
-
-Routine repository push ได้รับอนุมัติ แต่การแก้ Database Rules, Firebase data,
-credentials, rewrite history หรือ force-push ต้องขออนุมัติรายครั้ง
-
-## 11. Definition of done
-
-1. ผ่าน `npm run check`
-2. อัปเดต SSOT และ HANDOFF
-3. ไม่เพิ่ม private credential หรือ production data
-4. ทดสอบ canonical/legacy routes
-5. Commit และ push current branch
-6. ตรวจ local branch ตรงกับ remote
-
-## 12. Decision log
-
-- 2026-07-23: แยก deployable files ไป `public/`
-- 2026-07-23: คง legacy routes และใช้ `Stamp.html` เป็น participant canonical
-- 2026-07-23: นำรูปจาก `Gametest` commit `251da3a` มาเป็น local assets
-- 2026-07-23: เปลี่ยนฐาน 1/2 เป็น `Library journey` และ `Query Quarry`
-- 2026-07-23: เพิ่ม Registration และ mapping รหัสนิสิต/Stamp Card
-- 2026-07-23: ทดลองออกแบบ Firebase Functions แต่ deploy ไม่สำเร็จเพราะ Spark
-  plan ไม่รองรับ Functions
-- 2026-07-23: เจ้าของระบบเลือกคง Spark plan จึงยกเลิก Functions และรวม
-  Firebase Client operations ไว้ใน `firebase-service.js`
-- 2026-07-23: ตัด participant polling และเพิ่ม service tests แบบ in-memory
-  เพื่อลดการใช้โควตาและตรวจ flow โดยไม่แตะ production data
-- 2026-07-23: หน้า Stamp แสดงเฉพาะลิงก์ลืมรหัส โดยเปิด Registration
-  แบบ recovery-only, ส่งต่อภาษาไทย/อังกฤษ และเปลี่ยนคำตอบประวัติการเข้าร่วม
-  เป็นปุ่มกด
-- 2026-07-23: เปลี่ยน Registration จาก root transaction เป็น transaction
-  รายรหัส/ราย mapping, เพิ่ม `defer`, `preconnect`, pin html5-qrcode และ
-  cache-version ของ assets เพื่อลดเวลารอและแก้ stale browser cache
-- 2026-07-24: เพิ่ม prediction cards 8–16 จากไฟล์ที่เจ้าของระบบส่งมา
-  และปรับชื่อครบทั้งชุดเป็น `Card_01` ถึง `Card_16` พร้อม mapping ตามลำดับ
+ล่าสุด `npm run check` ผ่าน: static validator 0 warnings และ Firebase service tests 5/5 รวมกรณี session ใหม่แทน session เดิม

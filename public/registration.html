@@ -7,7 +7,7 @@
     <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
     <script defer src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
     <script defer src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
-    <link rel="stylesheet" href="assets/css/registration.css?v=20260723-4">
+    <link rel="stylesheet" href="assets/css/registration.css?v=20260804-1">
 </head>
 <body>
     <main class="registration-card">
@@ -17,44 +17,42 @@
         </div>
         <p class="eyebrow">CHULA LIBRARY OPEN HOUSE 2026</p>
         <h1 id="pageTitle">รับรหัสสะสมแสตมป์</h1>
-        <p id="pageIntro" class="intro">ลงทะเบียนหนึ่งครั้งเพื่อรับรหัส 6 หลักสำหรับเข้าใช้งาน Stamp Card</p>
+        <p id="pageIntro" class="intro">ลงทะเบียนหนึ่งครั้งเพื่อรับรหัส 6 หลักสำหรับ Stamp Card</p>
 
-        <div id="registrationTabs" class="tabs" role="tablist" aria-label="เมนูลงทะเบียน">
-            <button class="tab active" id="registerTab" type="button" role="tab" aria-selected="true">ลงทะเบียน</button>
-            <button class="tab" id="recoverTab" type="button" role="tab" aria-selected="false">ลืมรหัส</button>
-        </div>
+        <form id="registerForm">
+            <label id="studentIdLabel" for="studentId">รหัสนิสิต</label>
+            <input id="studentId" name="studentId" type="text" inputmode="numeric" autocomplete="username" maxlength="10" pattern="[0-9]{10}" placeholder="กรอกรหัสนิสิต 10 หลัก" required>
 
-        <section id="registerPanel" role="tabpanel" aria-labelledby="registerTab">
-            <form id="registerForm">
-                <label id="studentIdLabel" for="studentId">รหัสนิสิต</label>
-                <input id="studentId" name="studentId" type="text" inputmode="numeric" autocomplete="username" maxlength="10" pattern="[0-9]{10}" placeholder="กรอกรหัสนิสิต 10 หลัก" required>
+            <fieldset class="choice-fieldset">
+                <legend id="educationLegend">ระดับการศึกษา</legend>
+                <div class="choice-options choice-options-three">
+                    <input class="choice-input" id="educationBachelor" name="educationLevel" type="radio" value="bachelor" required>
+                    <label id="educationBachelorLabel" class="choice-button" for="educationBachelor">ปริญญาตรี</label>
+                    <input class="choice-input" id="educationMaster" name="educationLevel" type="radio" value="master">
+                    <label id="educationMasterLabel" class="choice-button" for="educationMaster">ปริญญาโท</label>
+                    <input class="choice-input" id="educationDoctorate" name="educationLevel" type="radio" value="doctorate">
+                    <label id="educationDoctorateLabel" class="choice-button" for="educationDoctorate">ปริญญาเอก</label>
+                </div>
+            </fieldset>
 
-                <fieldset class="choice-fieldset">
-                    <legend id="visitedLegend">เคยมา Chula Library Open มั้ย</legend>
-                    <div class="choice-options">
-                        <input class="choice-input" id="visitedYes" name="visitedOpenHouse" type="radio" value="yes" required>
-                        <label id="visitedYesLabel" class="choice-button" for="visitedYes">เคย</label>
-                        <input class="choice-input" id="visitedNo" name="visitedOpenHouse" type="radio" value="no">
-                        <label id="visitedNoLabel" class="choice-button" for="visitedNo">ไม่เคย</label>
-                    </div>
-                </fieldset>
+            <fieldset class="choice-fieldset">
+                <legend id="visitedLegend">เคยมา Chula Library Open ไหม</legend>
+                <div class="choice-options">
+                    <input class="choice-input" id="visitedYes" name="visitedOpenHouse" type="radio" value="yes" required>
+                    <label id="visitedYesLabel" class="choice-button" for="visitedYes">เคย</label>
+                    <input class="choice-input" id="visitedNo" name="visitedOpenHouse" type="radio" value="no">
+                    <label id="visitedNoLabel" class="choice-button" for="visitedNo">ไม่เคย</label>
+                </div>
+            </fieldset>
 
-                <button id="registerSubmit" class="primary-button" type="submit">ยืนยันการลงทะเบียน</button>
-            </form>
-        </section>
-
-        <section id="recoverPanel" class="hidden" role="tabpanel" aria-labelledby="recoverTab">
-            <form id="recoverForm">
-                <label id="recoverStudentIdLabel" for="recoverStudentId">รหัสนิสิต</label>
-                <input id="recoverStudentId" name="studentId" type="text" inputmode="numeric" autocomplete="username" maxlength="10" pattern="[0-9]{10}" placeholder="กรอกรหัสนิสิต 10 หลัก" required>
-                <button id="recoverSubmit" class="primary-button" type="submit">ค้นหารหัสของฉัน</button>
-            </form>
-        </section>
+            <button id="registerSubmit" class="primary-button" type="submit">ยืนยันการลงทะเบียน</button>
+        </form>
 
         <section id="resultPanel" class="result hidden" aria-live="polite">
             <p id="resultMessage"></p>
             <strong id="accessCode" class="access-code"></strong>
-            <a id="openStampLink" class="primary-button link-button" href="Stamp.html">ไปหน้า Stamp Card</a>
+            <a id="openStampLink" class="primary-button link-button" href="Stamp.html">ใช้รหัสนี้ใน Stamp Card</a>
+            <a id="verifyIdentityLink" class="secondary-link hidden" href="forgot-code.html?lang=th">ยืนยันตัวตนเพื่อขอรหัสเดิม</a>
         </section>
 
         <p id="formStatus" class="status" role="status" aria-live="polite"></p>
@@ -63,7 +61,7 @@
 
     <script defer src="assets/js/config/app-config.js?v=20260724-1"></script>
     <script defer src="assets/js/config/firebase-config.js"></script>
-    <script defer src="assets/js/shared/firebase-service.js?v=20260723-6"></script>
-    <script defer src="assets/js/pages/registration.js?v=20260723-4"></script>
+    <script defer src="assets/js/shared/firebase-service.js?v=20260804-1"></script>
+    <script defer src="assets/js/pages/registration.js?v=20260804-1"></script>
 </body>
 </html>

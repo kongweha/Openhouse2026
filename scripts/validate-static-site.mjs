@@ -52,6 +52,7 @@ const requiredFiles = [
   "public/index.html",
   "public/admin.html",
   "public/registration.html",
+  "public/forgot-code.html",
   "public/generate-qr.html",
   "public/Stamp.html",
   "public/GenerateQR.html",
@@ -66,6 +67,7 @@ const requiredFiles = [
   "public/assets/js/pages/admin.js",
   "public/assets/js/pages/generate-qr.js",
   "public/assets/js/pages/registration.js",
+  "public/assets/js/pages/forgot-code.js",
   "public/assets/js/shared/legacy-redirect.js",
   "public/assets/images/README.md",
   "public/assets/images/cards/README.md",
@@ -150,10 +152,10 @@ if (await exists(publicRoot)) {
 
     if (
       path.basename(htmlFile) === "Stamp.html" &&
-      !html.includes("registration.html?mode=recover")
+      !html.includes("forgot-code.html")
     ) {
       errors.push(
-        `${relativeHtml} must link to the recovery-only registration view.`,
+        `${relativeHtml} must link to the identity-verification recovery page.`,
       );
     }
 
@@ -163,6 +165,10 @@ if (await exists(publicRoot)) {
         !html.includes('id="langEn"') ||
         !html.includes('name="visitedOpenHouse" type="radio" value="yes"') ||
         !html.includes('name="visitedOpenHouse" type="radio" value="no"')
+        || !html.includes('name="educationLevel" type="radio" value="bachelor"')
+        || !html.includes('name="educationLevel" type="radio" value="master"')
+        || !html.includes('name="educationLevel" type="radio" value="doctorate"')
+        || html.includes('id="recoverForm"')
       ) {
         errors.push(
           `${relativeHtml} must provide bilingual controls and button-style visit choices.`,

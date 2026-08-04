@@ -105,10 +105,16 @@ function renderDashboard() {
         const visit = user.registration
             ? user.registration.hasVisitedOpenHouse ? "เคย" : "ไม่เคย"
             : "-";
+        const education = ({
+            bachelor: "ปริญญาตรี",
+            master: "ปริญญาโท",
+            doctorate: "ปริญญาเอก",
+        })[user.registration?.educationLevel] ?? "-";
         return [`<tr>
             <td>${index}</td>
             <td class="code">${escapeHtml(code)}</td>
             <td class="code">${escapeHtml(studentId || "-")}</td>
+            <td>${education}</td>
             <td>${visit}</td>
             <td><b>${passed}</b> / ${STATION_COUNT}</td>
             <td><button class="badge ${statusClass} clickable-status" data-code="${escapeHtml(code)}">${statusText}</button></td>
@@ -116,7 +122,7 @@ function renderDashboard() {
         </tr>`];
     });
     document.getElementById("tableDashboard").innerHTML =
-        rows.join("") || '<tr><td colspan="7">ไม่มีข้อมูล</td></tr>';
+        rows.join("") || '<tr><td colspan="8">ไม่มีข้อมูล</td></tr>';
     document.querySelectorAll("#tableDashboard [data-code]").forEach((button) => {
         button.addEventListener("click", () => openModal(button.dataset.code));
     });
@@ -176,7 +182,7 @@ function csvValue(value) {
 }
 
 function exportCSV() {
-    const headers = ["รหัส Stamp Card", "รหัสนิสิต", "เคยมา Open House", "สถานะ", "ฐานที่ผ่าน"];
+    const headers = ["รหัส Stamp Card", "รหัสนิสิต", "ระดับการศึกษา", "เคยมา Open House", "สถานะ", "ฐานที่ผ่าน"];
     STATIONS.forEach((station) => headers.push(station.name, "เวลา", "คะแนน"));
     const rows = [headers.map(csvValue).join(",")];
     Object.keys(globalUsersData).sort().forEach((code) => {
@@ -187,6 +193,7 @@ function exportCSV() {
         const row = [
             code,
             user.registration?.studentId ?? "",
+            ({ bachelor: "ปริญญาตรี", master: "ปริญญาโท", doctorate: "ปริญญาเอก" })[user.registration?.educationLevel] ?? "",
             user.registration ? user.registration.hasVisitedOpenHouse ? "เคย" : "ไม่เคย" : "",
             status,
             `${passed}/${STATION_COUNT}`,

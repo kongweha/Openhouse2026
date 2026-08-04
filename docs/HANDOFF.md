@@ -1,111 +1,40 @@
 # Handoff — OpenHouse2026
 
-- อัปเดตล่าสุด: 2026-07-24
-- ผู้ส่งมอบ: Codex
+- อัปเดต: 2026-08-04
 - Branch: `main`
-- สถานะ: Firebase Spark frontend-only implementation
+- Deploy: GitHub Pages จาก `public/`
+- Firebase: Realtime Database `eventstampcard`, Spark plan, ไม่มี Functions
 
-## งานรอบล่าสุด
+## งานล่าสุด
 
-- เพิ่มภาพ prediction cards หมายเลข 8–16 จากไฟล์ที่เจ้าของระบบส่งมา
-- ปรับชื่อภาพทั้งชุดเป็น `Card_01` ถึง `Card_16` และคง `Card_02.png`
-- เปลี่ยน `app-config.js` เป็น mapping 16 ใบแบบหนึ่งต่อหนึ่ง ไม่มี placeholder
-- เพิ่ม validator บังคับ ID 1–16, ลำดับไฟล์ และตรวจ signature ของรูป
-- เพิ่ม cache version ของ `app-config.js` ในทุกหน้าที่โหลด config
-- ตรวจ production หลังผู้ใช้ลงทะเบียน: registered users 1, student mappings 1,
-  ทั้งสองฝั่งตรงกัน แต่ยังไม่มี `loginTime`
-- สาเหตุ Login แจ้ง code not found คือ transaction updater ได้ `null` รอบแรก
-  เช่นเดียวกับ Registration ไม่ใช่ข้อมูล Registration หาย
-- เพิ่ม `transactionFromServerSnapshot()` เป็น helper กลางและใช้กับ registration
-  claim, Login, complete station, redeem และ draw
-- service tests จำลอง cold transaction callback เป็น `null` รอบแรกแล้ว
-  เพื่อกัน regression ทุก participant flow
-- ตรวจ production แบบ read-only หลัง reset: มี 500 รหัสและเข้ารูปแบบรหัสว่างครบ
-- abort-only browser test ยืนยันว่า Firebase transaction updater รอบแรกยังได้
-  `null` แม้ pre-read child path; ไม่มี transaction ใด commit ระหว่างการทดสอบ
-- แก้ claim updater ให้ใช้ candidate snapshot เป็น fallback รอบแรก แล้วให้
-  Firebase conflict detection/retry ตรวจค่าจริงก่อน commit
-- เจ้าของระบบแจ้งว่าได้ล้างและสร้าง pool รหัสใหม่ผ่าน Admin แล้ว
-- แก้ false `NO_AVAILABLE_CODES`: Firebase มี pool แต่ root transaction เดิม
-  หยุดเมื่อ local cache รอบแรกยังว่าง
-- เปลี่ยน Registration เป็น transaction เฉพาะรหัสที่ claim และ student mapping
-  เพื่อลด payload และรองรับคำขอชนกันโดยไม่ transaction ทั้ง database
-- เพิ่ม cache version ให้ CSS/JS ที่เปลี่ยน ป้องกัน HTML ใหม่ใช้ stylesheet เก่า
-- ใช้ `preconnect`/`defer` ใน Stamp, Registration, Admin และ QR Generator
-- pin `html5-qrcode` เป็น 2.3.8 เพื่อตัด CDN redirect และลดความผันผวน
-- หน้า Stamp เหลือเฉพาะลิงก์ “ลืมรหัส” และส่งภาษาปัจจุบันไปหน้า recovery
-- เพิ่ม `registration.html?mode=recover&lang=th|en` แบบซ่อนแท็บและฟอร์มลงทะเบียน
-- หน้า Registration รองรับข้อความไทย/อังกฤษทั้งหน้า
-- เปลี่ยนคำตอบ “เคย/ไม่เคย” จาก select เป็นปุ่ม radio ที่กดเลือกได้
-- เพิ่ม validation ป้องกัน recovery link, language controls และ visit buttons หาย
-- ยกเลิก Firebase Functions เพื่อคง Spark plan แบบไม่มี billing
-- ลบ `functions/`, `firebase.json` และ `.firebaserc`
-- นำ Firebase Web App config เดิมกลับมาใช้
-- เพิ่ม `firebase-service.js` เป็นจุดเดียวสำหรับ Firebase operations
-- คงหน้า Registration และการผูกรหัสนิสิตกับ Stamp Card
-- Registration เลือกรหัสว่างเลขน้อยที่สุดด้วย client-side per-record transaction
-- Stamp login, scan/rating, redeem และ draw ใช้ service กลาง
-- ตัด participant polling ทุก 3 วินาทีเพื่อลด Realtime Database reads
-- Admin อ่าน/reset/clear ผ่าน service กลาง
-- คง `Stamp.html` เป็น participant canonical และ `index.html` เป็น redirect
-- ปรับ validator ไม่ให้ page scripts ข้าม shared Firebase service
-- เพิ่ม unit tests ของ registration และ participant flow ด้วยฐานข้อมูลจำลอง
+- Registration เพิ่มระดับการศึกษา ปริญญาตรี/โท/เอก และบันทึก `educationLevel`
+- Registration ไม่มีแท็บหรือฟอร์มลืมรหัสแล้ว
+- ลงทะเบียนซ้ำไม่คืนและไม่แสดง Stamp code
+- ลงทะเบียนใหม่กดไป Stamp แล้วรหัสถูกเติมอัตโนมัติด้วย `sessionStorage` (ไม่ใส่รหัสใน URL)
+- เพิ่ม `forgot-code.html` สองภาษา ใช้วิธีตรวจบัตรนิสิต/CU NEX กับเจ้าหน้าที่
+- ลบ public `registration.recover(studentId)` ออกจาก shared service
+- Stamp ใช้ single-active-session: login ใหม่แทน token เดิม, หน้าเดิมฟัง token และถูก logout, action ทุกตัวตรวจ token ใน transaction
+- Admin แสดง/ส่งออกระดับการศึกษา; ข้อมูลเก่าแสดง `-`
+- Validator ตรวจหน้าใหม่ ระดับการศึกษา และห้าม recovery form กลับมาใน Registration
 
-## ไฟล์สำคัญ
+## สิ่งสำคัญสำหรับ AI คนถัดไป
 
-| งาน | ไฟล์ |
-| --- | --- |
-| Architecture/security | `docs/PROJECT_SSOT.md` |
-| Firebase config | `public/assets/js/config/firebase-config.js` |
-| Firebase operations | `public/assets/js/shared/firebase-service.js` |
-| Registration | `public/registration.html`, `assets/js/pages/registration.js` |
-| Stamp | `public/Stamp.html`, `assets/js/pages/stamp.js` |
-| Admin | `public/admin.html`, `assets/js/pages/admin.js` |
-| Prediction cards | `public/assets/images/cards/`, `app-config.js` |
-| Service tests | `scripts/test-firebase-service.mjs` |
+1. อ่าน `docs/PROJECT_SSOT.md` ก่อนแก้ระบบ
+2. แก้ไฟล์เว็บจริงเฉพาะใต้ `public/`; `Stamp.html` คือ participant canonical
+3. Firebase operations ต้องผ่าน `assets/js/shared/firebase-service.js`
+4. ต้องอัปเดต SSOT และ Handoff ทุกงาน แล้วรัน `npm run check`
+5. ต้อง commit/push `main` ตาม standing instruction; ห้าม force-push
+6. ห้ามแก้ production Database Rules, Auth หรือข้อมูลจริงโดยไม่มีคำอนุมัติเฉพาะครั้ง
 
-## การ deploy
+## ข้อจำกัดด้านความปลอดภัย
 
-ใช้ GitHub Pages workflow เท่านั้น:
+- วิธีลืมรหัสปัจจุบันต้องมีเจ้าหน้าที่ตรวจตัวตนด้วยบัตร เป็นมาตรการปลอดภัยที่สุดที่ทำได้โดยไม่เพิ่ม Auth/backend
+- Single-session ป้องกันการใช้งานพร้อมกันใน UI แต่ไม่ใช่ security boundary หาก Database Rules เปิดกว้าง
+- แนวทางถาวรคือ Firebase Auth + verified Chula email + Rules แบบ owner/admin; ต้องถามโดเมนอีเมลที่รับและขออนุมัติก่อนทำ
+- Admin ยังไม่มี authentication และ QR ยังตรวจใน browser
 
-```bash
-npm run check
-git push origin main
-```
+## Validation
 
-ไม่ต้องใช้ Firebase CLI, Cloud Functions หรือ Blaze plan
-
-## Validation ล่าสุด
-
-- `node scripts/validate-static-site.mjs`: ผ่าน, 0 warnings
-- `node --test scripts/test-firebase-service.mjs`: ผ่าน รวม concurrent registration
-- Local HTTP smoke test: routes หลักและ compatibility routes ตอบ `200`
-- Headless Chrome: ตรวจ Stamp language/recovery link, Registration สองภาษา,
-  ปุ่มเคย/ไม่เคย และ recovery-only view ผ่านโดยไม่มี page error
-- Local headless timing หลัง cache/version fix: Registration ~0.5s, Stamp ~0.9s,
-  Admin พร้อมข้อมูล ~1.0s และ QR Generator ~0.5s
-- Production abort-only cache test: พบ pool 500, พบ candidate, fallback เห็นข้อมูล,
-  `committed: false`
-- Card validation: รูปครบ 16 ใบ, signature ตรง extension, hash ไม่ซ้ำ,
-  mapping เรียง `Card_01` ถึง `Card_16`
+- `npm run check`: ผ่าน ณ 2026-08-04
 - `git diff --check`: ผ่าน
-
-## สิ่งที่ยังไม่ได้ทำ
-
-- ไม่ได้แก้ production Database Rules
-- ไม่ได้เปิด Firebase Auth หรือ App Check
-- อ่านเฉพาะโครงสร้าง/count เพื่อวินิจฉัย pool แบบ read-only ไม่เก็บข้อมูลจริงลง repo
-- Codex ไม่ได้ล้างหรือเปลี่ยน production data ในรอบนี้
-- ยังไม่ได้ทำ end-to-end write test กับ production database
-
-## Known risks
-
-- Admin และ Firebase Database access ไม่มี authentication
-- QR และเวลาถูกตรวจจาก browser
-- Forgot-code ใช้เพียงรหัสนิสิต
-- Registration transactions ต้องได้รับสิทธิ์จาก Database Rules
-
-## Git policy
-
-งานต้อง commit/push `main` ตาม standing instruction ห้าม force-push
-และห้ามแก้ Rules หรือล้าง production data โดยไม่มีอนุมัติเพิ่ม
+- ยังไม่ได้เขียนข้อมูลหรือเปลี่ยน Rules/Auth ใน production
