@@ -122,7 +122,7 @@ studentRegistrations/{studentId}
 - The seven station illustrations were replaced with owner-provided artwork on 2026-08-04. Each station uses the same supplied illustration for its uncollected and collected asset paths; the uncollected state remains visually dimmed by CSS.
 - Station ID 2 is named `Play Time` in the shared station configuration.
 - Clicking a station displays only its localized title and content. Previously submitted station-rating results are not appended to this detail view; the scan-time rating flow and stored rating data remain unchanged.
-- Station artwork uses the owner-provided compressed WebP files. Images fill and slightly overflow their circular crop so the purple edge embedded in the artwork is hidden. Uncollected stations are grayscale; collected stations are full color, retain the green dashed border, and show the station name centered over the image like the uncollected state.
+- Station artwork uses the owner-provided compressed WebP files. Images are enlarged inside the dashed circular clip so the purple edge embedded in the artwork is hidden without painting over the dashed border. Uncollected stations are grayscale; collected stations are full color and show the station name centered over the image. Opening a collected station's content temporarily hides that overlaid name and closing the content restores it.
 
 ## Ownership
 

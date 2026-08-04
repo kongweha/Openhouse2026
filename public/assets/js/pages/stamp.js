@@ -383,6 +383,7 @@ function renderUI(userData) {
         const node = document.createElement('div');
         const isPassed = userStations[index] === true;
         const currentPosClass = posMap[index];
+        node.dataset.stationId = String(st.id);
 
         if (isPassed) {
             count++;
@@ -446,13 +447,19 @@ function renderUI(userData) {
 function toggleStationContent(stationId, forceOpen = false) {
     const box = document.getElementById('contentBox');
     const contentText = STATIONS[stationId].content[currentLang];
+    const isClosing = !forceOpen && box.dataset.activeId == stationId && !box.classList.contains('hidden');
 
-    if (!forceOpen && box.dataset.activeId == stationId && !box.classList.contains('hidden')) {
+    document.querySelectorAll('.station-node.content-open').forEach((node) => {
+        node.classList.remove('content-open');
+    });
+
+    if (isClosing) {
         box.classList.add('hidden');
     } else {
         box.dataset.activeId = stationId;
         box.innerHTML = `<h3>📖 ${STATIONS[stationId].name}</h3><p>${contentText}</p>`;
         box.classList.remove('hidden');
+        document.querySelector(`.station-node[data-station-id="${stationId}"]`)?.classList.add('content-open');
     }
 }
 
@@ -691,6 +698,9 @@ function openScannerFor(stationIndex) {
     const l = LANG[currentLang];
 
     document.getElementById('contentBox').classList.add('hidden');
+    document.querySelectorAll('.station-node.content-open').forEach((node) => {
+        node.classList.remove('content-open');
+    });
     document.getElementById('ratingBox').classList.add('hidden');
 
     activeTargetStation = STATIONS[stationIndex];

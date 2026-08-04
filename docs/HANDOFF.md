@@ -3,7 +3,7 @@
 ## 2026-08-04 station presentation update
 
 - Replaced the station artwork again with the owner-provided files from the `compressed` set.
-- Station images are sized at 114% so their purple edge is cropped out. Uncollected stations are grayscale; collected stations retain the green dashed border and show the station name centered over the image like the uncollected state.
+- Station images are sized at 114% but clipped inside the dashed circle, keeping the border visible while cropping out the artwork's purple edge. Collected-station names are centered over the image and hide only while that station's content is open.
 - Replaced all seven station illustrations with the owner-provided images. Each supplied image is copied to both the uncollected and collected runtime assets for its station.
 - Renamed `Play Zone` to `Play Time` in the shared station configuration.
 - Station detail popups now show only the localized station title and content. The scan-time rating flow and stored rating data remain unchanged.
