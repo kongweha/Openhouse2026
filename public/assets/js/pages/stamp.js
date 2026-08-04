@@ -11,8 +11,8 @@ const LANG = {
         stampStatusText: "Completed: {count} / {total}",
         completedText: "🎉 All {total} stations completed!",
         stampSubStatus: "(Click on unstamped circles to scan QR Code)",
-        redeemBtn: "Evaluate today's activities (complete {total} stations first)",
-        redeemReadyBtn: "Evaluate today's activities",
+        redeemBtn: "Evaluate to receive your reward (complete {total} stations first)",
+        redeemReadyBtn: "Evaluate to receive your reward",
         cancelScanBtn: "❌ Cancel Camera",
         logoutBtn: "Logout",
         ratingHeader: "⭐ How was this station?",
@@ -28,14 +28,17 @@ const LANG = {
         staffOnly: "Staff only",
         staffNote: "Press this button only after the reward has been handed to the participant.",
         confirmRewardButton: "Confirm reward handed over",
-        activityEvaluationHeader: "Evaluate today's activities",
-        overallSatisfaction: "Overall satisfaction",
-        stationPreference: "How much did you like each station?",
+        activityEvaluationHeader: "Evaluate to receive your reward",
+        activityFormat: "Activity format",
+        activityVenue: "Activity venue",
+        activityDuration: "Activity duration",
+        activityReward: "Reward",
+        activityOverall: "Overall activity experience",
         favoriteStation: "Your favorite station",
         suggestion: "Suggestions",
         suggestionPlaceholder: "Enter suggestions (optional)",
         selectStation: "Select a station",
-        evaluationSubmit: "Submit activity evaluation",
+        evaluationSubmit: "Submit evaluation to receive reward",
         intentionPendingButton: "Complete the library-use assessment first",
         mapPlaceholder: "[ Map for reward pickup goes here ]",
         btnViewStamps: "View My Stamp Card",
@@ -70,8 +73,8 @@ const LANG = {
         stampStatusText: "ผ่านแล้ว: {count} / {total} ฐาน",
         completedText: "🎉 เล่นครบ {total} ฐานแล้ว!",
         stampSubStatus: "(คลิกที่วงกลมฐานที่ยังไม่ผ่านเพื่อสแกน QR Code)",
-        redeemBtn: "ประเมินกิจกรรมวันนี้ (ต้องครบ {total} ฐาน)",
-        redeemReadyBtn: "ประเมินกิจกรรมวันนี้",
+        redeemBtn: "ประเมินเพื่อรับของรางวัล (ต้องครบ {total} ฐาน)",
+        redeemReadyBtn: "ประเมินเพื่อรับของรางวัล",
         cancelScanBtn: "❌ ยกเลิกสแกนกล้อง",
         logoutBtn: "ออกจากระบบ",
         ratingHeader: "⭐ บอกเราหน่อยว่าฐานนี้เป็นยังไง",
@@ -87,14 +90,17 @@ const LANG = {
         staffOnly: "สำหรับเจ้าหน้าที่เท่านั้น",
         staffNote: "กรุณากดปุ่มนี้หลังจากมอบของรางวัลให้ผู้เล่นแล้วเท่านั้น",
         confirmRewardButton: "ยืนยันว่ามอบของรางวัลแล้ว",
-        activityEvaluationHeader: "ประเมินกิจกรรมวันนี้",
-        overallSatisfaction: "ความพึงพอใจโดยรวม",
-        stationPreference: "ประเมินความชอบในแต่ละฐาน",
+        activityEvaluationHeader: "ประเมินเพื่อรับของรางวัล",
+        activityFormat: "1. รูปแบบกิจกรรม",
+        activityVenue: "2. สถานที่จัดกิจกรรม",
+        activityDuration: "3. ระยะเวลาในการจัดกิจกรรม",
+        activityReward: "4. ของรางวัล",
+        activityOverall: "5. ภาพรวมกิจกรรม",
         favoriteStation: "ฐานที่ชอบที่สุด",
         suggestion: "ข้อเสนอแนะ",
         suggestionPlaceholder: "พิมพ์ข้อเสนอแนะ (ไม่บังคับ)",
         selectStation: "เลือกฐาน",
-        evaluationSubmit: "ส่งแบบประเมินกิจกรรม",
+        evaluationSubmit: "ส่งแบบประเมินเพื่อรับของรางวัล",
         intentionPendingButton: "กรุณาประเมินแนวโน้มการใช้ห้องสมุดก่อน",
         mapPlaceholder: "[ พื้นที่สำหรับใส่แผนที่จุดรับของรางวัล ]",
         btnViewStamps: "ดูบัตรสะสมแต้ม",
@@ -158,8 +164,7 @@ let pendingRatingStationName = null;
 let pendingQrPayload = null;
 let selectedRating = 0;
 let finalSelectedRating = 0;
-let activityOverallRating = 0;
-let activityStationPreferences = {};
+let activityCriteriaRatings = {};
 let currentScreenView = null;
 let isEvaluationOnly = false;
 
@@ -225,8 +230,6 @@ function applyLanguage() {
     document.getElementById('txtStaffNote').innerText = l.staffNote;
     document.getElementById('btnConfirmReward').innerText = l.confirmRewardButton;
     document.getElementById('txtActivityEvaluationHeader').innerText = l.activityEvaluationHeader;
-    document.getElementById('txtOverallSatisfaction').innerText = l.overallSatisfaction;
-    document.getElementById('txtStationPreference').innerText = l.stationPreference;
     document.getElementById('txtFavoriteStation').innerText = l.favoriteStation;
     document.getElementById('txtSuggestion').innerText = l.suggestion;
     document.getElementById('activitySuggestion').placeholder = l.suggestionPlaceholder;
@@ -479,24 +482,23 @@ function renderEvaluationOptions() {
         STATIONS.map((station) => `<option value="${station.id}">${station.name}</option>`).join('');
     favorite.value = previousFavorite;
 
-    const overall = document.getElementById('overallSatisfaction');
-    overall.setAttribute('aria-label', l.overallSatisfaction);
-    renderStarButtons(overall, activityOverallRating, (value) => {
-        activityOverallRating = value;
-        renderEvaluationOptions();
-        updateRatingSubmitState();
-    });
-
-    const container = document.getElementById('stationPreferenceFields');
-    container.innerHTML = STATIONS.map((station) => `
-        <div class="station-preference-row">
-            <label>${station.name}</label>
-            <div class="evaluation-stars station-preference" data-station-id="${station.id}" role="radiogroup" aria-label="${station.name}"></div>
+    const criteria = [
+        ['activityFormat', l.activityFormat],
+        ['venue', l.activityVenue],
+        ['duration', l.activityDuration],
+        ['reward', l.activityReward],
+        ['overall', l.activityOverall],
+    ];
+    const container = document.getElementById('activityCriteriaFields');
+    container.innerHTML = criteria.map(([key, label]) => `
+        <div class="evaluation-criterion ${key === 'overall' ? 'evaluation-criterion-overall' : ''}">
+            <p class="evaluation-label">${label}</p>
+            <div class="evaluation-stars activity-criterion-stars" data-criterion="${key}" role="radiogroup" aria-label="${label}"></div>
         </div>`).join('');
-    container.querySelectorAll('.station-preference').forEach((stars) => {
-        const stationId = Number(stars.dataset.stationId);
-        renderStarButtons(stars, activityStationPreferences[stationId] ?? 0, (value) => {
-            activityStationPreferences[stationId] = value;
+    container.querySelectorAll('.activity-criterion-stars').forEach((stars) => {
+        const criterion = stars.dataset.criterion;
+        renderStarButtons(stars, activityCriteriaRatings[criterion] ?? 0, (value) => {
+            activityCriteriaRatings[criterion] = value;
             renderEvaluationOptions();
             updateRatingSubmitState();
         });
@@ -504,8 +506,7 @@ function renderEvaluationOptions() {
 }
 
 function resetActivityEvaluationFields() {
-    activityOverallRating = 0;
-    activityStationPreferences = {};
+    activityCriteriaRatings = {};
     document.getElementById('favoriteStation').value = '';
     document.getElementById('activitySuggestion').value = '';
     renderEvaluationOptions();
@@ -513,19 +514,17 @@ function resetActivityEvaluationFields() {
 
 function readActivityEvaluation() {
     return {
-        overallSatisfaction: activityOverallRating,
-        stationPreferences: { ...activityStationPreferences },
+        categoryRatings: { ...activityCriteriaRatings },
         favoriteStationId: Number(document.getElementById('favoriteStation').value),
         suggestion: document.getElementById('activitySuggestion').value.trim(),
     };
 }
 
 function isActivityEvaluationComplete() {
-    return activityOverallRating >= 1 &&
-        activityOverallRating <= 5 &&
-        document.getElementById('favoriteStation').value !== '' &&
-        STATIONS.every((station) => {
-            const rating = activityStationPreferences[station.id];
+    const criteria = ['activityFormat', 'venue', 'duration', 'reward', 'overall'];
+    return document.getElementById('favoriteStation').value !== '' &&
+        criteria.every((criterion) => {
+            const rating = activityCriteriaRatings[criterion];
             return Number.isInteger(rating) && rating >= 1 && rating <= 5;
         });
 }

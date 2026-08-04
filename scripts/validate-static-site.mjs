@@ -162,8 +162,7 @@ if (await exists(publicRoot)) {
     if (path.basename(htmlFile) === "Stamp.html") {
       const requiredStampControls = [
         'id="activityEvaluationFields"',
-        'id="overallSatisfaction"',
-        'id="stationPreferenceFields"',
+        'id="activityCriteriaFields"',
         'id="favoriteStation"',
         'id="activitySuggestion"',
         'id="btnConfirmReward"',

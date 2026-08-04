@@ -75,11 +75,8 @@
                     </div>
                 </div>
                 <div id="activityEvaluationFields" class="activity-evaluation hidden">
-                    <h3 id="txtActivityEvaluationHeader">ประเมินกิจกรรมวันนี้</h3>
-                    <p id="txtOverallSatisfaction" class="evaluation-label">ความพึงพอใจโดยรวม</p>
-                    <div id="overallSatisfaction" class="evaluation-stars" role="radiogroup" aria-label="ความพึงพอใจโดยรวม"></div>
-                    <p id="txtStationPreference" class="evaluation-label">ความชอบในแต่ละฐาน</p>
-                    <div id="stationPreferenceFields"></div>
+                    <h3 id="txtActivityEvaluationHeader">ประเมินเพื่อรับของรางวัล</h3>
+                    <div id="activityCriteriaFields"></div>
                     <label id="txtFavoriteStation" for="favoriteStation">ฐานที่ชอบที่สุด</label>
                     <select id="favoriteStation" class="evaluation-control"></select>
                     <label id="txtSuggestion" for="activitySuggestion">ข้อเสนอแนะ</label>
@@ -97,7 +94,7 @@
             <div id="reader"></div>
             <button id="btnCancel" class="btn-cancel" onclick="stopScan()">❌ Cancel Camera</button>
 
-            <button id="btnRedeem" class="btn-redeem" onclick="openActivityEvaluationOnly()" disabled>ประเมินกิจกรรมวันนี้</button>
+            <button id="btnRedeem" class="btn-redeem" onclick="openActivityEvaluationOnly()" disabled>ประเมินเพื่อรับของรางวัล</button>
             <button id="btnBackToReward" class="btn-back-reward" style="display:none;" onclick="switchView('reward')">⬅ กลับไปหน้าของรางวัล</button>
             <button id="btnLogoutStamp" class="btn-logout" onclick="logout()">Logout</button>
         </div>
@@ -136,7 +133,7 @@
 
     <script defer src="assets/js/config/app-config.js?v=20260724-1"></script>
     <script defer src="assets/js/config/firebase-config.js"></script>
-    <script defer src="assets/js/shared/firebase-service.js?v=20260804-3"></script>
-    <script defer src="assets/js/pages/stamp.js?v=20260804-3"></script>
+    <script defer src="assets/js/shared/firebase-service.js?v=20260804-4"></script>
+    <script defer src="assets/js/pages/stamp.js?v=20260804-4"></script>
 </body>
 </html>

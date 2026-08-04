@@ -161,8 +161,13 @@ function emptyParticipant() {
 
 function activityEvaluation() {
   return {
-    overallSatisfaction: 5,
-    stationPreferences: { 0: 4, 1: 5 },
+    categoryRatings: {
+      activityFormat: 4,
+      venue: 4,
+      duration: 3,
+      reward: 5,
+      overall: 5,
+    },
     favoriteStationId: 1,
     suggestion: "Great event",
   };
@@ -268,7 +273,8 @@ test("participant completes the final station, answers both evaluations, then re
     login.sessionToken,
     activityEvaluation(),
   );
-  assert.equal(evaluated.participant.activityEvaluation.overallSatisfaction, 5);
+  assert.equal(evaluated.participant.activityEvaluation.categoryRatings.overall, 5);
+  assert.equal(evaluated.participant.activityEvaluation.stationPreferences, undefined);
   assert.equal(evaluated.participant.isRedeemed, false);
 
   const redeemed = await api.participant.confirmReward("100001", login.sessionToken);

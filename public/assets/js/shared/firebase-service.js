@@ -128,30 +128,32 @@
     if (!value || typeof value !== "object") {
       fail("ACTIVITY_EVALUATION_REQUIRED", "Activity evaluation is required.");
     }
-    const overallSatisfaction = assertRating(
-      value.overallSatisfaction,
-      "INVALID_OVERALL_SATISFACTION",
+    const categoryKeys = [
+      "activityFormat",
+      "venue",
+      "duration",
+      "reward",
+      "overall",
+    ];
+    const categoryRatings = Object.fromEntries(
+      categoryKeys.map((key) => [
+        key,
+        assertRating(
+          value.categoryRatings?.[key],
+          "INVALID_ACTIVITY_CATEGORY_RATING",
+        ),
+      ]),
     );
     const favoriteStationId = Number(value.favoriteStationId);
     if (!Number.isInteger(favoriteStationId) || !stations[favoriteStationId]) {
       fail("INVALID_FAVORITE_STATION", "Favorite station is invalid.");
     }
-    const stationPreferences = Object.fromEntries(
-      stations.map((station) => [
-        station.id,
-        assertRating(
-          value.stationPreferences?.[station.id],
-          "INVALID_STATION_PREFERENCE",
-        ),
-      ]),
-    );
     const suggestion = String(value.suggestion ?? "").trim();
     if (suggestion.length > 1000) {
       fail("SUGGESTION_TOO_LONG", "Suggestion must not exceed 1000 characters.");
     }
     return {
-      overallSatisfaction,
-      stationPreferences,
+      categoryRatings,
       favoriteStationId,
       suggestion,
     };

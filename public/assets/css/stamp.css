@@ -50,12 +50,15 @@ button:active { transform: scale(0.97); }
 .btn-redeem:disabled { background-color: #fca5a5; cursor: not-allowed; box-shadow: none; }
 .staff-confirmation { margin: 18px 0; padding: 16px; border: 2px solid #f59e0b; border-radius: 14px; background: #fffbeb; color: #92400e; }
 .staff-confirmation p { margin: 8px 0 12px; line-height: 1.5; }
-.activity-evaluation { margin-top: 22px; padding-top: 18px; border-top: 2px solid #fde68a; text-align: left; }
+.activity-evaluation { margin-top: 12px; text-align: left; }
 .activity-evaluation h3 { margin: 0 0 16px; color: #be185d; text-align: center; }
 .activity-evaluation label, .evaluation-label { display: block; margin: 12px 0 6px; color: #334155; font-weight: 700; }
 .evaluation-control { width: 100%; padding: 11px; border: 2px solid #cbd5e1; border-radius: 10px; background: white; color: #0f172a; font: inherit; }
-.station-preference-row { display: grid; grid-template-columns: 1fr; gap: 10px; align-items: center; margin-bottom: 8px; padding: 10px 0; border-bottom: 1px solid #e2e8f0; }
-.station-preference-row label { margin: 0; font-size: 13px; }
+.evaluation-criterion { margin-bottom: 8px; padding: 10px 0; border-bottom: 1px solid #e2e8f0; }
+.evaluation-criterion .evaluation-label { margin-top: 0; text-align: center; }
+.evaluation-criterion-overall { margin: 16px 0; padding: 18px 12px; border: 3px solid #f59e0b; border-radius: 16px; background: #fff7d6; box-shadow: 0 6px 16px rgba(245, 158, 11, .2); }
+.evaluation-criterion-overall .evaluation-label { color: #9a3412; font-size: 18px; }
+.evaluation-criterion-overall .evaluation-stars button { font-size: 38px; }
 .evaluation-stars { display: flex; justify-content: center; gap: 5px; margin: 6px 0 12px; }
 .evaluation-stars button { width: auto; margin: 0; padding: 2px; border: 0; background: transparent; color: #cbd5e1; box-shadow: none; font-size: 30px; line-height: 1; }
 .evaluation-stars button.active { color: #f59e0b; }

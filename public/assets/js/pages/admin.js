@@ -186,8 +186,8 @@ function csvValue(value) {
 }
 
 function exportCSV() {
-    const headers = ["รหัส Stamp Card", "รหัสนิสิต", "ระดับการศึกษา", "เคยมา Open House", "สถานะ", "ฐานที่ผ่าน", "แนวโน้มใช้พื้นที่ห้องสมุด", "ความพึงพอใจรวม", "ฐานที่ชอบที่สุด", "ข้อเสนอแนะ"];
-    STATIONS.forEach((station) => headers.push(station.name, "เวลา", "ความชัดเจน", "ความชอบ"));
+    const headers = ["รหัส Stamp Card", "รหัสนิสิต", "ระดับการศึกษา", "เคยมา Open House", "สถานะ", "ฐานที่ผ่าน", "แนวโน้มใช้พื้นที่ห้องสมุด", "รูปแบบกิจกรรม", "สถานที่จัดกิจกรรม", "ระยะเวลาในการจัดกิจกรรม", "ของรางวัล", "ภาพรวมกิจกรรม", "ฐานที่ชอบที่สุด", "ข้อเสนอแนะ"];
+    STATIONS.forEach((station) => headers.push(station.name, "เวลา", "ความชัดเจน"));
     const rows = [headers.map(csvValue).join(",")];
     Object.keys(globalUsersData).sort().forEach((code) => {
         const user = globalUsersData[code];
@@ -206,7 +206,11 @@ function exportCSV() {
             status,
             `${passed}/${STATION_COUNT}`,
             user.finalIntentionRating ?? "",
-            evaluation?.overallSatisfaction ?? "",
+            evaluation?.categoryRatings?.activityFormat ?? "",
+            evaluation?.categoryRatings?.venue ?? "",
+            evaluation?.categoryRatings?.duration ?? "",
+            evaluation?.categoryRatings?.reward ?? "",
+            evaluation?.categoryRatings?.overall ?? evaluation?.overallSatisfaction ?? "",
             favoriteStation?.name ?? "",
             evaluation?.suggestion ?? "",
         ];
@@ -217,7 +221,6 @@ function exportCSV() {
                 scan ? scan.name : "",
                 scan ? getDuration(lastTime, scan.time) : "",
                 user.ratings?.[station.id] ?? "",
-                evaluation?.stationPreferences?.[station.id] ?? "",
             );
             if (scan) lastTime = scan.time;
         });
@@ -258,7 +261,9 @@ function openModal(code) {
         const favorite = STATIONS.find(
             (station) => station.id === Number(user.activityEvaluation.favoriteStationId),
         );
-        items.push(`<li><b>ประเมินกิจกรรม</b> <span class="timeline-time">${formatTime(user.activityEvaluation.submittedAt)}</span><br><span class="duration-box">พึงพอใจ ${user.activityEvaluation.overallSatisfaction}/5 · ชอบที่สุด ${escapeHtml(favorite?.name ?? "-")}</span></li>`);
+        const categories = user.activityEvaluation.categoryRatings;
+        const overall = categories?.overall ?? user.activityEvaluation.overallSatisfaction ?? "-";
+        items.push(`<li><b>ประเมินเพื่อรับของรางวัล</b> <span class="timeline-time">${formatTime(user.activityEvaluation.submittedAt)}</span><br><span class="duration-box">ภาพรวมกิจกรรม ${overall}/5 · ชอบที่สุด ${escapeHtml(favorite?.name ?? "-")}</span></li>`);
     }
     if (user.finalIntentionRating) {
         items.push(`<li><b>แนวโน้มใช้พื้นที่ห้องสมุด</b> <span class="duration-box">${user.finalIntentionRating}/5</span></li>`);
