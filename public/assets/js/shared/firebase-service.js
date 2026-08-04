@@ -22,7 +22,7 @@
     if (!/^[5-7]\d{9}$/.test(studentId)) {
       fail(
         "INVALID_STUDENT_ID",
-        "Student ID must contain 10 digits and start with 5, 6, or 7.",
+        "Invalid student ID.",
       );
     }
     return studentId;

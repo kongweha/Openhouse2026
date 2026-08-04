@@ -23,7 +23,7 @@
       registered: "ลงทะเบียนสำเร็จ รหัส Stamp Card ของคุณคือ",
       alreadyRegistered: "รหัสนิสิตนี้ลงทะเบียนแล้ว เพื่อความปลอดภัยระบบจะไม่แสดงรหัสเดิม กรุณายืนยันตัวตนกับเจ้าหน้าที่",
       errors: {
-        INVALID_STUDENT_ID: "กรุณากรอกรหัสนิสิต 10 หลัก โดยหลักแรกต้องเป็น 5, 6 หรือ 7",
+        INVALID_STUDENT_ID: "รหัสนิสิตไม่ถูกต้อง",
         INVALID_EDUCATION_LEVEL: "กรุณาเลือกระดับการศึกษา",
         INVALID_VISIT_HISTORY: "กรุณาเลือกว่าเคยเข้าร่วมงานหรือไม่",
         NO_AVAILABLE_CODES: "รหัสสำหรับลงทะเบียนหมดแล้ว กรุณาติดต่อเจ้าหน้าที่",
@@ -53,7 +53,7 @@
       registered: "Registration complete. Your Stamp Card code is",
       alreadyRegistered: "This student ID is already registered. For your security, the existing code is not displayed. Please verify your identity with a staff member.",
       errors: {
-        INVALID_STUDENT_ID: "Enter a 10-digit student ID whose first digit is 5, 6, or 7.",
+        INVALID_STUDENT_ID: "Invalid student ID.",
         INVALID_EDUCATION_LEVEL: "Please select your education level.",
         INVALID_VISIT_HISTORY: "Please choose Yes or No.",
         NO_AVAILABLE_CODES: "No registration codes remain. Please contact a staff member.",
