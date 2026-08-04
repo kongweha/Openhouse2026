@@ -82,7 +82,7 @@
     "educationDoctorateLabel", "visitedLegend", "visitedYesLabel",
     "visitedNoLabel", "registerSubmit", "resultPanel", "resultMessage",
     "accessCode", "openStampLink", "verifyIdentityLink", "formStatus",
-    "backToStampLink", "langTh", "langEn",
+    "backToStampLink", "langTh", "langEn", "registrationCard",
   ].map((id) => [id, document.getElementById(id)]));
 
   function activeCopy() { return COPY[currentLanguage]; }
@@ -99,6 +99,7 @@
     elements.accessCode.classList.toggle("hidden", !currentResult.created);
     elements.openStampLink.classList.toggle("hidden", !currentResult.created);
     elements.verifyIdentityLink.classList.toggle("hidden", currentResult.created);
+    elements.registrationCard.classList.toggle("registration-complete", currentResult.created);
   }
 
   function renderLanguage() {
@@ -148,16 +149,6 @@
     elements.formStatus.textContent = activeCopy().errors[currentErrorCode] ?? activeCopy().errors.default;
   }
 
-  function scrollToAccessCode() {
-    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    window.requestAnimationFrame(() => {
-      elements.resultPanel.scrollIntoView({
-        behavior: reduceMotion ? "auto" : "smooth",
-        block: "center",
-      });
-    });
-  }
-
   elements.langTh.addEventListener("click", () => setLanguage("th"));
   elements.langEn.addEventListener("click", () => setLanguage("en"));
   elements.studentId.addEventListener("input", normalizeStudentId);
@@ -173,6 +164,7 @@
     elements.registerSubmit.disabled = true;
     elements.registerSubmit.textContent = activeCopy().checking;
     elements.resultPanel.classList.add("hidden");
+    elements.registrationCard.classList.remove("registration-complete");
     elements.formStatus.textContent = "";
     currentErrorCode = "";
     currentResult = null;
@@ -185,7 +177,6 @@
       currentResult = result;
       elements.resultPanel.classList.remove("hidden");
       renderResult();
-      if (result.created) scrollToAccessCode();
     } catch (error) {
       showError(error);
     } finally {
