@@ -42,7 +42,6 @@ const LANG = {
         selectStation: "Select a station",
         evaluationSubmit: "Submit evaluation to receive reward",
         intentionPendingButton: "Complete the library-use assessment first",
-        mapPlaceholder: "[ Map for reward pickup goes here ]",
         btnViewStamps: "View My Stamp Card",
         btnBackToReward: "⬅ Back to Reward Page",
         btnDrawCard: "🔮 Wheel of Fate",
@@ -104,7 +103,6 @@ const LANG = {
         selectStation: "เลือกฐาน",
         evaluationSubmit: "ส่งแบบประเมินเพื่อรับของรางวัล",
         intentionPendingButton: "กรุณาประเมินแนวโน้มการใช้ห้องสมุดก่อน",
-        mapPlaceholder: "[ พื้นที่สำหรับใส่แผนที่จุดรับของรางวัล ]",
         btnViewStamps: "ดูบัตรสะสมแต้ม",
         btnBackToReward: "⬅ กลับไปหน้าของรางวัล",
         btnDrawCard: "🔮 หมุนล้อชะตา",
@@ -243,7 +241,6 @@ function applyLanguage() {
         ? l.evaluationSubmit
         : l.ratingSubmitBtn;
     updateRatingSubmitState();
-    document.getElementById('txtMapPlaceholder').innerText = l.mapPlaceholder;
     document.getElementById('btnViewStamps').innerText = l.btnViewStamps;
     document.getElementById('btnBackToReward').innerText = l.btnBackToReward;
     document.getElementById('btnBackFromDraw').innerText = l.btnBackToReward;
