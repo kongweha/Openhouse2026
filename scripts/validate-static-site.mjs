@@ -189,10 +189,11 @@ if (await exists(publicRoot)) {
         || !html.includes('name="educationLevel" type="radio" value="bachelor"')
         || !html.includes('name="educationLevel" type="radio" value="master"')
         || !html.includes('name="educationLevel" type="radio" value="doctorate"')
+        || !html.includes('pattern="[5-7][0-9]{9}"')
         || html.includes('id="recoverForm"')
       ) {
         errors.push(
-          `${relativeHtml} must provide bilingual controls and button-style visit choices.`,
+          `${relativeHtml} must provide bilingual controls, button-style visit choices, and the 5-7 student-ID prefix rule.`,
         );
       }
     }

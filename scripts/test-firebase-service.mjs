@@ -183,7 +183,7 @@ test("registration allocates the lowest unused code and is idempotent", async ()
     },
   });
 
-  const created = await api.registration.register("1234567890", "yes", "bachelor");
+  const created = await api.registration.register("6234567890", "yes", "bachelor");
   assert.ok(database.readPaths.has("users/100001"));
   assert.deepEqual(
     { ...created },
@@ -191,10 +191,10 @@ test("registration allocates the lowest unused code and is idempotent", async ()
   );
   assert.equal(
     database.data.users["100001"].registration.studentId,
-    "1234567890",
+    "6234567890",
   );
   assert.equal(
-    database.data.studentRegistrations["1234567890"].accessCode,
+    database.data.studentRegistrations["6234567890"].accessCode,
     "100001",
   );
   assert.equal(
@@ -202,7 +202,7 @@ test("registration allocates the lowest unused code and is idempotent", async ()
     "bachelor",
   );
 
-  const repeated = await api.registration.register("1234567890", "no", "master");
+  const repeated = await api.registration.register("6234567890", "no", "master");
   assert.deepEqual(
     { ...repeated },
     { created: false },
@@ -376,9 +376,22 @@ test("registration fails clearly when no unused code remains", async () => {
   });
 
   await assert.rejects(
-    api.registration.register("1234567890", false, "doctorate"),
+    api.registration.register("6234567890", false, "doctorate"),
     (error) => error.code === "NO_AVAILABLE_CODES",
   );
+});
+
+test("registration rejects student IDs whose first digit is outside 5-7", async () => {
+  const { api } = createService({
+    users: { "100001": emptyParticipant() },
+  });
+
+  for (const studentId of ["4234567890", "8234567890"]) {
+    await assert.rejects(
+      api.registration.register(studentId, "yes", "bachelor"),
+      (error) => error.code === "INVALID_STUDENT_ID",
+    );
+  }
 });
 
 test("concurrent requests for one student keep only one claimed code", async () => {
@@ -390,14 +403,14 @@ test("concurrent requests for one student keep only one claimed code", async () 
   });
 
   const results = await Promise.all([
-    api.registration.register("1234567890", "yes", "bachelor"),
-    api.registration.register("1234567890", "yes", "bachelor"),
+    api.registration.register("6234567890", "yes", "bachelor"),
+    api.registration.register("6234567890", "yes", "bachelor"),
   ]);
   assert.equal(results.filter((result) => result.created).length, 1);
   assert.equal(results.find((result) => result.created).accessCode, "100001");
   assert.equal(
     Object.values(database.data.users).filter(
-      (user) => user.registration?.studentId === "1234567890",
+      (user) => user.registration?.studentId === "6234567890",
     ).length,
     1,
   );

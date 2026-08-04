@@ -7,7 +7,7 @@
       title: "รับรหัสสะสมแสตมป์",
       intro: "ลงทะเบียนหนึ่งครั้งเพื่อรับรหัส 6 หลักสำหรับ Stamp Card",
       studentId: "รหัสนิสิต",
-      studentPlaceholder: "กรอกรหัสนิสิต 10 หลัก",
+      studentPlaceholder: "กรอกรหัสนิสิต 10 หลัก ขึ้นต้นด้วย 5–7",
       educationQuestion: "ระดับการศึกษา",
       bachelor: "ปริญญาตรี",
       master: "ปริญญาโท",
@@ -23,7 +23,7 @@
       registered: "ลงทะเบียนสำเร็จ รหัส Stamp Card ของคุณคือ",
       alreadyRegistered: "รหัสนิสิตนี้ลงทะเบียนแล้ว เพื่อความปลอดภัยระบบจะไม่แสดงรหัสเดิม กรุณายืนยันตัวตนกับเจ้าหน้าที่",
       errors: {
-        INVALID_STUDENT_ID: "กรุณากรอกรหัสนิสิต 10 หลัก",
+        INVALID_STUDENT_ID: "กรุณากรอกรหัสนิสิต 10 หลัก โดยหลักแรกต้องเป็น 5, 6 หรือ 7",
         INVALID_EDUCATION_LEVEL: "กรุณาเลือกระดับการศึกษา",
         INVALID_VISIT_HISTORY: "กรุณาเลือกว่าเคยเข้าร่วมงานหรือไม่",
         NO_AVAILABLE_CODES: "รหัสสำหรับลงทะเบียนหมดแล้ว กรุณาติดต่อเจ้าหน้าที่",
@@ -37,7 +37,7 @@
       title: "Get your Stamp Card code",
       intro: "Register once to receive a 6-digit code for your Stamp Card.",
       studentId: "Student ID",
-      studentPlaceholder: "Enter your 10-digit student ID",
+      studentPlaceholder: "Enter a 10-digit student ID starting with 5–7",
       educationQuestion: "Education level",
       bachelor: "Bachelor's",
       master: "Master's",
@@ -53,7 +53,7 @@
       registered: "Registration complete. Your Stamp Card code is",
       alreadyRegistered: "This student ID is already registered. For your security, the existing code is not displayed. Please verify your identity with a staff member.",
       errors: {
-        INVALID_STUDENT_ID: "Please enter your 10-digit student ID.",
+        INVALID_STUDENT_ID: "Enter a 10-digit student ID whose first digit is 5, 6, or 7.",
         INVALID_EDUCATION_LEVEL: "Please select your education level.",
         INVALID_VISIT_HISTORY: "Please choose Yes or No.",
         NO_AVAILABLE_CODES: "No registration codes remain. Please contact a staff member.",
@@ -110,6 +110,7 @@
     elements.pageIntro.textContent = copy.intro;
     elements.studentIdLabel.textContent = copy.studentId;
     elements.studentId.placeholder = copy.studentPlaceholder;
+    validateStudentId();
     elements.educationLegend.textContent = copy.educationQuestion;
     elements.educationBachelorLabel.textContent = copy.bachelor;
     elements.educationMasterLabel.textContent = copy.master;
@@ -141,7 +142,17 @@
 
   function normalizeStudentId() {
     elements.studentId.value = elements.studentId.value.replace(/\D/g, "").slice(0, 10);
+    validateStudentId();
     return elements.studentId.value;
+  }
+
+  function validateStudentId() {
+    const value = elements.studentId.value;
+    const isValid = value === "" || /^[5-7]\d{9}$/.test(value);
+    elements.studentId.setCustomValidity(
+      isValid ? "" : activeCopy().errors.INVALID_STUDENT_ID,
+    );
+    return isValid;
   }
 
   function showError(error) {

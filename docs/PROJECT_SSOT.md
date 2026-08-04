@@ -9,7 +9,7 @@
 ## Flow ปัจจุบัน
 
 1. Admin สร้าง pool รหัส Stamp Card 6 หลัก 500 รหัส
-2. ผู้ร่วมงานลงทะเบียนด้วยรหัสนิสิต 10 หลัก ระดับการศึกษา (ตรี/โท/เอก) และประวัติการมางาน
+2. ผู้ร่วมงานลงทะเบียนด้วยรหัสนิสิต 10 หลักที่ขึ้นต้นด้วย 5, 6 หรือ 7 ระดับการศึกษา (ตรี/โท/เอก) และประวัติการมางาน
 3. ระบบจองรหัสว่างที่มีค่าน้อยที่สุดด้วย Firebase transaction
 4. การลงทะเบียนใหม่แสดงรหัสครั้งเดียว ปุ่มไป Stamp จะส่งรหัสผ่าน `sessionStorage` และเติมช่องล็อกอินให้อัตโนมัติ
    หลังแสดงรหัสสำเร็จ หน้า Registration จะซ่อนองค์ประกอบอื่นทั้งหมดและแสดงเฉพาะกรอบผลลัพธ์สีเขียวที่มีรหัสกับปุ่มไป Stamp
@@ -57,7 +57,7 @@ Firebase Realtime Database: eventstampcard (Spark)
 ```text
 users/{accessCode}
   registration:
-    studentId: string
+    studentId: string (10 digits, first digit 5-7)
     hasVisitedOpenHouse: boolean
     educationLevel: "bachelor" | "master" | "doctorate"
     registeredAt: number
@@ -83,7 +83,7 @@ users/{accessCode}
   drawnCardId?: number
 
 studentRegistrations/{studentId}
-  studentId: string
+  studentId: string (10 digits, first digit 5-7)
   accessCode: string
   hasVisitedOpenHouse: boolean
   educationLevel: "bachelor" | "master" | "doctorate"

@@ -19,8 +19,11 @@
 
   function normalizeStudentId(value) {
     const studentId = String(value ?? "").trim();
-    if (!/^\d{10}$/.test(studentId)) {
-      fail("INVALID_STUDENT_ID", "Student ID must contain 10 digits.");
+    if (!/^[5-7]\d{9}$/.test(studentId)) {
+      fail(
+        "INVALID_STUDENT_ID",
+        "Student ID must contain 10 digits and start with 5, 6, or 7.",
+      );
     }
     return studentId;
   }
