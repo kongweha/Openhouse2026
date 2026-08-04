@@ -89,6 +89,7 @@ function updateViews() {
     renderDashboard();
     renderLeaderboard();
     renderDetailed();
+    renderEvaluations();
 }
 
 function renderDashboard() {
@@ -181,12 +182,42 @@ function renderDetailed() {
         rows.join("") || '<tr><td colspan="3">ไม่พบข้อมูล</td></tr>';
 }
 
+function evaluationScore(value) {
+    const score = Number(value);
+    return Number.isInteger(score) && score >= 1 && score <= 5 ? score : "-";
+}
+
+function renderEvaluations() {
+    const query = document.getElementById("searchEvaluations").value.trim().toLowerCase();
+    const rows = Object.keys(globalUsersData).sort().flatMap((code) => {
+        const user = globalUsersData[code];
+        const studentId = user.registration?.studentId ?? "";
+        const evaluation = user.activityEvaluation;
+        if (!evaluation || (query && !code.includes(query) && !studentId.toLowerCase().includes(query))) return [];
+        const categories = evaluation.categoryRatings;
+        const overall = evaluationScore(categories?.overall ?? evaluation.overallSatisfaction);
+        const favorite = STATIONS.find((station) => station.id === Number(evaluation.favoriteStationId));
+        const categorySummary = categories
+            ? `รูปแบบ ${evaluationScore(categories.activityFormat)}/5<br>สถานที่ ${evaluationScore(categories.venue)}/5<br>ระยะเวลา ${evaluationScore(categories.duration)}/5<br>ของรางวัล ${evaluationScore(categories.reward)}/5<br><b>ภาพรวม ${overall}/5</b>`
+            : `<b>ภาพรวม ${overall}/5</b>`;
+        return [`<tr>
+            <td class="code">${escapeHtml(code)}</td>
+            <td class="code">${escapeHtml(studentId || "-")}</td>
+            <td>${categorySummary}</td>
+            <td>${escapeHtml(favorite?.name ?? "-")}</td>
+            <td class="long-response">${escapeHtml(evaluation.impressionFeedback ?? evaluation.suggestion ?? "-")}</td>
+            <td class="long-response">${escapeHtml(evaluation.desiredLibraryServices ?? "-")}</td>
+        </tr>`];
+    });
+    document.getElementById("tableEvaluations").innerHTML = rows.join("") || '<tr><td colspan="6">ยังไม่มีข้อมูลแบบประเมิน</td></tr>';
+}
+
 function csvValue(value) {
     return `"${String(value ?? "").replaceAll('"', '""')}"`;
 }
 
 function exportCSV() {
-    const headers = ["รหัส Stamp Card", "รหัสนิสิต", "ระดับการศึกษา", "เคยมา Open House", "สถานะ", "ฐานที่ผ่าน", "แนวโน้มใช้พื้นที่ห้องสมุด", "รูปแบบกิจกรรม", "สถานที่จัดกิจกรรม", "ระยะเวลาในการจัดกิจกรรม", "ของรางวัล", "ภาพรวมกิจกรรม", "ฐานที่ชอบที่สุด", "ข้อเสนอแนะ"];
+    const headers = ["รหัส Stamp Card", "รหัสนิสิต", "ระดับการศึกษา", "เคยมา Open House", "สถานะ", "ฐานที่ผ่าน", "แนวโน้มใช้พื้นที่ห้องสมุด", "รูปแบบกิจกรรม", "สถานที่จัดกิจกรรม", "ระยะเวลาในการจัดกิจกรรม", "ของรางวัล", "ภาพรวมกิจกรรม", "ฐานที่ชอบที่สุด", "ความประทับใจ/ข้อเสนอแนะ/ติชม", "บริการใหม่ที่นิสิตอยากให้มีในห้องสมุด"];
     STATIONS.forEach((station) => headers.push(station.name, "เวลา", "ความชัดเจน"));
     const rows = [headers.map(csvValue).join(",")];
     Object.keys(globalUsersData).sort().forEach((code) => {
@@ -212,7 +243,8 @@ function exportCSV() {
             evaluation?.categoryRatings?.reward ?? "",
             evaluation?.categoryRatings?.overall ?? evaluation?.overallSatisfaction ?? "",
             favoriteStation?.name ?? "",
-            evaluation?.suggestion ?? "",
+            evaluation?.impressionFeedback ?? evaluation?.suggestion ?? "",
+            evaluation?.desiredLibraryServices ?? "",
         ];
         let lastTime = user.loginTime;
         STATIONS.forEach((station) => {
@@ -262,8 +294,13 @@ function openModal(code) {
             (station) => station.id === Number(user.activityEvaluation.favoriteStationId),
         );
         const categories = user.activityEvaluation.categoryRatings;
-        const overall = categories?.overall ?? user.activityEvaluation.overallSatisfaction ?? "-";
-        items.push(`<li><b>ประเมินเพื่อรับของรางวัล</b> <span class="timeline-time">${formatTime(user.activityEvaluation.submittedAt)}</span><br><span class="duration-box">ภาพรวมกิจกรรม ${overall}/5 · ชอบที่สุด ${escapeHtml(favorite?.name ?? "-")}</span></li>`);
+        const overall = evaluationScore(categories?.overall ?? user.activityEvaluation.overallSatisfaction);
+        const feedback = user.activityEvaluation.impressionFeedback ?? user.activityEvaluation.suggestion ?? "-";
+        const desiredServices = user.activityEvaluation.desiredLibraryServices ?? "-";
+        const categorySummary = categories
+            ? `รูปแบบกิจกรรม ${evaluationScore(categories.activityFormat)}/5 · สถานที่ ${evaluationScore(categories.venue)}/5 · ระยะเวลา ${evaluationScore(categories.duration)}/5 · ของรางวัล ${evaluationScore(categories.reward)}/5 · ภาพรวม ${overall}/5`
+            : `ภาพรวมกิจกรรม ${overall}/5`;
+        items.push(`<li><b>ประเมินความพึงพอใจในกิจกรรม Chula Open House 2026</b> <span class="timeline-time">${formatTime(user.activityEvaluation.submittedAt)}</span><br><span class="duration-box">${categorySummary} · ชอบที่สุด ${escapeHtml(favorite?.name ?? "-")}</span><p><b>ความประทับใจ/ข้อเสนอแนะ/ติชม:</b> ${escapeHtml(feedback)}</p><p><b>บริการใหม่ที่อยากให้ห้องสมุดมี:</b> ${escapeHtml(desiredServices)}</p></li>`);
     }
     if (user.finalIntentionRating) {
         items.push(`<li><b>แนวโน้มใช้พื้นที่ห้องสมุด</b> <span class="duration-box">${user.finalIntentionRating}/5</span></li>`);

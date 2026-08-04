@@ -7,6 +7,9 @@ h1 { margin-top: 0; color: #1e293b; font-size: 24px; }
 .action-bar { display: flex; gap: 20px; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 20px; border-bottom: 2px solid #e2e8f0; }
 .action-buttons { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
 .action-buttons button { margin: 0; }
+.btn-link { display: inline-flex; align-items: center; justify-content: center; padding: 10px 20px; border-radius: 8px; color: white; font-size: 14px; font-weight: bold; text-decoration: none; }
+.btn-dashboard { background: #7c3aed; }
+.btn-dashboard:hover { background: #6d28d9; }
 
 button { padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: bold; transition: 0.2s; }
 .btn-primary { background-color: #3b82f6; color: white; }
@@ -40,6 +43,7 @@ table { width: 100%; border-collapse: collapse; background: white; font-size: 14
 th, td { padding: 15px; border-bottom: 1px solid #e2e8f0; text-align: left; }
 th { background-color: #f8fafc; color: #475569; }
 td { vertical-align: top; }
+.long-response { min-width: 240px; white-space: pre-wrap; overflow-wrap: anywhere; }
 
 .badge { padding: 6px 12px; border-radius: 15px; font-size: 12px; font-weight: bold; cursor: pointer; display: inline-block; }
 .badge.none { background: #e2e8f0; color: #64748b; }

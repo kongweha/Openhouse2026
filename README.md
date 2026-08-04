@@ -4,7 +4,7 @@
 หน้าลงทะเบียน หน้าสร้าง QR และหน้าผู้ดูแลระบบ โดยใช้ Firebase Realtime
 Database บน Spark plan ผ่าน Firebase Client SDK
 
-หลังประเมินฐานสุดท้าย ระบบถามแนวโน้มการใช้พื้นที่ห้องสมุดด้วยดาวสีชมพู จากนั้นผู้เล่นกด `ประเมินเพื่อรับของรางวัล` และให้คะแนนรูปแบบกิจกรรม สถานที่ ระยะเวลา ของรางวัล และภาพรวมกิจกรรม ก่อนแสดงหน้ารับรางวัลให้เจ้าหน้าที่ยืนยัน
+หลังประเมินฐานสุดท้าย ระบบถามแนวโน้มการใช้พื้นที่ห้องสมุดด้วยดาวสีชมพู จากนั้นผู้เล่นกด `ประเมินเพื่อรับของรางวัล` และให้คะแนนรูปแบบกิจกรรม สถานที่ ระยะเวลา ของรางวัล และภาพรวมกิจกรรม พร้อมให้ความคิดเห็นและเสนอแนะบริการใหม่ ก่อนแสดงหน้ารับรางวัลให้เจ้าหน้าที่ยืนยัน
 
 ## เริ่มต้นใช้งาน
 
@@ -21,6 +21,7 @@ npm run serve
 - ลงทะเบียน: <http://localhost:4173/registration.html>
 - ลืมรหัส/ยืนยันตัวตน: <http://localhost:4173/forgot-code.html?lang=th>
 - ผู้ดูแล: <http://localhost:4173/admin.html>
+- Dashboard: <http://localhost:4173/dashboard.html>
 - เครื่องสร้าง QR: <http://localhost:4173/generate-qr.html>
 
 ตัวเว็บจริงเป็น static site และไม่ต้อง build ก่อน deploy ไฟล์ทั้งหมดที่เผยแพร่
@@ -54,6 +55,7 @@ scripts/                 validation และ local server
 | ลืมรหัส/ตรวจตัวตน | `public/forgot-code.html`, `assets/js/pages/forgot-code.js` |
 | หน้าผู้เข้าร่วม | `public/Stamp.html`, `assets/js/pages/stamp.js` |
 | หน้า Admin | `public/admin.html`, `assets/js/pages/admin.js` |
+| Dashboard แผนภูมิและความคิดเห็น | `public/dashboard.html`, `assets/js/pages/dashboard.js` |
 | เครื่องสร้าง QR | `public/generate-qr.html`, `assets/js/pages/generate-qr.js` |
 | รูปการ์ด | `public/assets/images/cards/` |
 | รูปฐาน | `public/assets/images/stations/` |
@@ -73,6 +75,6 @@ redirect ไป `Stamp.html` เพื่อรักษา URL รากโด�
 
 ## ข้อควรระวัง
 
-ระบบใช้ Spark plan และไม่ต้อง deploy Cloud Functions แต่ Admin และ Firebase
+ระบบใช้ Spark plan และไม่ต้อง deploy Cloud Functions แต่ Admin/Dashboard และ Firebase
 operations ยังไม่มี authentication ดูความเสี่ยงเรื่อง Rules, QR และ
 forgot-code ใน SSOT ก่อนใช้งานจริง

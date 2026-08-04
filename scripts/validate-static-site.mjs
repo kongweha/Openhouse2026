@@ -51,6 +51,7 @@ function resolveReference(htmlFile, reference) {
 const requiredFiles = [
   "public/index.html",
   "public/admin.html",
+  "public/dashboard.html",
   "public/registration.html",
   "public/forgot-code.html",
   "public/generate-qr.html",
@@ -58,6 +59,7 @@ const requiredFiles = [
   "public/GenerateQR.html",
   "public/assets/css/stamp.css",
   "public/assets/css/admin.css",
+  "public/assets/css/dashboard.css",
   "public/assets/css/generate-qr.css",
   "public/assets/css/registration.css",
   "public/assets/js/config/app-config.js",
@@ -65,6 +67,7 @@ const requiredFiles = [
   "public/assets/js/shared/firebase-service.js",
   "public/assets/js/pages/stamp.js",
   "public/assets/js/pages/admin.js",
+  "public/assets/js/pages/dashboard.js",
   "public/assets/js/pages/generate-qr.js",
   "public/assets/js/pages/registration.js",
   "public/assets/js/pages/forgot-code.js",
@@ -109,7 +112,7 @@ if (await exists(publicRoot)) {
     }
 
     if (
-      ["Stamp.html", "admin.html", "generate-qr.html", "registration.html"].includes(
+      ["Stamp.html", "admin.html", "dashboard.html", "generate-qr.html", "registration.html"].includes(
         path.basename(htmlFile),
       )
     ) {
@@ -127,7 +130,7 @@ if (await exists(publicRoot)) {
     }
 
     if (
-      ["Stamp.html", "admin.html", "registration.html"].includes(
+      ["Stamp.html", "admin.html", "dashboard.html", "registration.html"].includes(
         path.basename(htmlFile),
       )
     ) {
@@ -165,6 +168,7 @@ if (await exists(publicRoot)) {
         'id="activityCriteriaFields"',
         'id="favoriteStation"',
         'id="activitySuggestion"',
+        'id="desiredLibraryServices"',
         'id="btnConfirmReward"',
         'id="finalAssessmentOverlay"',
         'id="finalStarContainer"',
@@ -191,6 +195,28 @@ if (await exists(publicRoot)) {
           `${relativeHtml} must provide bilingual controls and button-style visit choices.`,
         );
       }
+    }
+
+    if (path.basename(htmlFile) === "dashboard.html") {
+      const requiredDashboardControls = [
+        'id="overviewKpis"',
+        'id="educationChart"',
+        'id="attendanceChart"',
+        'id="evaluationChart"',
+        'id="feedbackList"',
+        'id="servicesList"',
+      ];
+      if (requiredDashboardControls.some((control) => !html.includes(control))) {
+        errors.push(`${relativeHtml} must provide the analytics dashboard sections.`);
+      }
+    }
+
+    if (
+      path.basename(htmlFile) === "admin.html" &&
+      (!html.includes('id="tab-evaluations"') ||
+        !html.includes('id="tableEvaluations"'))
+    ) {
+      errors.push(`${relativeHtml} must expose activity-evaluation responses.`);
     }
   }
 

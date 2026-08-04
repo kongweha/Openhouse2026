@@ -15,7 +15,7 @@
 5. หากรหัสนิสิตเคยลงทะเบียนแล้ว หน้าเว็บไม่แสดงหรือส่งรหัสเดิมกลับ
 6. ผู้ลืมรหัสเปิด `forgot-code.html` และต้องนำบัตรนิสิตหรือ CU NEX ให้เจ้าหน้าที่ตรวจตัวตน
 7. หลังบันทึกคะแนนฐานสุดท้าย ระบบเปิด popup ดาวสีชมพูเพื่อถามแนวโน้มการใช้พื้นที่ห้องสมุด และบันทึก `finalIntentionRating`
-8. เมื่อส่งดาวสีชมพูแล้ว ปุ่ม `ประเมินเพื่อรับของรางวัล` จึงใช้งานได้; แบบประเมินเรียงคะแนนดาว 1–5 ตามหัวข้อ รูปแบบกิจกรรม, สถานที่จัดกิจกรรม, ระยะเวลาในการจัดกิจกรรม, ของรางวัล และภาพรวมกิจกรรม โดยภาพรวมกิจกรรมแสดงเด่นกว่าข้ออื่น พร้อมฐานที่ชอบที่สุดและข้อเสนอแนะ
+8. เมื่อส่งดาวสีชมพูแล้ว ปุ่ม `ประเมินเพื่อรับของรางวัล` จึงใช้งานได้; หัวข้อแบบประเมินคือ `ประเมินความพึงพอใจในกิจกรรม Chula Open House 2026` และเรียงคะแนนดาว 1–5 แบบไม่มีเลขนำหน้าหรือเส้นคั่น ตามหัวข้อ รูปแบบกิจกรรม, สถานที่จัดกิจกรรม, ระยะเวลาในการจัดกิจกรรม, ของรางวัล และภาพรวมกิจกรรม โดยภาพรวมกิจกรรมแสดงเด่นกว่าข้ออื่น พร้อมฐานที่ชอบที่สุด, ความประทับใจ/ข้อเสนอแนะ/ติชม และบริการใหม่ที่นิสิตอยากให้มีในห้องสมุด
 9. หลังส่งแบบประเมินกิจกรรม ระบบเปิดหน้ารับรางวัลแต่ยังไม่ตั้ง `isRedeemed`; เจ้าหน้าที่ต้องกดยืนยันหลังมอบรางวัล ระบบจึงบันทึกเวลาและแจ้งผลสำเร็จ
 10. เมื่อรหัสเดียวกันล็อกอินใหม่ `activeSession` จะถูกแทนที่ อุปกรณ์เดิมถูกออกจากระบบและเขียนข้อมูลต่อไม่ได้
 11. หลังยืนยันรับรางวัล ผู้เล่นจึงสุ่มการ์ดได้หนึ่งใบ
@@ -44,7 +44,8 @@ Firebase Realtime Database: eventstampcard (Spark)
 | `public/index.html` | Redirect ไป `Stamp.html` |
 | `public/registration.html` | ลงทะเบียนเท่านั้น ไม่มีเมนูลืมรหัส |
 | `public/forgot-code.html?lang=th|en` | ขั้นตอนตรวจตัวตนเพื่อขอรหัสเดิม |
-| `public/admin.html` | Dashboard รวมระดับการศึกษาและ CSV |
+| `public/admin.html` | ตารางจัดการ รายละเอียดแบบประเมิน และ CSV |
+| `public/dashboard.html` | Dashboard แผนภูมิแบบ sidebar: ภาพรวม ระดับการศึกษา ผู้เคย/ไม่เคยมา ความคืบหน้า แบบประเมิน รายฐาน และคำตอบปลายเปิด |
 | `public/generate-qr.html` | สร้าง Dynamic QR |
 | `public/GenerateQR.html` | Compatibility redirect |
 
@@ -75,7 +76,8 @@ users/{accessCode}
       reward: number (1-5)
       overall: number (1-5)
     favoriteStationId: number
-    suggestion: string (สูงสุด 1000 ตัวอักษร)
+    impressionFeedback: string (สูงสุด 1000 ตัวอักษร)
+    desiredLibraryServices: string (สูงสุด 1000 ตัวอักษร)
     submittedAt: number
   drawnCardId?: number
 
@@ -94,7 +96,9 @@ studentRegistrations/{studentId}
 - `submitEvaluation()` เปิดจากปุ่ม `ประเมินเพื่อรับของรางวัล`; คะแนน 1–5 ของทั้ง 5 หมวดแสดงเป็นดาวใน UI และไม่มีคะแนนความชอบรายฐาน
 - ผู้เล่นเก่าที่ครบทุกฐานใช้ flow ดาวสีชมพูแล้วจึงทำแบบประเมินกิจกรรมได้
 - `confirmReward()` เป็นคนละ transaction และทำได้เมื่อครบทุกฐาน มี `finalIntentionRating` และมี `activityEvaluation` แล้วเท่านั้น
-- หน้า Admin และ CSV แสดงคะแนนทั้ง 5 หมวด ฐานโปรด และข้อเสนอแนะ โดยอ่านค่า `overallSatisfaction` เก่าเป็น fallback สำหรับข้อมูลก่อน migration
+- หน้า Admin และ CSV แสดงคะแนนทั้ง 5 หมวด ฐานโปรด ความประทับใจ/ข้อเสนอแนะ/ติชม และบริการใหม่ที่อยากให้มี
+- ข้อมูลก่อน migration ที่ใช้ `activityEvaluation.suggestion` และ `overallSatisfaction` ยังถูกอ่านเป็น fallback ใน Admin/Dashboard; การส่งแบบประเมินใหม่บันทึกเป็น `impressionFeedback` และ `desiredLibraryServices`
+- Dashboard อ่านข้อมูลผ่าน `API.admin.getUsers()` เช่นเดียวกับ Admin และคำนวณแผนภูมิใน browser โดยแสดงเฉพาะผู้ที่มี `registration.studentId`; ไม่มี chart CDN เพิ่ม
 - session ใหม่แทน session เดิม และทุก action ที่เปลี่ยนข้อมูลตรวจ token ใน transaction
 - `activeSession` เป็นการควบคุมเชิงแอป ไม่ใช่ authentication ที่แข็งแรง หาก Rules เปิดกว้าง ผู้โจมตียังข้าม client ได้
 - Stamp ไม่มี polling ข้อมูลผู้ใช้ แต่มี listener เฉพาะ token ของ session เพื่อออกจากระบบเมื่อถูกแทนที่
@@ -107,7 +111,7 @@ studentRegistrations/{studentId}
 
 ความเสี่ยงคงเหลือ:
 
-1. **Critical — Database/Admin ไม่มี authentication ที่บังคับด้วย Rules ที่ได้รับการตรวจแล้ว**
+1. **Critical — Database/Admin/Dashboard ไม่มี authentication ที่บังคับด้วย Rules ที่ได้รับการตรวจแล้ว**
 2. **Critical — QR forge/replay ได้** เพราะเวลาและ payload ตรวจใน browser
 3. **High — Single-session เป็น client-side coordination** ไม่ใช่หลักฐานตัวตน
 4. **High — ปุ่มยืนยันรับรางวัลระบุว่าเจ้าหน้าที่เท่านั้น แต่ยังไม่มี Staff Auth/Rules จึงบังคับสิทธิ์จริงไม่ได้**
@@ -124,6 +128,7 @@ studentRegistrations/{studentId}
 | Forgot code | `public/forgot-code.html`, `assets/js/pages/forgot-code.js` |
 | Stamp | `public/Stamp.html`, `assets/js/pages/stamp.js` |
 | Admin | `public/admin.html`, `assets/js/pages/admin.js` |
+| Dashboard | `public/dashboard.html`, `assets/js/pages/dashboard.js` |
 
 ## Validation และ deploy
 
@@ -132,4 +137,4 @@ npm run check
 git push origin main
 ```
 
-ล่าสุด `npm run check` ผ่าน: static validator 0 warnings และ Firebase service tests 6/6 รวม final intention, activity evaluation, staff reward confirmation และ session replacement
+ล่าสุด `npm run check` ผ่าน: static validator 0 warnings และ Firebase service tests 6/6 รวม registration, final intention, activity evaluation, staff reward confirmation และ session replacement

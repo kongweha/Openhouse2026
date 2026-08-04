@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard | Chula Open House 2026</title>
+    <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+    <script defer src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+    <script defer src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+    <link rel="stylesheet" href="assets/css/dashboard.css?v=20260804-1">
+</head>
+<body>
+    <div class="dashboard-shell">
+        <aside class="sidebar">
+            <div class="brand">
+                <span class="brand-mark">CU</span>
+                <div><strong>Open House 2026</strong><small>Analytics Dashboard</small></div>
+            </div>
+            <nav class="sidebar-nav" aria-label="ส่วนข้อมูล Dashboard">
+                <button class="nav-item active" type="button" data-section="overview">ภาพรวม</button>
+                <button class="nav-item" type="button" data-section="education">ระดับการศึกษา</button>
+                <button class="nav-item" type="button" data-section="attendance">ประวัติการเข้าร่วม</button>
+                <button class="nav-item" type="button" data-section="progress">ความคืบหน้า</button>
+                <button class="nav-item" type="button" data-section="evaluation">ผลประเมินกิจกรรม</button>
+                <button class="nav-item" type="button" data-section="stations">ข้อมูลรายฐาน</button>
+                <button class="nav-item" type="button" data-section="feedback">ความคิดเห็น</button>
+            </nav>
+            <a class="back-link" href="admin.html">← กลับหน้า Admin</a>
+        </aside>
+
+        <main class="dashboard-main">
+            <header class="page-header">
+                <div><p class="eyebrow">CHULA LIBRARY OPEN HOUSE 2026</p><h1 id="pageTitle">ภาพรวม</h1><p class="muted" id="lastUpdated">กำลังโหลดข้อมูลจาก Firebase...</p></div>
+                <button id="refreshDashboard" class="refresh-button" type="button">รีเฟรชข้อมูล</button>
+            </header>
+            <div id="dashboardError" class="error-banner hidden" role="alert"></div>
+
+            <section id="section-overview" class="dashboard-section active">
+                <div class="kpi-grid" id="overviewKpis"></div>
+                <div class="panel-grid two-columns">
+                    <article class="panel"><div class="panel-heading"><div><h2>ระดับการศึกษา</h2><p>ผู้ลงทะเบียนที่ระบุระดับการศึกษา</p></div></div><div id="overviewEducation"></div></article>
+                    <article class="panel"><div class="panel-heading"><div><h2>เคยเข้าร่วมกิจกรรมหรือไม่</h2><p>เปรียบเทียบผู้เล่นเดิมและผู้เล่นใหม่</p></div></div><div id="overviewAttendance"></div></article>
+                </div>
+            </section>
+
+            <section id="section-education" class="dashboard-section">
+                <article class="panel"><div class="panel-heading"><div><h2>สัดส่วนระดับการศึกษา</h2><p>ปริญญาตรี ปริญญาโท และปริญญาเอก</p></div></div><div id="educationChart"></div></article>
+            </section>
+
+            <section id="section-attendance" class="dashboard-section">
+                <article class="panel"><div class="panel-heading"><div><h2>ประวัติการเข้าร่วม Chula Library Open House</h2><p>แบ่งผู้ที่เคยมาและไม่เคยมา</p></div></div><div id="attendanceChart"></div></article>
+            </section>
+
+            <section id="section-progress" class="dashboard-section">
+                <article class="panel"><div class="panel-heading"><div><h2>สถานะการเล่น</h2><p>สถานะล่าสุดแบบไม่ซ้ำกันของผู้ลงทะเบียนแต่ละคน</p></div></div><div id="progressChart"></div></article>
+            </section>
+
+            <section id="section-evaluation" class="dashboard-section">
+                <div class="panel-grid two-columns">
+                    <article class="panel"><div class="panel-heading"><div><h2>คะแนนความพึงพอใจ</h2><p>คะแนนเฉลี่ยเต็ม 5 แยกตามหัวข้อ</p></div></div><div id="evaluationChart"></div></article>
+                    <article class="panel"><div class="panel-heading"><div><h2>ฐานที่ชอบที่สุด</h2><p>จำนวนผู้เลือกแต่ละฐาน</p></div></div><div id="favoriteChart"></div></article>
+                </div>
+            </section>
+
+            <section id="section-stations" class="dashboard-section">
+                <div class="panel-grid two-columns">
+                    <article class="panel"><div class="panel-heading"><div><h2>อัตราผ่านแต่ละฐาน</h2><p>เทียบกับผู้ลงทะเบียนทั้งหมด</p></div></div><div id="stationCompletionChart"></div></article>
+                    <article class="panel"><div class="panel-heading"><div><h2>คะแนนความชัดเจนของฐาน</h2><p>คะแนนเฉลี่ยจากผู้ที่ให้คะแนน</p></div></div><div id="stationRatingChart"></div></article>
+                </div>
+            </section>
+
+            <section id="section-feedback" class="dashboard-section">
+                <div class="panel-grid two-columns">
+                    <article class="panel"><div class="panel-heading"><div><h2>ความประทับใจ/ข้อเสนอแนะ/ติชม</h2><p>คำตอบปลายเปิดล่าสุด</p></div></div><div id="feedbackList" class="response-list"></div></article>
+                    <article class="panel"><div class="panel-heading"><div><h2>บริการใหม่ที่นิสิตอยากให้มีในห้องสมุด</h2><p>คำตอบปลายเปิดล่าสุด</p></div></div><div id="servicesList" class="response-list"></div></article>
+                </div>
+            </section>
+        </main>
+    </div>
+    <script defer src="assets/js/config/app-config.js?v=20260724-1"></script>
+    <script defer src="assets/js/config/firebase-config.js"></script>
+    <script defer src="assets/js/shared/firebase-service.js?v=20260804-5"></script>
+    <script defer src="assets/js/pages/dashboard.js?v=20260804-1"></script>
+</body>
+</html>

@@ -7,7 +7,7 @@
     <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
     <script defer src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
     <script defer src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
-    <link rel="stylesheet" href="assets/css/admin.css">
+    <link rel="stylesheet" href="assets/css/admin.css?v=20260804-5">
 </head>
 <body>
     <main class="admin-container" id="adminApp">
@@ -17,6 +17,7 @@
                 <p class="muted">ข้อมูลรหัสนิสิตและรหัส Stamp Card จาก Firebase Realtime Database</p>
             </div>
             <div class="action-buttons">
+                <a class="btn-link btn-dashboard" href="dashboard.html">เปิด Dashboard</a>
                 <button class="btn-primary" type="button" onclick="loadUsers()">รีเฟรชข้อมูล</button>
                 <button id="btnGenerateCodes" class="btn-primary" type="button" onclick="generateAndUploadCodes()">สร้างรหัสใหม่</button>
                 <button class="btn-success" type="button" onclick="exportCSV()">ดาวน์โหลด CSV</button>
@@ -35,6 +36,7 @@
             <button class="tab-btn active" type="button" onclick="switchTab('dashboard', this)">ข้อมูลทั้งหมด</button>
             <button class="tab-btn" type="button" onclick="switchTab('leaderboard', this)">อันดับและเส้นทาง</button>
             <button class="tab-btn" type="button" onclick="switchTab('detailed', this)">เวลาและคะแนน</button>
+            <button class="tab-btn" type="button" onclick="switchTab('evaluations', this)">ผลแบบประเมิน</button>
         </div>
 
         <section id="tab-dashboard" class="tab-content active">
@@ -84,6 +86,20 @@
                 </table>
             </div>
         </section>
+
+        <section id="tab-evaluations" class="tab-content">
+            <div class="filter-group">
+                <input type="search" id="searchEvaluations" class="search-box" oninput="renderEvaluations()" placeholder="ค้นหารหัส Stamp Card หรือรหัสนิสิต">
+            </div>
+            <div class="table-scroll">
+                <table>
+                    <thead><tr>
+                        <th>รหัส Stamp Card</th><th>รหัสนิสิต</th><th>คะแนน 5 หัวข้อ</th><th>ฐานที่ชอบที่สุด</th><th>ความประทับใจ/ข้อเสนอแนะ/ติชม</th><th>บริการใหม่ที่อยากให้มี</th>
+                    </tr></thead>
+                    <tbody id="tableEvaluations"><tr><td colspan="6">กำลังโหลด...</td></tr></tbody>
+                </table>
+            </div>
+        </section>
     </main>
 
     <div id="historyModal" class="modal">
@@ -97,7 +113,7 @@
 
     <script defer src="assets/js/config/app-config.js?v=20260724-1"></script>
     <script defer src="assets/js/config/firebase-config.js"></script>
-    <script defer src="assets/js/shared/firebase-service.js?v=20260804-4"></script>
-    <script defer src="assets/js/pages/admin.js?v=20260804-4"></script>
+    <script defer src="assets/js/shared/firebase-service.js?v=20260804-5"></script>
+    <script defer src="assets/js/pages/admin.js?v=20260804-5"></script>
 </body>
 </html>

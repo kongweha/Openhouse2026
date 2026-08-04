@@ -28,15 +28,17 @@ const LANG = {
         staffOnly: "Staff only",
         staffNote: "Press this button only after the reward has been handed to the participant.",
         confirmRewardButton: "Confirm reward handed over",
-        activityEvaluationHeader: "Evaluate to receive your reward",
+        activityEvaluationHeader: "Chula Open House 2026 Activity Satisfaction Survey",
         activityFormat: "Activity format",
         activityVenue: "Activity venue",
         activityDuration: "Activity duration",
         activityReward: "Reward",
         activityOverall: "Overall activity experience",
         favoriteStation: "Your favorite station",
-        suggestion: "Suggestions",
-        suggestionPlaceholder: "Enter suggestions (optional)",
+        suggestion: "Impressions / suggestions / feedback",
+        suggestionPlaceholder: "Share your impressions, suggestions, or feedback (optional)",
+        desiredLibraryServices: "New services you would like the library to offer",
+        desiredLibraryServicesPlaceholder: "Describe a new library service you would like (optional)",
         selectStation: "Select a station",
         evaluationSubmit: "Submit evaluation to receive reward",
         intentionPendingButton: "Complete the library-use assessment first",
@@ -90,15 +92,17 @@ const LANG = {
         staffOnly: "สำหรับเจ้าหน้าที่เท่านั้น",
         staffNote: "กรุณากดปุ่มนี้หลังจากมอบของรางวัลให้ผู้เล่นแล้วเท่านั้น",
         confirmRewardButton: "ยืนยันว่ามอบของรางวัลแล้ว",
-        activityEvaluationHeader: "ประเมินเพื่อรับของรางวัล",
-        activityFormat: "1. รูปแบบกิจกรรม",
-        activityVenue: "2. สถานที่จัดกิจกรรม",
-        activityDuration: "3. ระยะเวลาในการจัดกิจกรรม",
-        activityReward: "4. ของรางวัล",
-        activityOverall: "5. ภาพรวมกิจกรรม",
+        activityEvaluationHeader: "ประเมินความพึงพอใจในกิจกรรม Chula Open House 2026",
+        activityFormat: "รูปแบบกิจกรรม",
+        activityVenue: "สถานที่จัดกิจกรรม",
+        activityDuration: "ระยะเวลาในการจัดกิจกรรม",
+        activityReward: "ของรางวัล",
+        activityOverall: "ภาพรวมกิจกรรม",
         favoriteStation: "ฐานที่ชอบที่สุด",
-        suggestion: "ข้อเสนอแนะ",
-        suggestionPlaceholder: "พิมพ์ข้อเสนอแนะ (ไม่บังคับ)",
+        suggestion: "ความประทับใจ/ข้อเสนอแนะ/ติชม",
+        suggestionPlaceholder: "พิมพ์ความประทับใจ ข้อเสนอแนะ หรือคำติชม (ไม่บังคับ)",
+        desiredLibraryServices: "บริการใหม่ที่นิสิตอยากให้มีในห้องสมุด",
+        desiredLibraryServicesPlaceholder: "พิมพ์บริการใหม่ที่อยากให้ห้องสมุดมี (ไม่บังคับ)",
         selectStation: "เลือกฐาน",
         evaluationSubmit: "ส่งแบบประเมินเพื่อรับของรางวัล",
         intentionPendingButton: "กรุณาประเมินแนวโน้มการใช้ห้องสมุดก่อน",
@@ -233,6 +237,8 @@ function applyLanguage() {
     document.getElementById('txtFavoriteStation').innerText = l.favoriteStation;
     document.getElementById('txtSuggestion').innerText = l.suggestion;
     document.getElementById('activitySuggestion').placeholder = l.suggestionPlaceholder;
+    document.getElementById('txtDesiredLibraryServices').innerText = l.desiredLibraryServices;
+    document.getElementById('desiredLibraryServices').placeholder = l.desiredLibraryServicesPlaceholder;
     renderEvaluationOptions();
     document.getElementById('txtFinalHeader').innerText = l.finalHeader;
     document.getElementById('txtFinalDesc').innerText = l.finalDesc;
@@ -509,6 +515,7 @@ function resetActivityEvaluationFields() {
     activityCriteriaRatings = {};
     document.getElementById('favoriteStation').value = '';
     document.getElementById('activitySuggestion').value = '';
+    document.getElementById('desiredLibraryServices').value = '';
     renderEvaluationOptions();
 }
 
@@ -516,7 +523,8 @@ function readActivityEvaluation() {
     return {
         categoryRatings: { ...activityCriteriaRatings },
         favoriteStationId: Number(document.getElementById('favoriteStation').value),
-        suggestion: document.getElementById('activitySuggestion').value.trim(),
+        impressionFeedback: document.getElementById('activitySuggestion').value.trim(),
+        desiredLibraryServices: document.getElementById('desiredLibraryServices').value.trim(),
     };
 }
 

@@ -169,7 +169,8 @@ function activityEvaluation() {
       overall: 5,
     },
     favoriteStationId: 1,
-    suggestion: "Great event",
+    impressionFeedback: "Great event",
+    desiredLibraryServices: "Longer opening hours",
   };
 }
 
@@ -274,6 +275,8 @@ test("participant completes the final station, answers both evaluations, then re
     activityEvaluation(),
   );
   assert.equal(evaluated.participant.activityEvaluation.categoryRatings.overall, 5);
+  assert.equal(evaluated.participant.activityEvaluation.impressionFeedback, "Great event");
+  assert.equal(evaluated.participant.activityEvaluation.desiredLibraryServices, "Longer opening hours");
   assert.equal(evaluated.participant.activityEvaluation.stationPreferences, undefined);
   assert.equal(evaluated.participant.isRedeemed, false);
 

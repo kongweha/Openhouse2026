@@ -9,7 +9,7 @@
     <script defer src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
     <script defer src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
     <script defer src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
-    <link rel="stylesheet" href="assets/css/stamp.css?v=20260723-4">
+    <link rel="stylesheet" href="assets/css/stamp.css?v=20260804-5">
 </head>
 <body>
 
@@ -79,8 +79,10 @@
                     <div id="activityCriteriaFields"></div>
                     <label id="txtFavoriteStation" for="favoriteStation">ฐานที่ชอบที่สุด</label>
                     <select id="favoriteStation" class="evaluation-control"></select>
-                    <label id="txtSuggestion" for="activitySuggestion">ข้อเสนอแนะ</label>
-                    <textarea id="activitySuggestion" class="evaluation-control" maxlength="1000" rows="4" placeholder="พิมพ์ข้อเสนอแนะ (ไม่บังคับ)"></textarea>
+                    <label id="txtSuggestion" for="activitySuggestion">ความประทับใจ/ข้อเสนอแนะ/ติชม</label>
+                    <textarea id="activitySuggestion" class="evaluation-control" maxlength="1000" rows="4" placeholder="พิมพ์ความประทับใจ ข้อเสนอแนะ หรือคำติชม (ไม่บังคับ)"></textarea>
+                    <label id="txtDesiredLibraryServices" for="desiredLibraryServices">บริการใหม่ที่นิสิตอยากให้มีในห้องสมุด</label>
+                    <textarea id="desiredLibraryServices" class="evaluation-control" maxlength="1000" rows="4" placeholder="พิมพ์บริการใหม่ที่อยากให้ห้องสมุดมี (ไม่บังคับ)"></textarea>
                 </div>
                 <button id="btnSubmitRating" class="btn-primary" disabled onclick="submitRating()">Submit Rating</button>
             </div>
@@ -133,7 +135,7 @@
 
     <script defer src="assets/js/config/app-config.js?v=20260724-1"></script>
     <script defer src="assets/js/config/firebase-config.js"></script>
-    <script defer src="assets/js/shared/firebase-service.js?v=20260804-4"></script>
-    <script defer src="assets/js/pages/stamp.js?v=20260804-4"></script>
+    <script defer src="assets/js/shared/firebase-service.js?v=20260804-5"></script>
+    <script defer src="assets/js/pages/stamp.js?v=20260804-5"></script>
 </body>
 </html>

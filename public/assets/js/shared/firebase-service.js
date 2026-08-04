@@ -148,14 +148,26 @@
     if (!Number.isInteger(favoriteStationId) || !stations[favoriteStationId]) {
       fail("INVALID_FAVORITE_STATION", "Favorite station is invalid.");
     }
-    const suggestion = String(value.suggestion ?? "").trim();
-    if (suggestion.length > 1000) {
-      fail("SUGGESTION_TOO_LONG", "Suggestion must not exceed 1000 characters.");
+    const impressionFeedback = String(
+      value.impressionFeedback ?? value.suggestion ?? "",
+    ).trim();
+    if (impressionFeedback.length > 1000) {
+      fail("FEEDBACK_TOO_LONG", "Feedback must not exceed 1000 characters.");
+    }
+    const desiredLibraryServices = String(
+      value.desiredLibraryServices ?? "",
+    ).trim();
+    if (desiredLibraryServices.length > 1000) {
+      fail(
+        "DESIRED_SERVICES_TOO_LONG",
+        "Desired library services must not exceed 1000 characters.",
+      );
     }
     return {
       categoryRatings,
       favoriteStationId,
-      suggestion,
+      impressionFeedback,
+      desiredLibraryServices,
     };
   }
 

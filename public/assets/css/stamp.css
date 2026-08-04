@@ -54,7 +54,7 @@ button:active { transform: scale(0.97); }
 .activity-evaluation h3 { margin: 0 0 16px; color: #be185d; text-align: center; }
 .activity-evaluation label, .evaluation-label { display: block; margin: 12px 0 6px; color: #334155; font-weight: 700; }
 .evaluation-control { width: 100%; padding: 11px; border: 2px solid #cbd5e1; border-radius: 10px; background: white; color: #0f172a; font: inherit; }
-.evaluation-criterion { margin-bottom: 8px; padding: 10px 0; border-bottom: 1px solid #e2e8f0; }
+.evaluation-criterion { margin-bottom: 8px; padding: 10px 0; }
 .evaluation-criterion .evaluation-label { margin-top: 0; text-align: center; }
 .evaluation-criterion-overall { margin: 16px 0; padding: 18px 12px; border: 3px solid #f59e0b; border-radius: 16px; background: #fff7d6; box-shadow: 0 6px 16px rgba(245, 158, 11, .2); }
 .evaluation-criterion-overall .evaluation-label { color: #9a3412; font-size: 18px; }
